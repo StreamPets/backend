@@ -7,7 +7,7 @@ import (
 	"github.com/streampets/backend/routes"
 )
 
-func main() {
+func main2() {
 	err := godotenv.Load()
 	if err != nil {
 		panic(err)
@@ -25,7 +25,7 @@ func main() {
 
 	r := gin.Default()
 
-	routes.RegisterOverlayRoutes(r, db, twitch)
+	routes.RegisterRoutes(r, db, twitch)
 
 	r.Run()
 }

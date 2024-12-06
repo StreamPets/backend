@@ -9,7 +9,7 @@ import (
 	"github.com/streampets/backend/repositories"
 )
 
-func setupTwitchRepository() *repositories.TwitchRepository {
+func setupTwitchRepository() repositories.Twitcher {
 	err := godotenv.Load("../../.env")
 	if err != nil {
 		panic(err)
@@ -27,10 +27,10 @@ func setupTwitchRepository() *repositories.TwitchRepository {
 }
 
 func TestGetUsername(t *testing.T) {
-	twitchRepo := setupTwitchRepository()
-
 	channelID := models.TwitchID("83125762")
 	expected := "ljrexcodes"
+
+	twitchRepo := setupTwitchRepository()
 
 	username, err := twitchRepo.GetUsername(channelID)
 	if err != nil {
