@@ -1,9 +1,11 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+)
 
 type SelectedItem struct {
-	UserID    string
-	ChannelID string
+	UserID    TwitchID `gorm:"primaryKey"`
+	ChannelID TwitchID `gorm:"primaryKey"`
 	ItemID    uuid.UUID
 }

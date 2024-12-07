@@ -13,6 +13,10 @@ type ChannelRepo interface {
 	GetOverlayID(channelID models.TwitchID) (uuid.UUID, error)
 }
 
+type AuthServicer interface {
+	VerifyOverlayID(models.TwitchID, uuid.UUID) error
+}
+
 type AuthService struct {
 	channelRepo ChannelRepo
 }

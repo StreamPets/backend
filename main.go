@@ -25,7 +25,7 @@ func main() {
 
 	r := gin.Default()
 
-	routes.RegisterOverlayRoutes(r, db, twitch)
+	routes.RegisterRoutes(r, db, twitch)
 
 	r.Run()
 }
