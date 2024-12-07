@@ -23,14 +23,14 @@ type updateParams struct {
 type Controller struct {
 	announcer     services.Announcer
 	authService   services.AuthServicer
-	twitchRepo    repositories.Twitcher
+	twitchRepo    repositories.TwitchRepository
 	viewerService services.ViewerServicer
 }
 
 func NewOverlayController(
 	announcer services.Announcer,
 	authService services.AuthServicer,
-	twitchRepo repositories.Twitcher,
+	twitchRepo repositories.TwitchRepository,
 	viewerService services.ViewerServicer,
 ) *Controller {
 	return &Controller{
@@ -40,8 +40,6 @@ func NewOverlayController(
 		viewerService: viewerService,
 	}
 }
-
-// OverlayID and ChannelID do not match
 
 func (c *Controller) HandleListen(ctx *gin.Context) {
 	channelID := models.TwitchID(ctx.Query("channelID"))

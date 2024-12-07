@@ -7,7 +7,6 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-// TODO: Move channelID to first
 type ItemRepository interface {
 	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error

@@ -1,8 +1,6 @@
 package services
 
 import (
-	"fmt"
-
 	"github.com/streampets/backend/models"
 )
 
@@ -13,7 +11,6 @@ type Event struct {
 
 type EventStream chan Event
 
-// TODO: Come up with a better name
 type wrappedEvent struct {
 	ChannelName string
 	Event       Event
@@ -88,7 +85,7 @@ func (s *announceService) AnnounceAction(channelName, action string, userID mode
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("%s-%s", action, userID),
+			Event:   action,
 			Message: userID,
 		},
 	}

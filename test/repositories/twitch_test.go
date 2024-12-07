@@ -9,7 +9,7 @@ import (
 	"github.com/streampets/backend/repositories"
 )
 
-func setupTwitchRepository() repositories.Twitcher {
+func setupTwitchRepository() repositories.TwitchRepository {
 	err := godotenv.Load("../../.env")
 	if err != nil {
 		panic(err)

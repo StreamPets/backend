@@ -7,7 +7,7 @@ import (
 	"github.com/streampets/backend/routes"
 )
 
-func main2() {
+func main() {
 	err := godotenv.Load()
 	if err != nil {
 		panic(err)

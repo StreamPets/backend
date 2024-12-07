@@ -55,7 +55,7 @@ func TestHandleListen(t *testing.T) {
 
 		announcerMock := mock.Mock[services.Announcer]()
 		authMock := mock.Mock[services.AuthServicer]()
-		twitchMock := mock.Mock[repositories.Twitcher]()
+		twitchMock := mock.Mock[repositories.TwitchRepository]()
 		viewerMock := mock.Mock[services.ViewerServicer]()
 
 		mock.When(announcerMock.AddClient(channelName)).ThenReturn(client)
@@ -97,7 +97,7 @@ func TestHandleListen(t *testing.T) {
 
 		announcerMock := mock.Mock[services.Announcer]()
 		authMock := mock.Mock[services.AuthServicer]()
-		twitchMock := mock.Mock[repositories.Twitcher]()
+		twitchMock := mock.Mock[repositories.TwitchRepository]()
 		viewerMock := mock.Mock[services.ViewerServicer]()
 
 		mock.When(authMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(services.ErrIdMismatch)

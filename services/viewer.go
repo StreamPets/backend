@@ -18,12 +18,12 @@ type ViewerServicer interface {
 
 type ViewerService struct {
 	itemRepo   repositories.ItemRepository
-	twitchRepo repositories.Twitcher
+	twitchRepo repositories.TwitchRepository
 }
 
 func NewViewerService(
 	itemRepo repositories.ItemRepository,
-	twitchRepo repositories.Twitcher,
+	twitchRepo repositories.TwitchRepository,
 ) *ViewerService {
 	return &ViewerService{
 		itemRepo:   itemRepo,

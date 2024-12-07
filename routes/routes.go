@@ -8,7 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func RegisterRoutes(r *gin.Engine, db *gorm.DB, twitchRepo repositories.Twitcher) {
+func RegisterRoutes(r *gin.Engine, db *gorm.DB, twitchRepo repositories.TwitchRepository) {
 	channelRepo := repositories.NewChannelRepository(db)
 	itemRepo := repositories.NewItemRepository(db)
 

@@ -26,7 +26,7 @@ func TestGetViewer(t *testing.T) {
 	}
 
 	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.Twitcher]()
+	twitchMock := mock.Mock[repositories.TwitchRepository]()
 
 	mock.When(itemMock.GetSelectedItem(userID, channelID)).ThenReturn(item, nil)
 	mock.When(twitchMock.GetUserID(channelName)).ThenReturn(channelID, nil)
