@@ -54,7 +54,7 @@ func TestHandleListen(t *testing.T) {
 		ctx, recorder := setUpContext(string(channelID), overlayID.String())
 
 		announcerMock := mock.Mock[services.Announcer]()
-		authMock := mock.Mock[services.AuthServicer]()
+		authMock := mock.Mock[services.AuthService]()
 		twitchMock := mock.Mock[repositories.TwitchRepository]()
 		viewerMock := mock.Mock[services.ViewerServicer]()
 
@@ -62,7 +62,7 @@ func TestHandleListen(t *testing.T) {
 		mock.When(authMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(nil)
 		mock.When(twitchMock.GetUsername(channelID)).ThenReturn(channelName, nil)
 
-		controller := controllers.NewOverlayController(
+		controller := controllers.NewController(
 			announcerMock, authMock, twitchMock, viewerMock,
 		)
 
@@ -96,13 +96,13 @@ func TestHandleListen(t *testing.T) {
 		ctx, recorder := setUpContext(string(channelID), overlayID.String())
 
 		announcerMock := mock.Mock[services.Announcer]()
-		authMock := mock.Mock[services.AuthServicer]()
+		authMock := mock.Mock[services.AuthService]()
 		twitchMock := mock.Mock[repositories.TwitchRepository]()
 		viewerMock := mock.Mock[services.ViewerServicer]()
 
 		mock.When(authMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(services.ErrIdMismatch)
 
-		controller := controllers.NewOverlayController(
+		controller := controllers.NewController(
 			announcerMock, authMock, twitchMock, viewerMock,
 		)
 

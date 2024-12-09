@@ -3,29 +3,43 @@ package services
 import (
 	"errors"
 
+	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/repositories"
 )
 
 var ErrIdMismatch = errors.New("channelID and overlayID do not match")
+var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
+var ErrInvalidToken = errors.New("token is not valid")
 
-type ChannelRepo interface {
-	GetOverlayID(channelID models.TwitchID) (uuid.UUID, error)
+type ExtToken struct {
+	ChannelID models.TwitchID `json:"channel_id"`
+	UserID    models.TwitchID `json:"user_id"`
+	jwt.RegisteredClaims
 }
 
-type AuthServicer interface {
-	VerifyOverlayID(models.TwitchID, uuid.UUID) error
+type AuthService interface {
+	VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error
+	VerifyExtToken(tokenString string) (*ExtToken, error)
 }
 
-type AuthService struct {
-	channelRepo ChannelRepo
+type authService struct {
+	channelRepo  repositories.ChannelRepo
+	clientSecret string
 }
 
-func NewAuthService(channelRepo ChannelRepo) *AuthService {
-	return &AuthService{channelRepo: channelRepo}
+func NewAuthService(
+	channelRepo repositories.ChannelRepo,
+	clientSecret string,
+) AuthService {
+	return &authService{
+		channelRepo:  channelRepo,
+		clientSecret: clientSecret,
+	}
 }
 
-func (s *AuthService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error {
+func (s *authService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error {
 	expectedID, err := s.channelRepo.GetOverlayID(channelID)
 	if err != nil {
 		return err
@@ -36,4 +50,24 @@ func (s *AuthService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.
 	}
 
 	return nil
+}
+
+func (s *authService) VerifyExtToken(tokenString string) (*ExtToken, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &ExtToken{}, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, ErrUnexpectedSigningMethod
+		}
+		return []byte(s.clientSecret), nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*ExtToken)
+	if !ok || !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	return claims, nil
 }

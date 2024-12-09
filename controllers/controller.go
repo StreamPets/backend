@@ -20,20 +20,29 @@ type updateParams struct {
 	ItemName string `json:"item_name"`
 }
 
-type Controller struct {
+type Controller interface {
+	HandleListen(ctx *gin.Context)
+	AddViewerToChannel(ctx *gin.Context)
+	RemoveViewerFromChannel(ctx *gin.Context)
+	Action(ctx *gin.Context)
+	UpdateViewer(ctx *gin.Context)
+	GetStoreData(ctx *gin.Context)
+}
+
+type controller struct {
 	announcer     services.Announcer
-	authService   services.AuthServicer
+	authService   services.AuthService
 	twitchRepo    repositories.TwitchRepository
 	viewerService services.ViewerServicer
 }
 
-func NewOverlayController(
+func NewController(
 	announcer services.Announcer,
-	authService services.AuthServicer,
+	authService services.AuthService,
 	twitchRepo repositories.TwitchRepository,
 	viewerService services.ViewerServicer,
-) *Controller {
-	return &Controller{
+) Controller {
+	return &controller{
 		announcer:     announcer,
 		authService:   authService,
 		twitchRepo:    twitchRepo,
@@ -41,7 +50,7 @@ func NewOverlayController(
 	}
 }
 
-func (c *Controller) HandleListen(ctx *gin.Context) {
+func (c *controller) HandleListen(ctx *gin.Context) {
 	channelID := models.TwitchID(ctx.Query("channelID"))
 	overlayID, err := uuid.Parse(ctx.Query("overlayID"))
 	if err != nil {
@@ -78,7 +87,7 @@ func (c *Controller) HandleListen(ctx *gin.Context) {
 	})
 }
 
-func (c *Controller) AddViewerToChannel(ctx *gin.Context) {
+func (c *controller) AddViewerToChannel(ctx *gin.Context) {
 	channelName := ctx.Param("channelName")
 
 	var joinParams joinParams
@@ -96,14 +105,14 @@ func (c *Controller) AddViewerToChannel(ctx *gin.Context) {
 	c.announcer.AnnounceJoin(channelName, viewer)
 }
 
-func (c *Controller) RemoveViewerFromChannel(ctx *gin.Context) {
+func (c *controller) RemoveViewerFromChannel(ctx *gin.Context) {
 	channelName := ctx.Param("channelName")
 	userID := models.TwitchID(ctx.Param("userID"))
 
 	c.announcer.AnnouncePart(channelName, userID)
 }
 
-func (c *Controller) Action(ctx *gin.Context) {
+func (c *controller) Action(ctx *gin.Context) {
 	channelName := ctx.Param("channelName")
 	action := ctx.Param("action")
 	userID := models.TwitchID(ctx.Param("userID"))
@@ -111,7 +120,7 @@ func (c *Controller) Action(ctx *gin.Context) {
 	c.announcer.AnnounceAction(channelName, action, userID)
 }
 
-func (c *Controller) UpdateViewer(ctx *gin.Context) {
+func (c *controller) UpdateViewer(ctx *gin.Context) {
 	channelName := ctx.Param("channelName")
 	userID := models.TwitchID(ctx.Param("userID"))
 
@@ -128,6 +137,10 @@ func (c *Controller) UpdateViewer(ctx *gin.Context) {
 	}
 
 	c.announcer.AnnounceUpdate(channelName, item.Image, userID)
+}
+
+func (c *controller) GetStoreData(ctx *gin.Context) {
+
 }
 
 func addErrorToCtx(err error, ctx *gin.Context) {

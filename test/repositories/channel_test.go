@@ -23,7 +23,7 @@ func TestGetOverlayID(t *testing.T) {
 		panic(result.Error)
 	}
 
-	repo := repositories.NewChannelRepository(db)
+	repo := repositories.NewChannelRepo(db)
 
 	got, err := repo.GetOverlayID(channelID)
 	if err != nil {
