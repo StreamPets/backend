@@ -18,5 +18,5 @@ type Schedule struct {
 	ScheduleID uuid.UUID
 	DayOfWeek  DayOfWeek
 	ItemID     uuid.UUID
-	ChannelID  string
+	ChannelID  TwitchID
 }

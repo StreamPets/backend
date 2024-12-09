@@ -1,6 +1,8 @@
 package services
 
 import (
+	"time"
+
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 )
@@ -11,27 +13,29 @@ type Viewer struct {
 	Image    string
 }
 
-type ViewerServicer interface {
+type DatabaseService interface {
 	GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error)
 	UpdateViewer(userID models.TwitchID, channelName, itemName string) (models.Item, error)
+	GetTodaysItems(channelID models.TwitchID) ([]models.Item, error)
+	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 }
 
-type ViewerService struct {
+type databaseService struct {
 	itemRepo   repositories.ItemRepository
 	twitchRepo repositories.TwitchRepository
 }
 
-func NewViewerService(
+func NewDatabaseService(
 	itemRepo repositories.ItemRepository,
 	twitchRepo repositories.TwitchRepository,
-) *ViewerService {
-	return &ViewerService{
+) DatabaseService {
+	return &databaseService{
 		itemRepo:   itemRepo,
 		twitchRepo: twitchRepo,
 	}
 }
 
-func (s *ViewerService) GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error) {
+func (s *databaseService) GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error) {
 	channelID, err := s.twitchRepo.GetUserID(channelName)
 	if err != nil {
 		return Viewer{}, nil
@@ -45,7 +49,7 @@ func (s *ViewerService) GetViewer(userID models.TwitchID, channelName, username 
 	return Viewer{UserID: userID, Username: username, Image: item.Image}, nil
 }
 
-func (s *ViewerService) UpdateViewer(userID models.TwitchID, channelName, itemName string) (models.Item, error) {
+func (s *databaseService) UpdateViewer(userID models.TwitchID, channelName, itemName string) (models.Item, error) {
 	channelID, err := s.twitchRepo.GetUserID(channelName)
 	if err != nil {
 		return models.Item{}, err
@@ -61,4 +65,15 @@ func (s *ViewerService) UpdateViewer(userID models.TwitchID, channelName, itemNa
 	}
 
 	return item, nil
+}
+
+func (s *databaseService) GetTodaysItems(channelID models.TwitchID) ([]models.Item, error) {
+	currentTime := time.Now()
+	dayOfWeek := models.DayOfWeek(currentTime.Weekday().String())
+
+	return s.itemRepo.GetScheduledItems(channelID, dayOfWeek)
+}
+
+func (s *databaseService) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
+	return s.itemRepo.GetOwnedItems(channelID, userID)
 }

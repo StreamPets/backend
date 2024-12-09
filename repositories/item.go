@@ -11,6 +11,8 @@ type ItemRepository interface {
 	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
 	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
+	GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error)
+	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 }
 
 type itemRepository struct {
@@ -48,4 +50,16 @@ func (repo *itemRepository) GetItemByName(channelID models.TwitchID, itemName st
 	var item models.Item
 	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ? AND items.name = ?", channelID, itemName).First(&item)
 	return item, result.Error
+}
+
+func (repo *itemRepository) GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error) {
+	var items []models.Item
+	result := repo.db.Joins("JOIN schedules ON schedules.item_id = items.item_id AND schedules.channel_id = ? AND schedules.day_of_week = ?", channelID, dayOfWeek).Find(&items)
+	return items, result.Error
+}
+
+func (repo *itemRepository) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
+	var items []models.Item
+	result := repo.db.Joins("JOIN owned_items ON owned_items.item_id = items.item_id AND owned_items.channel_id = ? AND owned_items.user_id = ?", channelID, userID).Find(&items)
+	return items, result.Error
 }

@@ -1,7 +1,6 @@
 package services_test
 
 import (
-	"fmt"
 	"sync"
 	"testing"
 
@@ -104,7 +103,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		announcer.AnnounceAction(channelName, action, userID)
 		wg.Wait()
 
-		expected := services.Event{Event: fmt.Sprintf("%s-%s", action, userID), Message: userID}
+		expected := services.Event{Event: action, Message: userID}
 		if len(events) != 1 {
 			t.Errorf("expected 1 event but got %d", len(events))
 		}

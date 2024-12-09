@@ -1,6 +1,7 @@
 package repositories_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/google/uuid"
@@ -126,6 +127,87 @@ func TestGetItemByName(t *testing.T) {
 
 	assertNoError(err, t)
 	assertItemsEqual(got, item, t)
+}
+
+func TestGetScheduledItems(t *testing.T) {
+	channelID := models.TwitchID("channel id")
+	dayOfWeek := models.Monday
+	itemID := uuid.New()
+
+	item := models.Item{
+		ItemID:  itemID,
+		Name:    "item name",
+		Rarity:  "rarity",
+		Image:   "image",
+		PrevImg: "prev image",
+	}
+
+	schedule := models.Schedule{
+		ScheduleID: uuid.New(),
+		DayOfWeek:  dayOfWeek,
+		ItemID:     itemID,
+		ChannelID:  channelID,
+	}
+
+	db := createTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+	if result := db.Create(&schedule); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+
+	items, err := itemRepo.GetScheduledItems(channelID, dayOfWeek)
+	if err != nil {
+		t.Errorf("did not expect an error but received %s", err.Error())
+	}
+
+	expected := []models.Item{item}
+	if !slices.Equal(items, expected) {
+		t.Errorf("expected %s got %s", expected, items)
+	}
+}
+
+func TestGetOwnedItems(t *testing.T) {
+	channelID := models.TwitchID("channel id")
+	userID := models.TwitchID("user id")
+	itemID := uuid.New()
+
+	item := models.Item{
+		ItemID:  itemID,
+		Name:    "item name",
+		Rarity:  "rarity",
+		Image:   "image",
+		PrevImg: "prev image",
+	}
+
+	owneditem := models.OwnedItem{
+		UserID:    "user id",
+		ChannelID: "channel id",
+		ItemID:    itemID,
+	}
+
+	db := createTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+	if result := db.Create(&owneditem); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+
+	items, err := itemRepo.GetOwnedItems(channelID, userID)
+	if err != nil {
+		t.Errorf("did not expect an error but received %s", err.Error())
+	}
+
+	expected := []models.Item{item}
+	if !slices.Equal(items, expected) {
+		t.Errorf("expected %s got %s", expected, items)
+	}
 }
 
 func assertItemsEqual(got, want models.Item, t *testing.T) {

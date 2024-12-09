@@ -30,23 +30,23 @@ type Controller interface {
 }
 
 type controller struct {
-	announcer     services.Announcer
-	authService   services.AuthService
-	twitchRepo    repositories.TwitchRepository
-	viewerService services.ViewerServicer
+	announcer       services.Announcer
+	authService     services.AuthService
+	twitchRepo      repositories.TwitchRepository
+	databaseService services.DatabaseService
 }
 
 func NewController(
 	announcer services.Announcer,
 	authService services.AuthService,
 	twitchRepo repositories.TwitchRepository,
-	viewerService services.ViewerServicer,
+	databaseService services.DatabaseService,
 ) Controller {
 	return &controller{
-		announcer:     announcer,
-		authService:   authService,
-		twitchRepo:    twitchRepo,
-		viewerService: viewerService,
+		announcer:       announcer,
+		authService:     authService,
+		twitchRepo:      twitchRepo,
+		databaseService: databaseService,
 	}
 }
 
@@ -96,7 +96,7 @@ func (c *controller) AddViewerToChannel(ctx *gin.Context) {
 		return
 	}
 
-	viewer, err := c.viewerService.GetViewer(joinParams.UserID, channelName, joinParams.Username)
+	viewer, err := c.databaseService.GetViewer(joinParams.UserID, channelName, joinParams.Username)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -130,7 +130,7 @@ func (c *controller) UpdateViewer(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.viewerService.UpdateViewer(userID, channelName, updateParams.ItemName)
+	item, err := c.databaseService.UpdateViewer(userID, channelName, updateParams.ItemName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -140,7 +140,30 @@ func (c *controller) UpdateViewer(ctx *gin.Context) {
 }
 
 func (c *controller) GetStoreData(ctx *gin.Context) {
+	tokenString := ctx.GetHeader("x-extension-jwt")
 
+	token, err := c.authService.VerifyExtToken(tokenString)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	storeItems, err := c.databaseService.GetTodaysItems(token.ChannelID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	ownedItems, err := c.databaseService.GetOwnedItems(token.ChannelID, token.UserID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	ctx.JSON(http.StatusOK, gin.H{
+		"store": storeItems,
+		"owned": ownedItems,
+	})
 }
 
 func addErrorToCtx(err error, ctx *gin.Context) {
