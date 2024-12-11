@@ -12,12 +12,11 @@ func RegisterRoutes(
 	r *gin.Engine,
 	db *gorm.DB,
 	twitchRepo repositories.TwitchRepository,
+	authService services.AuthService,
 ) {
-	channelRepo := repositories.NewChannelRepo(db)
 	itemRepo := repositories.NewItemRepository(db)
 
 	announcer := services.NewAnnounceService()
-	authService := services.NewAuthService(channelRepo, "")
 	databaseService := services.NewDatabaseService(itemRepo, twitchRepo)
 
 	controller := controllers.NewController(

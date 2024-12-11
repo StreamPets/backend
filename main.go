@@ -23,9 +23,11 @@ func main() {
 		panic(err)
 	}
 
+	auth := config.CreateAuthService(db)
+
 	r := gin.Default()
 
-	routes.RegisterRoutes(r, db, twitch)
+	routes.RegisterRoutes(r, db, twitch, auth)
 
 	r.Run()
 }
