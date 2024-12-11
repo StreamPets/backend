@@ -44,7 +44,7 @@ func NewDatabaseService(
 func (s *databaseService) GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error) {
 	channelID, err := s.twitchRepo.GetUserID(channelName)
 	if err != nil {
-		return Viewer{}, nil
+		return Viewer{}, err
 	}
 
 	item, err := s.itemRepo.GetSelectedItem(userID, channelID)
