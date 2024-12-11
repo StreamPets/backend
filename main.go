@@ -13,20 +13,9 @@ func main() {
 		panic(err)
 	}
 
-	db, err := config.ConnectDB()
-	if err != nil {
-		panic(err)
-	}
-
-	twitch, err := config.CreateTwitchRepo()
-	if err != nil {
-		panic(err)
-	}
-
-	auth, err := config.CreateAuthService(db)
-	if err != nil {
-		panic(err)
-	}
+	db := config.ConnectDB()
+	twitch := config.CreateTwitchRepo()
+	auth := config.CreateAuthService(db)
 
 	r := gin.Default()
 

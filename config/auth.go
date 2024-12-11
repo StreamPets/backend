@@ -6,11 +6,11 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateAuthService(db *gorm.DB) (services.AuthService, error) {
+func CreateAuthService(db *gorm.DB) services.AuthService {
 	clientSecret := mustGetEnv("CLIENT_SECRET")
 
 	channelRepo := repositories.NewChannelRepo(db)
 	authService := services.NewAuthService(channelRepo, clientSecret)
 
-	return authService, nil
+	return authService
 }

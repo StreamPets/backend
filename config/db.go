@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectDB() (*gorm.DB, error) {
+func ConnectDB() *gorm.DB {
 	host := mustGetEnv("DB_HOST")
 	port := mustGetEnv("DB_PORT")
 	sslMode := mustGetEnv("DB_SSL_MODE")
@@ -21,7 +21,7 @@ func ConnectDB() (*gorm.DB, error) {
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	if err := db.AutoMigrate(
@@ -34,8 +34,8 @@ func ConnectDB() (*gorm.DB, error) {
 		&models.SelectedItem{},
 		&models.User{},
 	); err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return db, nil
+	return db
 }
