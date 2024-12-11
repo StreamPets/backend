@@ -18,6 +18,7 @@ type ItemRepository interface {
 
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
+	CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) error
 }
 
 type itemRepository struct {
@@ -89,5 +90,10 @@ func (repo *itemRepository) AddOwnedItem(userID models.TwitchID, itemID, transac
 		TransactionID: transactionID,
 	})
 
+	return result.Error
+}
+
+func (repo *itemRepository) CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) error {
+	result := repo.db.Where("user_id = ? AND item_id = ?", userID, itemID).First(&models.OwnedItem{})
 	return result.Error
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
+	"gorm.io/gorm"
 )
 
 func TestGetSelectedItem(t *testing.T) {
@@ -222,6 +223,41 @@ func TestAddOwnedItem(t *testing.T) {
 	err := itemRepo.AddOwnedItem(userID, itemID, transactionID)
 
 	assertNoError(err, t)
+}
+
+func TestCheckOwnedItem(t *testing.T) {
+	t.Run("no error when user owns item", func(t *testing.T) {
+		userID := models.TwitchID("user id")
+		itemID := uuid.New()
+
+		ownedItem := models.OwnedItem{UserID: userID, ItemID: itemID}
+
+		db := createTestDB()
+		if result := db.Create(&ownedItem); result.Error != nil {
+			panic(result.Error)
+		}
+
+		itemRepo := repositories.NewItemRepository(db)
+
+		err := itemRepo.CheckOwnedItem(userID, itemID)
+		assertNoError(err, t)
+	})
+
+	t.Run("error when item is unowned", func(t *testing.T) {
+		userID := models.TwitchID("user id")
+		itemID := uuid.New()
+
+		db := createTestDB()
+
+		itemRepo := repositories.NewItemRepository(db)
+
+		err := itemRepo.CheckOwnedItem(userID, itemID)
+		if err == nil {
+			t.Errorf("expected an error but did not receive one")
+		} else if err != gorm.ErrRecordNotFound {
+			t.Errorf("expected %s got %s", gorm.ErrRecordNotFound, err)
+		}
+	})
 }
 
 func assertItemsEqual(got, want models.Item, t *testing.T) {

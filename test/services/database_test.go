@@ -10,6 +10,7 @@ import (
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
+	"gorm.io/gorm"
 )
 
 func TestGetViewer(t *testing.T) {
@@ -101,23 +102,49 @@ func TestGetItemByID(t *testing.T) {
 }
 
 func TestSetSelectedItem(t *testing.T) {
-	mock.SetUp(t)
+	t.Run("item is set as selected when owned", func(t *testing.T) {
+		mock.SetUp(t)
 
-	userID := models.TwitchID("user id")
-	channelID := models.TwitchID("channel id")
-	itemID := uuid.New()
+		userID := models.TwitchID("user id")
+		channelID := models.TwitchID("channel id")
+		itemID := uuid.New()
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
+		itemMock := mock.Mock[repositories.ItemRepository]()
+		twitchMock := mock.Mock[repositories.TwitchRepository]()
 
-	database := services.NewDatabaseService(itemMock, twitchMock)
+		database := services.NewDatabaseService(itemMock, twitchMock)
 
-	err := database.SetSelectedItem(userID, channelID, itemID)
-	if err != nil {
-		t.Errorf("did not expect an error but received %s", err.Error())
-	}
+		err := database.SetSelectedItem(userID, channelID, itemID)
+		if err != nil {
+			t.Errorf("did not expect an error but received %s", err.Error())
+		}
 
-	mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelID, userID, itemID)
+		mock.Verify(itemMock, mock.Once()).CheckOwnedItem(userID, itemID)
+		mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelID, userID, itemID)
+	})
+
+	t.Run("item is not set as selected when unowned", func(t *testing.T) {
+		mock.SetUp(t)
+
+		userID := models.TwitchID("user id")
+		channelID := models.TwitchID("channel id")
+		itemID := uuid.New()
+
+		itemMock := mock.Mock[repositories.ItemRepository]()
+		twitchMock := mock.Mock[repositories.TwitchRepository]()
+
+		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(gorm.ErrRecordNotFound)
+
+		database := services.NewDatabaseService(itemMock, twitchMock)
+
+		err := database.SetSelectedItem(userID, channelID, itemID)
+		if err == nil {
+			t.Errorf("expected an error but did not receive one")
+		}
+
+		mock.Verify(itemMock, mock.Once()).CheckOwnedItem(userID, itemID)
+		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelID, userID, itemID)
+	})
 }
 
 func TestGetTodaysItems(t *testing.T) {

@@ -64,6 +64,10 @@ func (s *databaseService) GetItemByID(itemID uuid.UUID) (models.Item, error) {
 }
 
 func (s *databaseService) SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error {
+	if err := s.itemRepo.CheckOwnedItem(userID, itemID); err != nil {
+		return err
+	}
+
 	return s.itemRepo.SetSelectedItem(channelID, userID, itemID)
 }
 
