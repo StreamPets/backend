@@ -11,9 +11,10 @@ import (
 	"github.com/streampets/backend/models"
 )
 
-type usernameResponse struct {
+type userResponse struct {
 	Data []struct {
-		Login string `json:"login"`
+		UserID   models.TwitchID `json:"id"`
+		Username string          `json:"login"`
 	} `json:"data"`
 }
 
@@ -21,56 +22,76 @@ type accessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-type TwitchRepository struct {
+type TwitchRepository interface {
+	GetUsername(userID models.TwitchID) (string, error)
+	GetUserID(username string) (models.TwitchID, error)
+}
+
+type twitchRepository struct {
 	clientID     string
 	clientSecret string
 	accessToken  string
 }
 
-func NewTwitchRepository(id, secret string) (*TwitchRepository, error) {
-	repo := &TwitchRepository{clientID: id, clientSecret: secret}
+func NewTwitchRepository(id, secret string) (TwitchRepository, error) {
+	repo := &twitchRepository{clientID: id, clientSecret: secret}
 	if err := repo.refreshAccessToken(); err != nil {
 		return repo, err
 	}
 	return repo, nil
 }
 
-func (repo *TwitchRepository) GetUsername(userID models.TwitchID) (string, error) {
-	resp, err := repo.getUsernameWithRefresh(userID)
+func (repo *twitchRepository) GetUsername(userID models.TwitchID) (string, error) {
+	params := fmt.Sprintf("id=%s", userID)
+
+	user, err := repo.getUserWithRefresh(params)
 	if err != nil {
 		return "", err
+	}
+
+	return user.Data[0].Username, nil
+}
+
+func (repo *twitchRepository) GetUserID(username string) (models.TwitchID, error) {
+	params := fmt.Sprintf("login=%s", username)
+
+	user, err := repo.getUserWithRefresh(params)
+	if err != nil {
+		return "", err
+	}
+
+	return user.Data[0].UserID, nil
+}
+
+func (repo *twitchRepository) getUserWithRefresh(params string) (userResponse, error) {
+	resp, err := getUser(params, repo.accessToken, repo.clientID)
+	if err != nil {
+		return userResponse{}, err
+	}
+
+	if resp.StatusCode == 401 {
+		if err := repo.refreshAccessToken(); err != nil {
+			return userResponse{}, err
+		}
+		resp, err = getUser(params, repo.accessToken, repo.clientID)
+		if err != nil {
+			return userResponse{}, err
+		}
 	}
 
 	if resp.StatusCode != 200 {
-		return "", errors.New("received incorrect status code from twitch")
+		return userResponse{}, errors.New("received incorrect status code from twitch")
 	}
 
-	var data usernameResponse
+	var data userResponse
 	if err := parseResponse(&data, resp); err != nil {
-		return "", err
+		return userResponse{}, err
 	}
 
-	return data.Data[0].Login, nil
+	return data, nil
 }
 
-func (repo *TwitchRepository) getUsernameWithRefresh(userID models.TwitchID) (*http.Response, error) {
-	resp, err := getUsername(userID, repo.accessToken, repo.clientID)
-	if err != nil {
-		return nil, err
-	}
-
-	if resp.StatusCode != 401 {
-		return resp, err
-	}
-
-	if err := repo.refreshAccessToken(); err != nil {
-		return nil, err
-	}
-
-	return getUsername(userID, repo.accessToken, repo.clientID)
-}
-
-func (repo *TwitchRepository) refreshAccessToken() error {
+func (repo *twitchRepository) refreshAccessToken() error {
 	resp, err := getAccessToken(repo.clientID, repo.clientSecret)
 	if err != nil {
 		return err
@@ -105,8 +126,8 @@ func getAccessToken(clientID, clientSecret string) (*http.Response, error) {
 }
 
 // Could be in separate TwitchApi file
-func getUsername(userID models.TwitchID, accessToken, clientID string) (*http.Response, error) {
-	url := fmt.Sprintf("https://api.twitch.tv/helix/users?id=%s", userID)
+func getUser(params, accessToken, clientID string) (*http.Response, error) {
+	url := fmt.Sprintf("https://api.twitch.tv/helix/users?%s", params)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
 		return nil, err
