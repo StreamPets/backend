@@ -69,7 +69,8 @@ func (repo *itemRepository) GetScheduledItems(channelID models.TwitchID, dayOfWe
 	return items, result.Error
 }
 
-func (repo *itemRepository) GetOwnedItems(channelID, userID models.TwitchID) (items []models.Item, err error) {
+func (repo *itemRepository) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
+	var items []models.Item
 	result := repo.db.Joins("JOIN owned_items ON owned_items.item_id = items.item_id AND owned_items.channel_id = ? AND owned_items.user_id = ?", channelID, userID).Find(&items)
 	return items, result.Error
 }
