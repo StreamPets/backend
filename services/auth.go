@@ -19,9 +19,15 @@ type ExtToken struct {
 	jwt.RegisteredClaims
 }
 
+type Receipt struct {
+	TransactionID uuid.UUID `json:"transaction_id"`
+	jwt.RegisteredClaims
+}
+
 type AuthService interface {
 	VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error
 	VerifyExtToken(tokenString string) (*ExtToken, error)
+	VerifyReceipt(tokenString string) (*Receipt, error)
 }
 
 type authService struct {
@@ -53,13 +59,7 @@ func (s *authService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.
 }
 
 func (s *authService) VerifyExtToken(tokenString string) (*ExtToken, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &ExtToken{}, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, ErrUnexpectedSigningMethod
-		}
-		return []byte(s.clientSecret), nil
-	})
-
+	token, err := jwt.ParseWithClaims(tokenString, &ExtToken{}, s.keyFunc)
 	if err != nil {
 		return nil, err
 	}
@@ -70,4 +70,25 @@ func (s *authService) VerifyExtToken(tokenString string) (*ExtToken, error) {
 	}
 
 	return claims, nil
+}
+
+func (s *authService) VerifyReceipt(tokenString string) (*Receipt, error) {
+	token, err := jwt.ParseWithClaims(tokenString, &Receipt{}, s.keyFunc)
+	if err != nil {
+		return nil, err
+	}
+
+	claims, ok := token.Claims.(*Receipt)
+	if !ok || !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	return claims, nil
+}
+
+func (s *authService) keyFunc(token *jwt.Token) (interface{}, error) {
+	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+		return nil, ErrUnexpectedSigningMethod
+	}
+	return []byte(s.clientSecret), nil
 }

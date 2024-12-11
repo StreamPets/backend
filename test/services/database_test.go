@@ -13,19 +13,15 @@ import (
 )
 
 func TestGetViewer(t *testing.T) {
+	mock.SetUp(t)
+
 	userID := models.TwitchID("user id")
 	channelID := models.TwitchID("channel id")
 	channelName := "channel name"
 	username := "username"
 	image := "image"
 
-	item := models.Item{
-		ItemID:  uuid.New(),
-		Name:    "name",
-		Rarity:  "rarity",
-		Image:   image,
-		PrevImg: "prev image",
-	}
+	item := models.Item{Image: image}
 
 	itemMock := mock.Mock[repositories.ItemRepository]()
 	twitchMock := mock.Mock[repositories.TwitchRepository]()
@@ -52,11 +48,81 @@ func TestGetViewer(t *testing.T) {
 	}
 }
 
-// TODO:
-func TestUpdateViewer(t *testing.T) {
+func TestGetItemByName(t *testing.T) {
+	mock.SetUp(t)
+
+	channelID := models.TwitchID("channel id")
+	itemName := "item name"
+
+	item := models.Item{Name: itemName}
+
+	itemMock := mock.Mock[repositories.ItemRepository]()
+	twitchMock := mock.Mock[repositories.TwitchRepository]()
+
+	mock.When(itemMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
+
+	database := services.NewDatabaseService(itemMock, twitchMock)
+
+	got, err := database.GetItemByName(channelID, itemName)
+	if err != nil {
+		t.Errorf("did not expect an error but received %s", err.Error())
+	}
+
+	if got != item {
+		t.Errorf("expected %s got %s", item, got)
+	}
+
+	mock.Verify(itemMock, mock.Once()).GetItemByName(channelID, itemName)
+}
+
+func TestGetItemByID(t *testing.T) {
+	mock.SetUp(t)
+
+	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
+
+	itemMock := mock.Mock[repositories.ItemRepository]()
+	twitchMock := mock.Mock[repositories.TwitchRepository]()
+
+	mock.When(itemMock.GetItemByID(itemID)).ThenReturn(item, nil)
+
+	database := services.NewDatabaseService(itemMock, twitchMock)
+
+	got, err := database.GetItemByID(itemID)
+	if err != nil {
+		t.Errorf("did not expect an error but received %s", err.Error())
+	}
+
+	if got != item {
+		t.Errorf("expected %s got %s", item, got)
+	}
+
+	mock.Verify(itemMock, mock.Once()).GetItemByID(itemID)
+}
+
+func TestSetSelectedItem(t *testing.T) {
+	mock.SetUp(t)
+
+	userID := models.TwitchID("user id")
+	channelID := models.TwitchID("channel id")
+	itemID := uuid.New()
+
+	itemMock := mock.Mock[repositories.ItemRepository]()
+	twitchMock := mock.Mock[repositories.TwitchRepository]()
+
+	database := services.NewDatabaseService(itemMock, twitchMock)
+
+	err := database.SetSelectedItem(userID, channelID, itemID)
+	if err != nil {
+		t.Errorf("did not expect an error but received %s", err.Error())
+	}
+
+	mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelID, userID, itemID)
 }
 
 func TestGetTodaysItems(t *testing.T) {
+	mock.SetUp(t)
+
 	currentTime := time.Now()
 	dayOfWeek := models.DayOfWeek(currentTime.Weekday().String())
 	channelID := models.TwitchID("channel id")
@@ -83,6 +149,8 @@ func TestGetTodaysItems(t *testing.T) {
 }
 
 func TestGetOwnedItems(t *testing.T) {
+	mock.SetUp(t)
+
 	channelID := models.TwitchID("channel id")
 	userID := models.TwitchID("user id")
 	expected := []models.Item{{}}
@@ -101,5 +169,25 @@ func TestGetOwnedItems(t *testing.T) {
 
 	if !slices.Equal(items, expected) {
 		t.Errorf("expected %s got %s", expected, items)
+	}
+}
+
+func TestAddOwnedItem(t *testing.T) {
+	mock.SetUp(t)
+
+	userID := models.TwitchID("user id")
+	itemID := uuid.New()
+	transactionID := uuid.New()
+
+	itemMock := mock.Mock[repositories.ItemRepository]()
+	twitchMock := mock.Mock[repositories.TwitchRepository]()
+
+	mock.When(itemMock.AddOwnedItem(userID, itemID, transactionID)).ThenReturn(nil)
+
+	databaseService := services.NewDatabaseService(itemMock, twitchMock)
+
+	err := databaseService.AddOwnedItem(userID, itemID, transactionID)
+	if err != nil {
+		t.Errorf("did not expect an error but received %s", err.Error())
 	}
 }

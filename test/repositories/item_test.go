@@ -12,15 +12,9 @@ import (
 func TestGetSelectedItem(t *testing.T) {
 	channelID := models.TwitchID("channel id")
 	userID := models.TwitchID("user id")
-	itemID := uuid.New()
 
-	item := models.Item{
-		ItemID:  itemID,
-		Name:    "item name",
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
-	}
+	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
 
 	selectedItem := models.SelectedItem{
 		UserID:    userID,
@@ -46,24 +40,12 @@ func TestGetSelectedItem(t *testing.T) {
 func TestSetSelectedItem(t *testing.T) {
 	channelID := models.TwitchID("channel id")
 	userID := models.TwitchID("user id")
-	newItemID := uuid.New()
+
 	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
 
-	item := models.Item{
-		ItemID:  itemID,
-		Name:    "name",
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
-	}
-
-	newItem := models.Item{
-		ItemID:  newItemID,
-		Name:    "new name",
-		Rarity:  "new rarity",
-		Image:   "new image",
-		PrevImg: "new prev image",
-	}
+	newItemID := uuid.New()
+	newItem := models.Item{ItemID: newItemID}
 
 	selectedItem := models.SelectedItem{
 		UserID:    userID,
@@ -102,11 +84,8 @@ func TestGetItemByName(t *testing.T) {
 	itemName := "item name"
 
 	item := models.Item{
-		ItemID:  itemID,
-		Name:    itemName,
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
+		ItemID: itemID,
+		Name:   itemName,
 	}
 
 	channelItem := models.ChannelItem{
@@ -124,6 +103,22 @@ func TestGetItemByName(t *testing.T) {
 
 	itemRepo := repositories.NewItemRepository(db)
 	got, err := itemRepo.GetItemByName(channelID, itemName)
+
+	assertNoError(err, t)
+	assertItemsEqual(got, item, t)
+}
+
+func TestGetItemByID(t *testing.T) {
+	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
+
+	db := createTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+	got, err := itemRepo.GetItemByID(itemID)
 
 	assertNoError(err, t)
 	assertItemsEqual(got, item, t)
@@ -160,9 +155,7 @@ func TestGetScheduledItems(t *testing.T) {
 	itemRepo := repositories.NewItemRepository(db)
 
 	items, err := itemRepo.GetScheduledItems(channelID, dayOfWeek)
-	if err != nil {
-		t.Errorf("did not expect an error but received %s", err.Error())
-	}
+	assertNoError(err, t)
 
 	expected := []models.Item{item}
 	if !slices.Equal(items, expected) {
@@ -200,14 +193,35 @@ func TestGetOwnedItems(t *testing.T) {
 	itemRepo := repositories.NewItemRepository(db)
 
 	items, err := itemRepo.GetOwnedItems(channelID, userID)
-	if err != nil {
-		t.Errorf("did not expect an error but received %s", err.Error())
-	}
+	assertNoError(err, t)
 
 	expected := []models.Item{item}
 	if !slices.Equal(items, expected) {
 		t.Errorf("expected %s got %s", expected, items)
 	}
+}
+
+func TestAddOwnedItem(t *testing.T) {
+	channelID := models.TwitchID("channel id")
+	userID := models.TwitchID("user id")
+	itemID := uuid.New()
+	transactionID := uuid.New()
+
+	channelItem := models.ChannelItem{
+		ItemID:    itemID,
+		ChannelID: channelID,
+	}
+
+	db := createTestDB()
+	if result := db.Create(&channelItem); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+
+	err := itemRepo.AddOwnedItem(userID, itemID, transactionID)
+
+	assertNoError(err, t)
 }
 
 func assertItemsEqual(got, want models.Item, t *testing.T) {

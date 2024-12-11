@@ -3,6 +3,7 @@ package services
 import (
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 )
@@ -15,9 +16,14 @@ type Viewer struct {
 
 type DatabaseService interface {
 	GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error)
-	UpdateViewer(userID models.TwitchID, channelName, itemName string) (models.Item, error)
+
+	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
+	GetItemByID(itemID uuid.UUID) (models.Item, error)
+
+	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
 	GetTodaysItems(channelID models.TwitchID) ([]models.Item, error)
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
+	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
 }
 
 type databaseService struct {
@@ -49,22 +55,16 @@ func (s *databaseService) GetViewer(userID models.TwitchID, channelName, usernam
 	return Viewer{UserID: userID, Username: username, Image: item.Image}, nil
 }
 
-func (s *databaseService) UpdateViewer(userID models.TwitchID, channelName, itemName string) (models.Item, error) {
-	channelID, err := s.twitchRepo.GetUserID(channelName)
-	if err != nil {
-		return models.Item{}, err
-	}
+func (s *databaseService) GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error) {
+	return s.itemRepo.GetItemByName(channelID, itemName)
+}
 
-	item, err := s.itemRepo.GetItemByName(channelID, itemName)
-	if err != nil {
-		return models.Item{}, err
-	}
+func (s *databaseService) GetItemByID(itemID uuid.UUID) (models.Item, error) {
+	return s.itemRepo.GetItemByID(itemID)
+}
 
-	if err := s.itemRepo.SetSelectedItem(channelID, userID, item.ItemID); err != nil {
-		return models.Item{}, err
-	}
-
-	return item, nil
+func (s *databaseService) SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error {
+	return s.itemRepo.SetSelectedItem(channelID, userID, itemID)
 }
 
 func (s *databaseService) GetTodaysItems(channelID models.TwitchID) ([]models.Item, error) {
@@ -76,4 +76,8 @@ func (s *databaseService) GetTodaysItems(channelID models.TwitchID) ([]models.It
 
 func (s *databaseService) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
 	return s.itemRepo.GetOwnedItems(channelID, userID)
+}
+
+func (s *databaseService) AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error {
+	return s.itemRepo.AddOwnedItem(userID, itemID, transactionID)
 }

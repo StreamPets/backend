@@ -11,22 +11,17 @@ import (
 	"github.com/streampets/backend/services"
 )
 
-type joinParams struct {
-	UserID   models.TwitchID `json:"user_id"`
-	Username string          `json:"username"`
-}
-
-type updateParams struct {
-	ItemName string `json:"item_name"`
-}
-
 type Controller interface {
 	HandleListen(ctx *gin.Context)
+
 	AddViewerToChannel(ctx *gin.Context)
 	RemoveViewerFromChannel(ctx *gin.Context)
 	Action(ctx *gin.Context)
 	UpdateViewer(ctx *gin.Context)
+
 	GetStoreData(ctx *gin.Context)
+	BuyStoreItem(ctx *gin.Context)
+	SetSelectedItem(ctx *gin.Context)
 }
 
 type controller struct {
@@ -88,15 +83,20 @@ func (c *controller) HandleListen(ctx *gin.Context) {
 }
 
 func (c *controller) AddViewerToChannel(ctx *gin.Context) {
-	channelName := ctx.Param("channelName")
+	type Params struct {
+		UserID   models.TwitchID `json:"user_id"`
+		Username string          `json:"username"`
+	}
 
-	var joinParams joinParams
-	if err := ctx.ShouldBindJSON(&joinParams); err != nil {
+	var params Params
+	if err := ctx.ShouldBindJSON(&params); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	viewer, err := c.databaseService.GetViewer(joinParams.UserID, channelName, joinParams.Username)
+	channelName := ctx.Param("channelName")
+
+	viewer, err := c.databaseService.GetViewer(params.UserID, channelName, params.Username)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -121,17 +121,32 @@ func (c *controller) Action(ctx *gin.Context) {
 }
 
 func (c *controller) UpdateViewer(ctx *gin.Context) {
-	channelName := ctx.Param("channelName")
-	userID := models.TwitchID(ctx.Param("userID"))
+	type Params struct {
+		ItemName string `json:"item_name"`
+	}
 
-	var updateParams updateParams
-	if err := ctx.ShouldBindJSON(&updateParams); err != nil {
+	var params Params
+	if err := ctx.ShouldBindJSON(&params); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	item, err := c.databaseService.UpdateViewer(userID, channelName, updateParams.ItemName)
+	channelName := ctx.Param("channelName")
+	userID := models.TwitchID(ctx.Param("userID"))
+
+	channelID, err := c.twitchRepo.GetUserID(channelName)
 	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	item, err := c.databaseService.GetItemByName(channelID, params.ItemName)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	if err = c.databaseService.SetSelectedItem(userID, channelID, item.ItemID); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
@@ -164,6 +179,87 @@ func (c *controller) GetStoreData(ctx *gin.Context) {
 		"store": storeItems,
 		"owned": ownedItems,
 	})
+}
+
+func (c *controller) BuyStoreItem(ctx *gin.Context) {
+	type Params struct {
+		Receipt string `json:"receipt"`
+		ItemID  string `json:"item_id"`
+	}
+
+	tokenString := ctx.GetHeader("x-extension-jwt")
+	token, err := c.authService.VerifyExtToken(tokenString)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	var params Params
+	if err := ctx.ShouldBindJSON(&params); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	itemID, err := uuid.Parse(params.ItemID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	receipt, err := c.authService.VerifyReceipt(params.Receipt)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	if err := c.databaseService.AddOwnedItem(token.UserID, itemID, receipt.TransactionID); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+}
+
+func (c *controller) SetSelectedItem(ctx *gin.Context) {
+	type Params struct {
+		ItemID string `json:"item_id"`
+	}
+
+	tokenString := ctx.GetHeader("x-extension-jwt")
+	token, err := c.authService.VerifyExtToken(tokenString)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	var params Params
+	if err := ctx.ShouldBindJSON(&params); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	itemID, err := uuid.Parse(params.ItemID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	item, err := c.databaseService.GetItemByID(itemID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	if err = c.databaseService.SetSelectedItem(token.UserID, token.ChannelID, itemID); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	channelName, err := c.twitchRepo.GetUsername(token.ChannelID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	c.announcer.AnnounceUpdate(channelName, item.Image, token.UserID)
 }
 
 func addErrorToCtx(err error, ctx *gin.Context) {

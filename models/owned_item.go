@@ -3,8 +3,8 @@ package models
 import "github.com/google/uuid"
 
 type OwnedItem struct {
-	UserID        string
-	ChannelID     string
+	UserID        TwitchID
+	ChannelID     TwitchID
 	ItemID        uuid.UUID
 	TransactionID uuid.UUID
 }

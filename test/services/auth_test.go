@@ -13,6 +13,8 @@ import (
 
 func TestVerifyOverlayID(t *testing.T) {
 	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
+		mock.SetUp(t)
+
 		channelID := models.TwitchID("channel id")
 		overlayID := uuid.New()
 
@@ -29,6 +31,8 @@ func TestVerifyOverlayID(t *testing.T) {
 	})
 
 	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
+		mock.SetUp(t)
+
 		channelID := models.TwitchID("channel id")
 
 		repoMock := mock.Mock[repositories.ChannelRepo]()
@@ -48,6 +52,8 @@ func TestVerifyOverlayID(t *testing.T) {
 
 func TestVerifyExtToken(t *testing.T) {
 	t.Run("valid token is verified correctly", func(t *testing.T) {
+		mock.SetUp(t)
+
 		clientSecret := "secret"
 		channelID := models.TwitchID("channel id")
 		userID := models.TwitchID("user id")
@@ -79,6 +85,8 @@ func TestVerifyExtToken(t *testing.T) {
 	})
 
 	t.Run("invalid token is not verified", func(t *testing.T) {
+		mock.SetUp(t)
+
 		clientSecret := "secret"
 		channelID := models.TwitchID("channel id")
 		userID := models.TwitchID("user id")
@@ -97,6 +105,59 @@ func TestVerifyExtToken(t *testing.T) {
 		authService := services.NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyExtToken(tokenString); err == nil {
+			t.Errorf("expected an error but did not received one")
+		}
+	})
+}
+
+func TestVerifyReceipt(t *testing.T) {
+	t.Run("valid token is verified correctly", func(t *testing.T) {
+		mock.SetUp(t)
+
+		clientSecret := "secret"
+		transactionID := uuid.New()
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"transaction_id": transactionID,
+		})
+
+		tokenString, err := token.SignedString([]byte(clientSecret))
+		if err != nil {
+			t.Errorf("did not expect an error but received %s", err.Error())
+		}
+
+		repoMock := mock.Mock[repositories.ChannelRepo]()
+		authService := services.NewAuthService(repoMock, clientSecret)
+
+		got, err := authService.VerifyReceipt(tokenString)
+		if err != nil {
+			t.Errorf("did not expect an error but received %s", err.Error())
+		}
+
+		if got.TransactionID != transactionID {
+			t.Errorf("expected %s got %s", transactionID, got.TransactionID)
+		}
+	})
+
+	t.Run("invalid token is not verified", func(t *testing.T) {
+		mock.SetUp(t)
+
+		clientSecret := "secret"
+		transactionID := uuid.New()
+
+		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+			"transaction_id": transactionID,
+		})
+
+		tokenString, err := token.SignedString([]byte("fake secret"))
+		if err != nil {
+			t.Errorf("did not expect an error but received %s", err.Error())
+		}
+
+		repoMock := mock.Mock[repositories.ChannelRepo]()
+		authService := services.NewAuthService(repoMock, clientSecret)
+
+		if _, err = authService.VerifyReceipt(tokenString); err == nil {
 			t.Errorf("expected an error but did not received one")
 		}
 	})

@@ -34,14 +34,16 @@ func RegisterRoutes(
 
 	api = r.Group("/channels")
 	{
-		api.POST("/:channelID/viewers", controller.AddViewerToChannel)
-		api.DELETE("/:channelID/viewers/:userID", controller.RemoveViewerFromChannel)
-		api.POST("/:channelID/viewers/:userID/:action", controller.Action)
-		api.PUT("/:channelID/viewers/:userID", controller.UpdateViewer)
+		api.POST("/:channelName/viewers", controller.AddViewerToChannel)
+		api.DELETE("/:channelName/viewers/:userID", controller.RemoveViewerFromChannel)
+		api.POST("/:channelName/viewers/:userID/:action", controller.Action)
+		api.PUT("/:channelName/viewers/:userID", controller.UpdateViewer)
 	}
 
 	api = r.Group("/items")
 	{
 		api.GET("/", controller.GetStoreData)
+		api.POST("/", controller.BuyStoreItem)
+		api.PUT("/", controller.SetSelectedItem)
 	}
 }
