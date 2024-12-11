@@ -23,7 +23,10 @@ func main() {
 		panic(err)
 	}
 
-	auth := config.CreateAuthService(db)
+	auth, err := config.CreateAuthService(db)
+	if err != nil {
+		panic(err)
+	}
 
 	r := gin.Default()
 
