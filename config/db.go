@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 
 	_ "github.com/lib/pq"
 	"github.com/streampets/backend/models"
@@ -10,21 +9,19 @@ import (
 	"gorm.io/gorm"
 )
 
-func ConnectDB() (*gorm.DB, error) {
-	// Add to GitHub secrets
-	// Inject into Docker image
-	host := os.Getenv("DB_HOST")
-	port := os.Getenv("DB_PORT")
-	sslMode := os.Getenv("DB_SSL_MODE")
-	dbName := os.Getenv("DB_NAME")
-	user := os.Getenv("DB_USER")
-	password := os.Getenv("DB_PASSWORD")
+func ConnectDB() *gorm.DB {
+	host := mustGetEnv("DB_HOST")
+	port := mustGetEnv("DB_PORT")
+	sslMode := mustGetEnv("DB_SSL_MODE")
+	dbName := mustGetEnv("DB_NAME")
+	user := mustGetEnv("DB_USER")
+	password := mustGetEnv("DB_PASSWORD")
 
 	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, dbName, port, sslMode)
 
 	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
-		return nil, err
+		panic(err)
 	}
 
 	if err := db.AutoMigrate(
@@ -37,8 +34,8 @@ func ConnectDB() (*gorm.DB, error) {
 		&models.SelectedItem{},
 		&models.User{},
 	); err != nil {
-		return nil, err
+		panic(err)
 	}
 
-	return db, nil
+	return db
 }

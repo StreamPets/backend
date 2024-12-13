@@ -1,16 +1,17 @@
 package config
 
 import (
-	"os"
-
 	"github.com/streampets/backend/repositories"
 )
 
-func CreateTwitchRepo() (repositories.TwitchRepository, error) {
-	// Add to GitHub secrets
-	// Inject into Docker image
-	clientID := os.Getenv("CLIENT_ID")
-	clientSecret := os.Getenv("CLIENT_SECRET")
+func CreateTwitchRepo() repositories.TwitchRepository {
+	clientID := mustGetEnv("CLIENT_ID")
+	clientSecret := mustGetEnv("CLIENT_SECRET")
 
-	return repositories.NewTwitchRepository(clientID, clientSecret)
+	twitchRepo, err := repositories.NewTwitchRepository(clientID, clientSecret)
+	if err != nil {
+		panic(err)
+	}
+
+	return twitchRepo
 }

@@ -25,7 +25,7 @@ func (c *CloseNotifierResponseWriter) CloseNotify() <-chan bool {
 }
 
 func TestHandleListen(t *testing.T) {
-	setUpContext := func(channelID string, overlayID string) (*gin.Context, *CloseNotifierResponseWriter) {
+	setUpContext := func(channelID, overlayID string) (*gin.Context, *CloseNotifierResponseWriter) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := &CloseNotifierResponseWriter{httptest.NewRecorder()}
@@ -42,28 +42,33 @@ func TestHandleListen(t *testing.T) {
 	}
 
 	channelID := models.TwitchID("channel id")
-	channelName := "channel name"
 	overlayID := uuid.New()
+	channelName := "channel name"
 	stream := make(services.EventStream)
 	client := services.Client{
 		ChannelName: channelName,
 		Stream:      stream,
 	}
 
-	t.Run("handle listen functions correctly", func(t *testing.T) {
+	t.Run("receive and send events from stream", func(t *testing.T) {
+		mock.SetUp(t)
+
 		ctx, recorder := setUpContext(string(channelID), overlayID.String())
 
 		announcerMock := mock.Mock[services.Announcer]()
-		authMock := mock.Mock[services.AuthServicer]()
+		authMock := mock.Mock[services.AuthService]()
 		twitchMock := mock.Mock[repositories.TwitchRepository]()
-		viewerMock := mock.Mock[services.ViewerServicer]()
+		viewerMock := mock.Mock[services.DatabaseService]()
 
 		mock.When(announcerMock.AddClient(channelName)).ThenReturn(client)
 		mock.When(authMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(nil)
 		mock.When(twitchMock.GetUsername(channelID)).ThenReturn(channelName, nil)
 
-		controller := controllers.NewOverlayController(
-			announcerMock, authMock, twitchMock, viewerMock,
+		controller := controllers.NewController(
+			announcerMock,
+			authMock,
+			twitchMock,
+			viewerMock,
 		)
 
 		var wg sync.WaitGroup
@@ -74,8 +79,8 @@ func TestHandleListen(t *testing.T) {
 			controller.HandleListen(ctx)
 		}()
 
-		event := services.Event{Event: "event", Message: "message"}
-		stream <- event
+		stream <- services.Event{Event: "event", Message: "message"}
+
 		close(stream)
 		wg.Wait()
 
@@ -92,17 +97,19 @@ func TestHandleListen(t *testing.T) {
 		}
 	})
 
-	t.Run("handle listen functions correctly", func(t *testing.T) {
+	t.Run("client not added when overlay id and channel id do not match", func(t *testing.T) {
+		mock.SetUp(t)
+
 		ctx, recorder := setUpContext(string(channelID), overlayID.String())
 
 		announcerMock := mock.Mock[services.Announcer]()
-		authMock := mock.Mock[services.AuthServicer]()
+		authMock := mock.Mock[services.AuthService]()
 		twitchMock := mock.Mock[repositories.TwitchRepository]()
-		viewerMock := mock.Mock[services.ViewerServicer]()
+		viewerMock := mock.Mock[services.DatabaseService]()
 
 		mock.When(authMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(services.ErrIdMismatch)
 
-		controller := controllers.NewOverlayController(
+		controller := controllers.NewController(
 			announcerMock, authMock, twitchMock, viewerMock,
 		)
 
@@ -117,6 +124,7 @@ func TestHandleListen(t *testing.T) {
 		wg.Wait()
 
 		mock.Verify(authMock, mock.Once()).VerifyOverlayID(channelID, overlayID)
+		mock.Verify(announcerMock, mock.Never()).AddClient(channelName)
 
 		response := recorder.Body.String()
 		if !strings.Contains(response, services.ErrIdMismatch.Error()) {

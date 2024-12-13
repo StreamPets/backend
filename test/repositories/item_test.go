@@ -1,25 +1,21 @@
 package repositories_test
 
 import (
+	"slices"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
+	"gorm.io/gorm"
 )
 
 func TestGetSelectedItem(t *testing.T) {
 	channelID := models.TwitchID("channel id")
 	userID := models.TwitchID("user id")
-	itemID := uuid.New()
 
-	item := models.Item{
-		ItemID:  itemID,
-		Name:    "item name",
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
-	}
+	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
 
 	selectedItem := models.SelectedItem{
 		UserID:    userID,
@@ -45,24 +41,12 @@ func TestGetSelectedItem(t *testing.T) {
 func TestSetSelectedItem(t *testing.T) {
 	channelID := models.TwitchID("channel id")
 	userID := models.TwitchID("user id")
-	newItemID := uuid.New()
+
 	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
 
-	item := models.Item{
-		ItemID:  itemID,
-		Name:    "name",
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
-	}
-
-	newItem := models.Item{
-		ItemID:  newItemID,
-		Name:    "new name",
-		Rarity:  "new rarity",
-		Image:   "new image",
-		PrevImg: "new prev image",
-	}
+	newItemID := uuid.New()
+	newItem := models.Item{ItemID: newItemID}
 
 	selectedItem := models.SelectedItem{
 		UserID:    userID,
@@ -101,11 +85,8 @@ func TestGetItemByName(t *testing.T) {
 	itemName := "item name"
 
 	item := models.Item{
-		ItemID:  itemID,
-		Name:    itemName,
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
+		ItemID: itemID,
+		Name:   itemName,
 	}
 
 	channelItem := models.ChannelItem{
@@ -126,6 +107,157 @@ func TestGetItemByName(t *testing.T) {
 
 	assertNoError(err, t)
 	assertItemsEqual(got, item, t)
+}
+
+func TestGetItemByID(t *testing.T) {
+	itemID := uuid.New()
+	item := models.Item{ItemID: itemID}
+
+	db := createTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+	got, err := itemRepo.GetItemByID(itemID)
+
+	assertNoError(err, t)
+	assertItemsEqual(got, item, t)
+}
+
+func TestGetScheduledItems(t *testing.T) {
+	channelID := models.TwitchID("channel id")
+	dayOfWeek := models.Monday
+	itemID := uuid.New()
+
+	item := models.Item{
+		ItemID:  itemID,
+		Name:    "item name",
+		Rarity:  "rarity",
+		Image:   "image",
+		PrevImg: "prev image",
+	}
+
+	schedule := models.Schedule{
+		ScheduleID: uuid.New(),
+		DayOfWeek:  dayOfWeek,
+		ItemID:     itemID,
+		ChannelID:  channelID,
+	}
+
+	db := createTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+	if result := db.Create(&schedule); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+
+	items, err := itemRepo.GetScheduledItems(channelID, dayOfWeek)
+	assertNoError(err, t)
+
+	expected := []models.Item{item}
+	if !slices.Equal(items, expected) {
+		t.Errorf("expected %s got %s", expected, items)
+	}
+}
+
+func TestGetOwnedItems(t *testing.T) {
+	channelID := models.TwitchID("channel id")
+	userID := models.TwitchID("user id")
+	itemID := uuid.New()
+
+	item := models.Item{
+		ItemID:  itemID,
+		Name:    "item name",
+		Rarity:  "rarity",
+		Image:   "image",
+		PrevImg: "prev image",
+	}
+
+	owneditem := models.OwnedItem{
+		UserID:    "user id",
+		ChannelID: "channel id",
+		ItemID:    itemID,
+	}
+
+	db := createTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+	if result := db.Create(&owneditem); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+
+	items, err := itemRepo.GetOwnedItems(channelID, userID)
+	assertNoError(err, t)
+
+	expected := []models.Item{item}
+	if !slices.Equal(items, expected) {
+		t.Errorf("expected %s got %s", expected, items)
+	}
+}
+
+func TestAddOwnedItem(t *testing.T) {
+	channelID := models.TwitchID("channel id")
+	userID := models.TwitchID("user id")
+	itemID := uuid.New()
+	transactionID := uuid.New()
+
+	channelItem := models.ChannelItem{
+		ItemID:    itemID,
+		ChannelID: channelID,
+	}
+
+	db := createTestDB()
+	if result := db.Create(&channelItem); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := repositories.NewItemRepository(db)
+
+	err := itemRepo.AddOwnedItem(userID, itemID, transactionID)
+
+	assertNoError(err, t)
+}
+
+func TestCheckOwnedItem(t *testing.T) {
+	t.Run("no error when user owns item", func(t *testing.T) {
+		userID := models.TwitchID("user id")
+		itemID := uuid.New()
+
+		ownedItem := models.OwnedItem{UserID: userID, ItemID: itemID}
+
+		db := createTestDB()
+		if result := db.Create(&ownedItem); result.Error != nil {
+			panic(result.Error)
+		}
+
+		itemRepo := repositories.NewItemRepository(db)
+
+		err := itemRepo.CheckOwnedItem(userID, itemID)
+		assertNoError(err, t)
+	})
+
+	t.Run("error when item is unowned", func(t *testing.T) {
+		userID := models.TwitchID("user id")
+		itemID := uuid.New()
+
+		db := createTestDB()
+
+		itemRepo := repositories.NewItemRepository(db)
+
+		err := itemRepo.CheckOwnedItem(userID, itemID)
+		if err == nil {
+			t.Errorf("expected an error but did not receive one")
+		} else if err != gorm.ErrRecordNotFound {
+			t.Errorf("expected %s got %s", gorm.ErrRecordNotFound, err)
+		}
+	})
 }
 
 func assertItemsEqual(got, want models.Item, t *testing.T) {

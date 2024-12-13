@@ -13,19 +13,13 @@ func main() {
 		panic(err)
 	}
 
-	db, err := config.ConnectDB()
-	if err != nil {
-		panic(err)
-	}
-
-	twitch, err := config.CreateTwitchRepo()
-	if err != nil {
-		panic(err)
-	}
+	db := config.ConnectDB()
+	twitch := config.CreateTwitchRepo()
+	auth := config.CreateAuthService(db)
 
 	r := gin.Default()
 
-	routes.RegisterRoutes(r, db, twitch)
+	routes.RegisterRoutes(r, db, twitch, auth)
 
 	r.Run()
 }
