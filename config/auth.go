@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func CreateAuthService(db *gorm.DB) services.AuthService {
+func CreateAuthService(db *gorm.DB) *services.AuthService {
 	clientSecret := mustGetEnv("CLIENT_SECRET")
 
 	channelRepo := repositories.NewChannelRepo(db)

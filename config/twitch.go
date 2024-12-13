@@ -4,7 +4,7 @@ import (
 	"github.com/streampets/backend/repositories"
 )
 
-func CreateTwitchRepo() repositories.TwitchRepository {
+func CreateTwitchRepo() *repositories.TwitchRepository {
 	clientID := mustGetEnv("CLIENT_ID")
 	clientSecret := mustGetEnv("CLIENT_SECRET")
 

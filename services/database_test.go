@@ -1,4 +1,4 @@
-package services_test
+package services
 
 import (
 	"slices"
@@ -8,8 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
-	"github.com/streampets/backend/services"
 	"gorm.io/gorm"
 )
 
@@ -18,26 +16,21 @@ func TestGetViewer(t *testing.T) {
 
 	userID := models.TwitchID("user id")
 	channelID := models.TwitchID("channel id")
-	channelName := "channel name"
 	username := "username"
 	image := "image"
-
 	item := models.Item{Image: image}
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-
+	itemMock := mock.Mock[ItemRepository]()
 	mock.When(itemMock.GetSelectedItem(userID, channelID)).ThenReturn(item, nil)
-	mock.When(twitchMock.GetUserID(channelName)).ThenReturn(channelID, nil)
 
-	databaseService := services.NewDatabaseService(itemMock, twitchMock)
+	databaseService := NewDatabaseService(itemMock)
 
-	viewer, err := databaseService.GetViewer(userID, channelName, username)
+	viewer, err := databaseService.GetViewer(userID, channelID, username)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
 
-	expected := services.Viewer{
+	expected := Viewer{
 		UserID:   userID,
 		Username: username,
 		Image:    image,
@@ -57,12 +50,11 @@ func TestGetItemByName(t *testing.T) {
 
 	item := models.Item{Name: itemName}
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
+	itemMock := mock.Mock[ItemRepository]()
 
 	mock.When(itemMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
 
-	database := services.NewDatabaseService(itemMock, twitchMock)
+	database := NewDatabaseService(itemMock)
 
 	got, err := database.GetItemByName(channelID, itemName)
 	if err != nil {
@@ -82,12 +74,11 @@ func TestGetItemByID(t *testing.T) {
 	itemID := uuid.New()
 	item := models.Item{ItemID: itemID}
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
+	itemMock := mock.Mock[ItemRepository]()
 
 	mock.When(itemMock.GetItemByID(itemID)).ThenReturn(item, nil)
 
-	database := services.NewDatabaseService(itemMock, twitchMock)
+	database := NewDatabaseService(itemMock)
 
 	got, err := database.GetItemByID(itemID)
 	if err != nil {
@@ -109,10 +100,9 @@ func TestSetSelectedItem(t *testing.T) {
 		channelID := models.TwitchID("channel id")
 		itemID := uuid.New()
 
-		itemMock := mock.Mock[repositories.ItemRepository]()
-		twitchMock := mock.Mock[repositories.TwitchRepository]()
+		itemMock := mock.Mock[ItemRepository]()
 
-		database := services.NewDatabaseService(itemMock, twitchMock)
+		database := NewDatabaseService(itemMock)
 
 		err := database.SetSelectedItem(userID, channelID, itemID)
 		if err != nil {
@@ -130,12 +120,11 @@ func TestSetSelectedItem(t *testing.T) {
 		channelID := models.TwitchID("channel id")
 		itemID := uuid.New()
 
-		itemMock := mock.Mock[repositories.ItemRepository]()
-		twitchMock := mock.Mock[repositories.TwitchRepository]()
+		itemMock := mock.Mock[ItemRepository]()
 
 		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(gorm.ErrRecordNotFound)
 
-		database := services.NewDatabaseService(itemMock, twitchMock)
+		database := NewDatabaseService(itemMock)
 
 		err := database.SetSelectedItem(userID, channelID, itemID)
 		if err == nil {
@@ -154,14 +143,13 @@ func TestGetTodaysItems(t *testing.T) {
 	dayOfWeek := models.DayOfWeek(currentTime.Weekday().String())
 	channelID := models.TwitchID("channel id")
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
+	itemMock := mock.Mock[ItemRepository]()
 
 	expected := []models.Item{{}}
 
 	mock.When(itemMock.GetScheduledItems(channelID, dayOfWeek)).ThenReturn(expected, nil)
 
-	databaseService := services.NewDatabaseService(itemMock, twitchMock)
+	databaseService := NewDatabaseService(itemMock)
 
 	items, err := databaseService.GetTodaysItems(channelID)
 	if err != nil {
@@ -182,12 +170,11 @@ func TestGetOwnedItems(t *testing.T) {
 	userID := models.TwitchID("user id")
 	expected := []models.Item{{}}
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
+	itemMock := mock.Mock[ItemRepository]()
 
 	mock.When(itemMock.GetOwnedItems(channelID, userID)).ThenReturn(expected, nil)
 
-	databaseService := services.NewDatabaseService(itemMock, twitchMock)
+	databaseService := NewDatabaseService(itemMock)
 
 	items, err := databaseService.GetOwnedItems(channelID, userID)
 	if err != nil {
@@ -206,12 +193,11 @@ func TestAddOwnedItem(t *testing.T) {
 	itemID := uuid.New()
 	transactionID := uuid.New()
 
-	itemMock := mock.Mock[repositories.ItemRepository]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
+	itemMock := mock.Mock[ItemRepository]()
 
 	mock.When(itemMock.AddOwnedItem(userID, itemID, transactionID)).ThenReturn(nil)
 
-	databaseService := services.NewDatabaseService(itemMock, twitchMock)
+	databaseService := NewDatabaseService(itemMock)
 
 	err := databaseService.AddOwnedItem(userID, itemID, transactionID)
 	if err != nil {

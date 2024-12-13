@@ -1,6 +1,8 @@
 package services
 
 import (
+	"fmt"
+
 	"github.com/streampets/backend/models"
 )
 
@@ -21,25 +23,15 @@ type Client struct {
 	Stream      EventStream
 }
 
-type Announcer interface {
-	AddClient(channelName string) Client
-	RemoveClient(client Client)
-
-	AnnounceJoin(channelName string, viewer Viewer)
-	AnnouncePart(channelName string, userID models.TwitchID)
-	AnnounceAction(channelName, action string, userID models.TwitchID)
-	AnnounceUpdate(channelName, image string, userID models.TwitchID)
-}
-
-type announceService struct {
+type AnnouncerService struct {
 	announce      chan wrappedEvent
 	newClients    chan Client
 	closedClients chan Client
 	totalClients  map[string](map[EventStream]bool)
 }
 
-func NewAnnounceService() Announcer {
-	service := &announceService{
+func NewAnnouncerService() *AnnouncerService {
+	service := &AnnouncerService{
 		announce:      make(chan wrappedEvent),
 		newClients:    make(chan Client),
 		closedClients: make(chan Client),
@@ -51,17 +43,17 @@ func NewAnnounceService() Announcer {
 	return service
 }
 
-func (s *announceService) AddClient(channelName string) Client {
+func (s *AnnouncerService) AddClient(channelName string) Client {
 	client := Client{ChannelName: channelName, Stream: make(EventStream)}
 	s.newClients <- client
 	return client
 }
 
-func (s *announceService) RemoveClient(client Client) {
+func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *announceService) AnnounceJoin(channelName string, viewer Viewer) {
+func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Viewer) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
@@ -71,7 +63,7 @@ func (s *announceService) AnnounceJoin(channelName string, viewer Viewer) {
 	}
 }
 
-func (s *announceService) AnnouncePart(channelName string, userID models.TwitchID) {
+func (s *AnnouncerService) AnnouncePart(channelName string, userID models.TwitchID) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
@@ -81,30 +73,27 @@ func (s *announceService) AnnouncePart(channelName string, userID models.TwitchI
 	}
 }
 
-func (s *announceService) AnnounceAction(channelName, action string, userID models.TwitchID) {
+func (s *AnnouncerService) AnnounceAction(channelName, action string, userID models.TwitchID) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   action,
+			Event:   fmt.Sprintf("%s-%s", action, userID),
 			Message: userID,
 		},
 	}
 }
 
-func (s *announceService) AnnounceUpdate(channelName, image string, userID models.TwitchID) {
+func (s *AnnouncerService) AnnounceUpdate(channelName, image string, userID models.TwitchID) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event: "ITEM",
-			Message: map[string]string{
-				"image":  image,
-				"userID": string(userID),
-			},
+			Event:   fmt.Sprintf("COLOR-%s", userID),
+			Message: image,
 		},
 	}
 }
 
-func (stream *announceService) listen() {
+func (stream *AnnouncerService) listen() {
 	for {
 		select {
 

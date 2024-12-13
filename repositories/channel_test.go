@@ -1,11 +1,11 @@
-package repositories_test
+package repositories
 
 import (
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/test"
 )
 
 func TestGetOverlayID(t *testing.T) {
@@ -18,12 +18,12 @@ func TestGetOverlayID(t *testing.T) {
 		OverlayID:   overlayID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&channel); result.Error != nil {
 		panic(result.Error)
 	}
 
-	repo := repositories.NewChannelRepo(db)
+	repo := NewChannelRepo(db)
 
 	got, err := repo.GetOverlayID(channelID)
 	if err != nil {

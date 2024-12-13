@@ -1,4 +1,4 @@
-package controllers_test
+package controllers
 
 import (
 	"bytes"
@@ -12,9 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 )
 
@@ -47,28 +45,28 @@ func TestGetStoreData(t *testing.T) {
 	storeItems := []models.Item{{}, {}}
 	ownedItems := []models.Item{{}}
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[UpdateAnnouncer]()
+	verifierMock := mock.Mock[TokenVerifier]()
+	storeMock := mock.Mock[StoreService]()
+	usersMock := mock.Mock[UserGetter]()
 
-	mock.When(authMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(databaseMock.GetTodaysItems(channelID)).ThenReturn(storeItems, nil)
-	mock.When(databaseMock.GetOwnedItems(channelID, userID)).ThenReturn(ownedItems, nil)
+	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+	mock.When(storeMock.GetTodaysItems(channelID)).ThenReturn(storeItems, nil)
+	mock.When(storeMock.GetOwnedItems(channelID, userID)).ThenReturn(ownedItems, nil)
 
-	controller := controllers.NewController(
+	controller := NewExtensionController(
 		announcerMock,
-		authMock,
-		twitchMock,
-		databaseMock,
+		verifierMock,
+		storeMock,
+		usersMock,
 	)
 
 	ctx, recorder := setUpContext(tokenString)
 	controller.GetStoreData(ctx)
 
-	mock.Verify(authMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(databaseMock, mock.Once()).GetTodaysItems(channelID)
-	mock.Verify(databaseMock, mock.Once()).GetOwnedItems(channelID, userID)
+	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+	mock.Verify(storeMock, mock.Once()).GetTodaysItems(channelID)
+	mock.Verify(storeMock, mock.Once()).GetOwnedItems(channelID, userID)
 
 	if recorder.Code != http.StatusOK {
 		t.Errorf("expected %d got %d", http.StatusOK, recorder.Code)
@@ -119,27 +117,27 @@ func TestBuyStoreItem(t *testing.T) {
 	token := services.ExtToken{ChannelID: channelID, UserID: userID}
 	receipt := services.Receipt{TransactionID: transactionID}
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[UpdateAnnouncer]()
+	verifierMock := mock.Mock[TokenVerifier]()
+	storeMock := mock.Mock[StoreService]()
+	usersMock := mock.Mock[UserGetter]()
 
-	mock.When(authMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(authMock.VerifyReceipt(receiptString)).ThenReturn(&receipt, nil)
-	mock.When(databaseMock.AddOwnedItem(userID, itemID, transactionID)).ThenReturn(nil)
+	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+	mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(&receipt, nil)
+	mock.When(storeMock.AddOwnedItem(userID, itemID, transactionID)).ThenReturn(nil)
 
-	controller := controllers.NewController(
+	controller := NewExtensionController(
 		announcerMock,
-		authMock,
-		twitchMock,
-		databaseMock,
+		verifierMock,
+		storeMock,
+		usersMock,
 	)
 
 	controller.BuyStoreItem(setUpContext(tokenString, receiptString, itemID.String()))
 
-	mock.Verify(authMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(authMock, mock.Once()).VerifyReceipt(receiptString)
-	mock.Verify(databaseMock, mock.Once()).AddOwnedItem(userID, itemID, transactionID)
+	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+	mock.Verify(verifierMock, mock.Once()).VerifyReceipt(receiptString)
+	mock.Verify(storeMock, mock.Once()).AddOwnedItem(userID, itemID, transactionID)
 }
 
 func TestSetSelectedItem(t *testing.T) {
@@ -177,28 +175,28 @@ func TestSetSelectedItem(t *testing.T) {
 		UserID:    userID,
 	}
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[UpdateAnnouncer]()
+	verifierMock := mock.Mock[TokenVerifier]()
+	storeMock := mock.Mock[StoreService]()
+	usersMock := mock.Mock[UserGetter]()
 
-	mock.When(authMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(twitchMock.GetUsername(channelID)).ThenReturn(channelName, nil)
-	mock.When(databaseMock.SetSelectedItem(userID, channelID, itemID)).ThenReturn(nil)
-	mock.When(databaseMock.GetItemByID(itemID)).ThenReturn(item, nil)
+	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+	mock.When(usersMock.GetUsername(channelID)).ThenReturn(channelName, nil)
+	mock.When(storeMock.SetSelectedItem(userID, channelID, itemID)).ThenReturn(nil)
+	mock.When(storeMock.GetItemByID(itemID)).ThenReturn(item, nil)
 
-	controller := controllers.NewController(
+	controller := NewExtensionController(
 		announcerMock,
-		authMock,
-		twitchMock,
-		databaseMock,
+		verifierMock,
+		storeMock,
+		usersMock,
 	)
 
 	ctx := setUpContext(tokenString, itemID.String())
 
 	controller.SetSelectedItem(ctx)
 
-	mock.Verify(authMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(databaseMock, mock.Once()).SetSelectedItem(userID, channelID, itemID)
+	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+	mock.Verify(storeMock, mock.Once()).SetSelectedItem(userID, channelID, itemID)
 	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userID)
 }

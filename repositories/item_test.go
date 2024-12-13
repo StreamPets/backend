@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/test"
 	"gorm.io/gorm"
 )
 
@@ -23,7 +24,7 @@ func TestGetSelectedItem(t *testing.T) {
 		ItemID:    itemID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
@@ -54,7 +55,7 @@ func TestSetSelectedItem(t *testing.T) {
 		ItemID:    itemID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
@@ -94,7 +95,7 @@ func TestGetItemByName(t *testing.T) {
 		ItemID:    itemID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
@@ -113,7 +114,7 @@ func TestGetItemByID(t *testing.T) {
 	itemID := uuid.New()
 	item := models.Item{ItemID: itemID}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
@@ -145,7 +146,7 @@ func TestGetScheduledItems(t *testing.T) {
 		ChannelID:  channelID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
@@ -183,7 +184,7 @@ func TestGetOwnedItems(t *testing.T) {
 		ItemID:    itemID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
@@ -213,7 +214,7 @@ func TestAddOwnedItem(t *testing.T) {
 		ChannelID: channelID,
 	}
 
-	db := createTestDB()
+	db := test.CreateTestDB()
 	if result := db.Create(&channelItem); result.Error != nil {
 		panic(result.Error)
 	}
@@ -232,7 +233,7 @@ func TestCheckOwnedItem(t *testing.T) {
 
 		ownedItem := models.OwnedItem{UserID: userID, ItemID: itemID}
 
-		db := createTestDB()
+		db := test.CreateTestDB()
 		if result := db.Create(&ownedItem); result.Error != nil {
 			panic(result.Error)
 		}
@@ -247,7 +248,7 @@ func TestCheckOwnedItem(t *testing.T) {
 		userID := models.TwitchID("user id")
 		itemID := uuid.New()
 
-		db := createTestDB()
+		db := test.CreateTestDB()
 
 		itemRepo := repositories.NewItemRepository(db)
 

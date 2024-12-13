@@ -1,4 +1,6 @@
-package repositories_test
+//go:build integration
+
+package repositories
 
 import (
 	"os"
@@ -6,11 +8,11 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
 )
 
-func setupTwitchRepository() repositories.TwitchRepository {
-	err := godotenv.Load("../../.env")
+func setupTwitchRepository() *TwitchRepository {
+
+	err := godotenv.Load("../.env")
 	if err != nil {
 		panic(err)
 	}
@@ -18,7 +20,7 @@ func setupTwitchRepository() repositories.TwitchRepository {
 	clientID := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
 
-	repo, err := repositories.NewTwitchRepository(clientID, clientSecret)
+	repo, err := NewTwitchRepository(clientID, clientSecret)
 	if err != nil {
 		panic(err)
 	}

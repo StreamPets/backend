@@ -1,4 +1,4 @@
-package services_test
+package services
 
 import (
 	"testing"
@@ -7,8 +7,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
-	"github.com/streampets/backend/services"
 )
 
 func TestVerifyOverlayID(t *testing.T) {
@@ -18,10 +16,10 @@ func TestVerifyOverlayID(t *testing.T) {
 		channelID := models.TwitchID("channel id")
 		overlayID := uuid.New()
 
-		repoMock := mock.Mock[repositories.ChannelRepo]()
+		repoMock := mock.Mock[ChannelRepo]()
 		mock.When(repoMock.GetOverlayID(channelID)).ThenReturn(overlayID, nil)
 
-		authService := services.NewAuthService(repoMock, "")
+		authService := NewAuthService(repoMock, "")
 
 		if err := authService.VerifyOverlayID(channelID, overlayID); err != nil {
 			t.Errorf("did not expect an error but received %s", err.Error())
@@ -35,15 +33,15 @@ func TestVerifyOverlayID(t *testing.T) {
 
 		channelID := models.TwitchID("channel id")
 
-		repoMock := mock.Mock[repositories.ChannelRepo]()
+		repoMock := mock.Mock[ChannelRepo]()
 		mock.When(repoMock.GetOverlayID(channelID)).ThenReturn(uuid.New(), nil)
 
-		authService := services.NewAuthService(repoMock, "")
+		authService := NewAuthService(repoMock, "")
 
 		if err := authService.VerifyOverlayID(channelID, uuid.New()); err == nil {
 			t.Errorf("expected an error, but did not received one")
-		} else if err != services.ErrIdMismatch {
-			t.Errorf("expected %s got %s", err.Error(), services.ErrIdMismatch.Error())
+		} else if err != ErrIdMismatch {
+			t.Errorf("expected %s got %s", err.Error(), ErrIdMismatch.Error())
 		}
 
 		mock.Verify(repoMock, mock.Once()).GetOverlayID(channelID)
@@ -68,8 +66,8 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[repositories.ChannelRepo]()
-		authService := services.NewAuthService(repoMock, clientSecret)
+		repoMock := mock.Mock[ChannelRepo]()
+		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyExtToken(tokenString)
 		if err != nil {
@@ -101,8 +99,8 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[repositories.ChannelRepo]()
-		authService := services.NewAuthService(repoMock, clientSecret)
+		repoMock := mock.Mock[ChannelRepo]()
+		authService := NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyExtToken(tokenString); err == nil {
 			t.Errorf("expected an error but did not received one")
@@ -126,8 +124,8 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[repositories.ChannelRepo]()
-		authService := services.NewAuthService(repoMock, clientSecret)
+		repoMock := mock.Mock[ChannelRepo]()
+		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyReceipt(tokenString)
 		if err != nil {
@@ -154,8 +152,8 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[repositories.ChannelRepo]()
-		authService := services.NewAuthService(repoMock, clientSecret)
+		repoMock := mock.Mock[ChannelRepo]()
+		authService := NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyReceipt(tokenString); err == nil {
 			t.Errorf("expected an error but did not received one")

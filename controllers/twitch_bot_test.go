@@ -10,9 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 )
 
@@ -36,24 +34,23 @@ func TestAddViewerToChannel(t *testing.T) {
 	}
 
 	userID := models.TwitchID("user id")
-
+	channelID := models.TwitchID("channel id")
 	username := "username"
 	channelName := "channel name"
 
 	viewer := services.Viewer{Username: username}
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[Announcer]()
+	databaseMock := mock.Mock[DBService]()
+	usersMock := mock.Mock[UserIDGetter]()
 
-	mock.When(databaseMock.GetViewer(userID, channelName, username)).ThenReturn(viewer, nil)
+	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
+	mock.When(databaseMock.GetViewer(userID, channelID, username)).ThenReturn(viewer, nil)
 
-	controller := controllers.NewController(
+	controller := NewTwitchBotController(
 		announcerMock,
-		authMock,
-		twitchMock,
 		databaseMock,
+		usersMock,
 	)
 
 	controller.AddViewerToChannel(setUpContext(userID, channelName, username))
@@ -79,16 +76,14 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 	userID := models.TwitchID("user id")
 	channelName := "channel name"
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[Announcer]()
+	databaseMock := mock.Mock[DBService]()
+	usersMock := mock.Mock[UserIDGetter]()
 
-	controller := controllers.NewController(
+	controller := NewTwitchBotController(
 		announcerMock,
-		authMock,
-		twitchMock,
 		databaseMock,
+		usersMock,
 	)
 
 	controller.RemoveViewerFromChannel(setUpContext(userID, channelName))
@@ -116,16 +111,14 @@ func TestAction(t *testing.T) {
 	channelName := "channel name"
 	action := "action"
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[Announcer]()
+	databaseMock := mock.Mock[DBService]()
+	usersMock := mock.Mock[UserIDGetter]()
 
-	controller := controllers.NewController(
+	controller := NewTwitchBotController(
 		announcerMock,
-		authMock,
-		twitchMock,
 		databaseMock,
+		usersMock,
 	)
 
 	controller.Action(setUpContext(userID, channelName, action))
@@ -164,19 +157,17 @@ func TestUpdateViewer(t *testing.T) {
 
 	item := models.Item{ItemID: itemID, Image: image}
 
-	announcerMock := mock.Mock[services.Announcer]()
-	authMock := mock.Mock[services.AuthService]()
-	twitchMock := mock.Mock[repositories.TwitchRepository]()
-	databaseMock := mock.Mock[services.DatabaseService]()
+	announcerMock := mock.Mock[Announcer]()
+	databaseMock := mock.Mock[DBService]()
+	usersMock := mock.Mock[UserIDGetter]()
 
-	mock.When(twitchMock.GetUserID(channelName)).ThenReturn(channelID, nil)
+	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
 	mock.When(databaseMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
 
-	controller := controllers.NewController(
+	controller := NewTwitchBotController(
 		announcerMock,
-		authMock,
-		twitchMock,
 		databaseMock,
+		usersMock,
 	)
 
 	controller.UpdateViewer(setUpContext(userID, channelName, itemName))

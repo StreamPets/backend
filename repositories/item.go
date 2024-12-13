@@ -7,26 +7,24 @@ import (
 	"gorm.io/gorm/clause"
 )
 
-type ItemRepository interface {
-	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
-	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
-
-	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
-	GetItemByID(itemID uuid.UUID) (models.Item, error)
-
-	GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error)
-
-	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
-	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
-	CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) error
-}
-
 type itemRepository struct {
 	db *gorm.DB
 }
 
-func NewItemRepository(db *gorm.DB) ItemRepository {
+func NewItemRepository(db *gorm.DB) *itemRepository {
 	return &itemRepository{db: db}
+}
+
+func (repo *itemRepository) GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error) {
+	var item models.Item
+	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ? AND items.name = ?", channelID, itemName).First(&item)
+	return item, result.Error
+}
+
+func (repo *itemRepository) GetItemByID(itemID uuid.UUID) (models.Item, error) {
+	var item models.Item
+	result := repo.db.Where("item_id = ?", itemID).First(&item)
+	return item, result.Error
 }
 
 func (repo *itemRepository) GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error) {
@@ -52,16 +50,9 @@ func (repo *itemRepository) SetSelectedItem(userID, channelID models.TwitchID, i
 	}).Error
 }
 
-func (repo *itemRepository) GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error) {
-	var item models.Item
-	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ? AND items.name = ?", channelID, itemName).First(&item)
-	return item, result.Error
-}
-
-func (repo *itemRepository) GetItemByID(itemID uuid.UUID) (models.Item, error) {
-	var item models.Item
-	result := repo.db.Where("item_id = ?", itemID).First(&item)
-	return item, result.Error
+// TODO:
+func (repo *itemRepository) GetDefaultItem(channelID models.TwitchID) (models.Item, error) {
+	return models.Item{}, nil
 }
 
 func (repo *itemRepository) GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error) {

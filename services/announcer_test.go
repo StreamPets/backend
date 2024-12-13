@@ -1,6 +1,7 @@
 package services_test
 
 import (
+	"fmt"
 	"sync"
 	"testing"
 
@@ -13,7 +14,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		channelName := "channel name"
 		viewer := services.Viewer{}
 
-		announcer := services.NewAnnounceService()
+		announcer := services.NewAnnouncerService()
 
 		client := announcer.AddClient(channelName)
 		if client.ChannelName != channelName {
@@ -47,7 +48,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		channelName := "channel name"
 		userID := models.TwitchID("user id")
 
-		announcer := services.NewAnnounceService()
+		announcer := services.NewAnnouncerService()
 
 		client := announcer.AddClient(channelName)
 		if client.ChannelName != channelName {
@@ -82,7 +83,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		userID := models.TwitchID("user id")
 		action := "action"
 
-		announcer := services.NewAnnounceService()
+		announcer := services.NewAnnouncerService()
 
 		client := announcer.AddClient(channelName)
 		if client.ChannelName != channelName {
@@ -103,7 +104,11 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		announcer.AnnounceAction(channelName, action, userID)
 		wg.Wait()
 
-		expected := services.Event{Event: action, Message: userID}
+		expected := services.Event{
+			Event:   fmt.Sprintf("%s-%s", action, userID),
+			Message: userID,
+		}
+
 		if len(events) != 1 {
 			t.Errorf("expected 1 event but got %d", len(events))
 		}
@@ -117,7 +122,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		userID := models.TwitchID("user id")
 		image := "image"
 
-		announcer := services.NewAnnounceService()
+		announcer := services.NewAnnouncerService()
 
 		client := announcer.AddClient(channelName)
 		if client.ChannelName != channelName {
@@ -138,11 +143,13 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		announcer.AnnounceUpdate(channelName, image, userID)
 		wg.Wait()
 
+		expected := fmt.Sprintf("%s-%s", "COLOR", userID)
+
 		if len(events) != 1 {
 			t.Errorf("expected 1 event but got %d", len(events))
 		}
-		if events[0].Event != "ITEM" {
-			t.Errorf("expected %s got %s", "ITEM", events[0].Event)
+		if events[0].Event != expected {
+			t.Errorf("expected %s got %s", expected, events[0].Event)
 		}
 	})
 }
@@ -151,7 +158,7 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 	channelName := "channel name"
 	viewer := services.Viewer{}
 
-	announcer := services.NewAnnounceService()
+	announcer := services.NewAnnouncerService()
 
 	client := announcer.AddClient(channelName)
 	if client.ChannelName != channelName {
@@ -184,7 +191,7 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	channelTwoName := "channel two name"
 	viewer := services.Viewer{}
 
-	announcer := services.NewAnnounceService()
+	announcer := services.NewAnnouncerService()
 
 	clientOne := announcer.AddClient(channelOneName)
 	if clientOne.ChannelName != channelOneName {

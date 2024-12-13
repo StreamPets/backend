@@ -10,7 +10,7 @@ const (
 )
 
 type Item struct {
-	ItemID  uuid.UUID
+	ItemID  uuid.UUID `gorm:"primaryKey;type:uuid"`
 	Name    string
 	Rarity  Rarity
 	Image   string

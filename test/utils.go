@@ -1,4 +1,4 @@
-package repositories_test
+package test
 
 import (
 	"github.com/streampets/backend/models"
@@ -6,7 +6,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func createTestDB() *gorm.DB {
+func CreateTestDB() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
 	if err != nil {
 		panic(err)
