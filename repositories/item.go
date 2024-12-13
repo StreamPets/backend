@@ -50,11 +50,6 @@ func (repo *itemRepository) SetSelectedItem(userID, channelID models.TwitchID, i
 	}).Error
 }
 
-// TODO:
-func (repo *itemRepository) GetDefaultItem(channelID models.TwitchID) (models.Item, error) {
-	return models.Item{}, nil
-}
-
 func (repo *itemRepository) GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error) {
 	var items []models.Item
 	result := repo.db.Joins("JOIN schedules ON schedules.item_id = items.item_id AND schedules.channel_id = ? AND schedules.day_of_week = ?", channelID, dayOfWeek).Find(&items)

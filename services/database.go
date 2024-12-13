@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"gorm.io/gorm"
 )
 
 type Viewer struct {
@@ -20,8 +19,6 @@ type ItemRepository interface {
 
 	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
-
-	GetDefaultItem(channelID models.TwitchID) (models.Item, error)
 
 	GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error)
 
@@ -47,17 +44,12 @@ func (s *DatabaseService) GetViewer(userID, channelID models.TwitchID, username 
 	// Create user if not exists
 
 	item, err := s.itemRepo.GetSelectedItem(userID, channelID)
-	if err == nil {
-		return Viewer{UserID: userID, Username: username, Image: item.Image}, nil
-	}
-	if err != gorm.ErrRecordNotFound {
-		return Viewer{}, err
-	}
-
-	item, err = s.itemRepo.GetDefaultItem(channelID)
 	if err != nil {
 		return Viewer{}, err
 	}
+
+	// Check if user has selected an item
+	// Retrieve channel's default item if not
 
 	return Viewer{UserID: userID, Username: username, Image: item.Image}, nil
 }
