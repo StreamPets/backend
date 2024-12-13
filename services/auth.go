@@ -24,16 +24,16 @@ type Receipt struct {
 }
 
 type AuthService struct {
-	channelRepo  ChannelRepo
+	channelRepo  OverlayIDGetter
 	clientSecret string
 }
 
-type ChannelRepo interface {
+type OverlayIDGetter interface {
 	GetOverlayID(channelID models.TwitchID) (uuid.UUID, error)
 }
 
 func NewAuthService(
-	channelRepo ChannelRepo,
+	channelRepo OverlayIDGetter,
 	clientSecret string,
 ) *AuthService {
 	return &AuthService{

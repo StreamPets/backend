@@ -16,7 +16,7 @@ func TestVerifyOverlayID(t *testing.T) {
 		channelID := models.TwitchID("channel id")
 		overlayID := uuid.New()
 
-		repoMock := mock.Mock[ChannelRepo]()
+		repoMock := mock.Mock[OverlayIDGetter]()
 		mock.When(repoMock.GetOverlayID(channelID)).ThenReturn(overlayID, nil)
 
 		authService := NewAuthService(repoMock, "")
@@ -33,7 +33,7 @@ func TestVerifyOverlayID(t *testing.T) {
 
 		channelID := models.TwitchID("channel id")
 
-		repoMock := mock.Mock[ChannelRepo]()
+		repoMock := mock.Mock[OverlayIDGetter]()
 		mock.When(repoMock.GetOverlayID(channelID)).ThenReturn(uuid.New(), nil)
 
 		authService := NewAuthService(repoMock, "")
@@ -66,7 +66,7 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[ChannelRepo]()
+		repoMock := mock.Mock[OverlayIDGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyExtToken(tokenString)
@@ -99,7 +99,7 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[ChannelRepo]()
+		repoMock := mock.Mock[OverlayIDGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyExtToken(tokenString); err == nil {
@@ -124,7 +124,7 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[ChannelRepo]()
+		repoMock := mock.Mock[OverlayIDGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyReceipt(tokenString)
@@ -152,7 +152,7 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[ChannelRepo]()
+		repoMock := mock.Mock[OverlayIDGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyReceipt(tokenString); err == nil {
