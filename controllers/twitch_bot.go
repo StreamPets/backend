@@ -14,34 +14,39 @@ type Announcer interface {
 	AnnounceUpdate(channelName, image string, userID models.TwitchID)
 }
 
-// TODO: Should these be the same service?
-type DBService interface {
+type ViewerGetter interface {
 	GetViewer(userID, channelID models.TwitchID, username string) (services.Viewer, error)
+}
+
+type ItemGetterSetter interface {
 	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
 }
 
-// TODO: Rename to ~ TwitchApi
+type ViewerItemSetterGetter interface {
+	ViewerGetter
+	ItemGetterSetter
+}
+
 type UserIDGetter interface {
 	GetUserID(username string) (models.TwitchID, error)
 }
 
 type TwitchBotController struct {
 	Announcer Announcer
-	Database  DBService
-	// Rename:
-	UserIDs UserIDGetter
+	Database  ViewerItemSetterGetter
+	Users     UserIDGetter
 }
 
 func NewTwitchBotController(
 	announcer Announcer,
-	database DBService,
+	database ViewerItemSetterGetter,
 	users UserIDGetter,
 ) *TwitchBotController {
 	return &TwitchBotController{
 		Announcer: announcer,
 		Database:  database,
-		UserIDs:   users,
+		Users:     users,
 	}
 }
 
@@ -58,7 +63,7 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 	}
 
 	channelName := ctx.Param("channelName")
-	channelID, err := c.UserIDs.GetUserID(channelName)
+	channelID, err := c.Users.GetUserID(channelName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -102,7 +107,7 @@ func (c *TwitchBotController) UpdateViewer(ctx *gin.Context) {
 	channelName := ctx.Param("channelName")
 	userID := models.TwitchID(ctx.Param("userID"))
 
-	channelID, err := c.UserIDs.GetUserID(channelName)
+	channelID, err := c.Users.GetUserID(channelName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return

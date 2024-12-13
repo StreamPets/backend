@@ -41,7 +41,7 @@ func TestAddViewerToChannel(t *testing.T) {
 	viewer := services.Viewer{Username: username}
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[DBService]()
+	databaseMock := mock.Mock[ViewerItemSetterGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
@@ -77,7 +77,7 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 	channelName := "channel name"
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[DBService]()
+	databaseMock := mock.Mock[ViewerItemSetterGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	controller := NewTwitchBotController(
@@ -112,7 +112,7 @@ func TestAction(t *testing.T) {
 	action := "action"
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[DBService]()
+	databaseMock := mock.Mock[ViewerItemSetterGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	controller := NewTwitchBotController(
@@ -158,7 +158,7 @@ func TestUpdateViewer(t *testing.T) {
 	item := models.Item{ItemID: itemID, Image: image}
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[DBService]()
+	databaseMock := mock.Mock[ViewerItemSetterGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
