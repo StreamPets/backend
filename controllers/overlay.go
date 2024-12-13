@@ -23,20 +23,20 @@ type UsernameGetter interface {
 }
 
 type OverlayController struct {
-	clients   ClientAddRemover
-	overlays  OverlayIDVerifier
-	usernames UsernameGetter
+	Clients ClientAddRemover
+	Overlay OverlayIDVerifier
+	Users   UsernameGetter
 }
 
 func NewOverlayController(
 	clients ClientAddRemover,
-	overlays OverlayIDVerifier,
-	usernames UsernameGetter,
+	overlay OverlayIDVerifier,
+	users UsernameGetter,
 ) *OverlayController {
 	return &OverlayController{
-		clients:   clients,
-		overlays:  overlays,
-		usernames: usernames,
+		Clients: clients,
+		Overlay: overlay,
+		Users:   users,
 	}
 }
 
@@ -48,24 +48,24 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.overlays.VerifyOverlayID(channelID, overlayID); err != nil {
+	if err := c.Overlay.VerifyOverlayID(channelID, overlayID); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	channelName, err := c.usernames.GetUsername(channelID)
+	channelName, err := c.Users.GetUsername(channelID)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	client := c.clients.AddClient(channelName)
+	client := c.Clients.AddClient(channelName)
 	defer func() {
 		go func() {
 			for range client.Stream {
 			}
 		}()
-		c.clients.RemoveClient(client)
+		c.Clients.RemoveClient(client)
 	}()
 
 	ctx.Stream(func(w io.Writer) bool {
