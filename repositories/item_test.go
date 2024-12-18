@@ -11,31 +11,60 @@ import (
 )
 
 func TestGetSelectedItem(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
+	t.Run("selected item returned when item selected", func(t *testing.T) {
+		channelID := models.TwitchID("channel id")
+		userID := models.TwitchID("user id")
 
-	itemID := uuid.New()
-	item := models.Item{ItemID: itemID}
+		itemID := uuid.New()
+		item := models.Item{ItemID: itemID}
 
-	selectedItem := models.SelectedItem{
-		UserID:    userID,
-		ChannelID: channelID,
-		ItemID:    itemID,
-	}
+		selectedItem := models.SelectedItem{
+			UserID:    userID,
+			ChannelID: channelID,
+			ItemID:    itemID,
+		}
 
-	db := test.CreateTestDB()
-	if result := db.Create(&item); result.Error != nil {
-		panic(result.Error)
-	}
-	if result := db.Create(&selectedItem); result.Error != nil {
-		panic(result.Error)
-	}
+		db := test.CreateTestDB()
+		if result := db.Create(&item); result.Error != nil {
+			panic(result.Error)
+		}
+		if result := db.Create(&selectedItem); result.Error != nil {
+			panic(result.Error)
+		}
 
-	itemRepo := repositories.NewItemRepository(db)
-	got, err := itemRepo.GetSelectedItem(userID, channelID)
+		itemRepo := repositories.NewItemRepository(db)
+		got, err := itemRepo.GetSelectedItem(userID, channelID)
 
-	assertNoError(err, t)
-	assertItemsEqual(got, item, t)
+		assertNoError(err, t)
+		assertItemsEqual(got, item, t)
+	})
+
+	t.Run("default item returned when no item selected", func(t *testing.T) {
+		channelID := models.TwitchID("channel id")
+		userID := models.TwitchID("user id")
+
+		itemID := uuid.New()
+		item := models.Item{ItemID: itemID}
+
+		defaultItem := models.DefaultChannelItem{
+			ItemID:    itemID,
+			ChannelID: channelID,
+		}
+
+		db := test.CreateTestDB()
+		if result := db.Create(&item); result.Error != nil {
+			panic(result.Error)
+		}
+		if result := db.Create(&defaultItem); result.Error != nil {
+			panic(result.Error)
+		}
+
+		itemRepo := repositories.NewItemRepository(db)
+		got, err := itemRepo.GetSelectedItem(userID, channelID)
+
+		assertNoError(err, t)
+		assertItemsEqual(got, item, t)
+	})
 }
 
 func TestSetSelectedItem(t *testing.T) {
