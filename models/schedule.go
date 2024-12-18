@@ -15,8 +15,8 @@ const (
 )
 
 type Schedule struct {
-	ScheduleID uuid.UUID
+	ScheduleID uuid.UUID `gorm:"primaryKey"`
 	DayOfWeek  DayOfWeek
-	ItemID     uuid.UUID
+	ItemID     uuid.UUID `gorm:"type:uuid"`
 	ChannelID  TwitchID
 }

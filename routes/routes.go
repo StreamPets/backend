@@ -11,38 +11,35 @@ import (
 func RegisterRoutes(
 	r *gin.Engine,
 	db *gorm.DB,
-	twitchRepo repositories.TwitchRepository,
-	authService services.AuthService,
+	twitchRepo *repositories.TwitchRepository,
+	authService *services.AuthService,
 ) {
 	itemRepo := repositories.NewItemRepository(db)
 
-	announcer := services.NewAnnounceService()
-	databaseService := services.NewDatabaseService(itemRepo, twitchRepo)
+	announcer := services.NewAnnouncerService()
+	database := services.NewDatabaseService(itemRepo)
 
-	controller := controllers.NewController(
-		announcer,
-		authService,
-		twitchRepo,
-		databaseService,
-	)
+	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo)
+	twitchBot := controllers.NewTwitchBotController(announcer, database, twitchRepo)
+	extension := controllers.NewExtensionController(announcer, authService, database, twitchRepo)
 
 	api := r.Group("/overlay")
 	{
-		api.GET("/listen", controller.HandleListen)
+		api.GET("/listen", overlay.HandleListen)
 	}
 
 	api = r.Group("/channels")
 	{
-		api.POST("/:channelName/viewers", controller.AddViewerToChannel)
-		api.DELETE("/:channelName/viewers/:userID", controller.RemoveViewerFromChannel)
-		api.POST("/:channelName/viewers/:userID/:action", controller.Action)
-		api.PUT("/:channelName/viewers/:userID", controller.UpdateViewer)
+		api.POST("/:channelName/viewers", twitchBot.AddViewerToChannel)
+		api.DELETE("/:channelName/viewers/:userID", twitchBot.RemoveViewerFromChannel)
+		api.POST("/:channelName/viewers/:userID/:action", twitchBot.Action)
+		api.PUT("/:channelName/viewers/:userID", twitchBot.UpdateViewer)
 	}
 
 	api = r.Group("/items")
 	{
-		api.GET("/", controller.GetStoreData)
-		api.POST("/", controller.BuyStoreItem)
-		api.PUT("/", controller.SetSelectedItem)
+		api.GET("/", extension.GetStoreData)
+		api.POST("/", extension.BuyStoreItem)
+		api.PUT("/", extension.SetSelectedItem)
 	}
 }

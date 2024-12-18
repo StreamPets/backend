@@ -22,26 +22,21 @@ type accessTokenResponse struct {
 	AccessToken string `json:"access_token"`
 }
 
-type TwitchRepository interface {
-	GetUsername(userID models.TwitchID) (string, error)
-	GetUserID(username string) (models.TwitchID, error)
-}
-
-type twitchRepository struct {
+type TwitchRepository struct {
 	clientID     string
 	clientSecret string
 	accessToken  string
 }
 
-func NewTwitchRepository(id, secret string) (TwitchRepository, error) {
-	repo := &twitchRepository{clientID: id, clientSecret: secret}
+func NewTwitchRepository(id, secret string) (*TwitchRepository, error) {
+	repo := &TwitchRepository{clientID: id, clientSecret: secret}
 	if err := repo.refreshAccessToken(); err != nil {
 		return repo, err
 	}
 	return repo, nil
 }
 
-func (repo *twitchRepository) GetUsername(userID models.TwitchID) (string, error) {
+func (repo *TwitchRepository) GetUsername(userID models.TwitchID) (string, error) {
 	params := fmt.Sprintf("id=%s", userID)
 
 	user, err := repo.getUserWithRefresh(params)
@@ -52,7 +47,7 @@ func (repo *twitchRepository) GetUsername(userID models.TwitchID) (string, error
 	return user.Data[0].Username, nil
 }
 
-func (repo *twitchRepository) GetUserID(username string) (models.TwitchID, error) {
+func (repo *TwitchRepository) GetUserID(username string) (models.TwitchID, error) {
 	params := fmt.Sprintf("login=%s", username)
 
 	user, err := repo.getUserWithRefresh(params)
@@ -63,7 +58,7 @@ func (repo *twitchRepository) GetUserID(username string) (models.TwitchID, error
 	return user.Data[0].UserID, nil
 }
 
-func (repo *twitchRepository) getUserWithRefresh(params string) (userResponse, error) {
+func (repo *TwitchRepository) getUserWithRefresh(params string) (userResponse, error) {
 	resp, err := getUser(params, repo.accessToken, repo.clientID)
 	if err != nil {
 		return userResponse{}, err
@@ -91,7 +86,7 @@ func (repo *twitchRepository) getUserWithRefresh(params string) (userResponse, e
 	return data, nil
 }
 
-func (repo *twitchRepository) refreshAccessToken() error {
+func (repo *TwitchRepository) refreshAccessToken() error {
 	resp, err := getAccessToken(repo.clientID, repo.clientSecret)
 	if err != nil {
 		return err

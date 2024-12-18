@@ -5,7 +5,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
 )
 
 type Viewer struct {
@@ -14,56 +13,56 @@ type Viewer struct {
 	Image    string
 }
 
-type DatabaseService interface {
-	GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error)
-
+type ItemRepository interface {
 	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
 	GetItemByID(itemID uuid.UUID) (models.Item, error)
 
+	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
-	GetTodaysItems(channelID models.TwitchID) ([]models.Item, error)
+
+	GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error)
+
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
+	CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) error
 }
 
-type databaseService struct {
-	itemRepo   repositories.ItemRepository
-	twitchRepo repositories.TwitchRepository
+type DatabaseService struct {
+	itemRepo ItemRepository
 }
 
 func NewDatabaseService(
-	itemRepo repositories.ItemRepository,
-	twitchRepo repositories.TwitchRepository,
-) DatabaseService {
-	return &databaseService{
-		itemRepo:   itemRepo,
-		twitchRepo: twitchRepo,
+	itemRepo ItemRepository,
+) *DatabaseService {
+	return &DatabaseService{
+		itemRepo: itemRepo,
 	}
 }
 
-func (s *databaseService) GetViewer(userID models.TwitchID, channelName, username string) (Viewer, error) {
-	channelID, err := s.twitchRepo.GetUserID(channelName)
-	if err != nil {
-		return Viewer{}, err
-	}
+func (s *DatabaseService) GetViewer(userID, channelID models.TwitchID, username string) (Viewer, error) {
+	// Check if userID exists in users table
+	// Create user if not exists
 
 	item, err := s.itemRepo.GetSelectedItem(userID, channelID)
 	if err != nil {
 		return Viewer{}, err
 	}
 
+	// Check if user has selected an item
+	// Retrieve channel's default item if not
+
 	return Viewer{UserID: userID, Username: username, Image: item.Image}, nil
 }
 
-func (s *databaseService) GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error) {
+func (s *DatabaseService) GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error) {
 	return s.itemRepo.GetItemByName(channelID, itemName)
 }
 
-func (s *databaseService) GetItemByID(itemID uuid.UUID) (models.Item, error) {
+func (s *DatabaseService) GetItemByID(itemID uuid.UUID) (models.Item, error) {
 	return s.itemRepo.GetItemByID(itemID)
 }
 
-func (s *databaseService) SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error {
+func (s *DatabaseService) SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error {
 	if err := s.itemRepo.CheckOwnedItem(userID, itemID); err != nil {
 		return err
 	}
@@ -71,17 +70,17 @@ func (s *databaseService) SetSelectedItem(userID, channelID models.TwitchID, ite
 	return s.itemRepo.SetSelectedItem(channelID, userID, itemID)
 }
 
-func (s *databaseService) GetTodaysItems(channelID models.TwitchID) ([]models.Item, error) {
+func (s *DatabaseService) GetTodaysItems(channelID models.TwitchID) ([]models.Item, error) {
 	currentTime := time.Now()
 	dayOfWeek := models.DayOfWeek(currentTime.Weekday().String())
 
 	return s.itemRepo.GetScheduledItems(channelID, dayOfWeek)
 }
 
-func (s *databaseService) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
+func (s *DatabaseService) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
 	return s.itemRepo.GetOwnedItems(channelID, userID)
 }
 
-func (s *databaseService) AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error {
+func (s *DatabaseService) AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error {
 	return s.itemRepo.AddOwnedItem(userID, itemID, transactionID)
 }

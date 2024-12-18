@@ -6,19 +6,15 @@ import (
 	"gorm.io/gorm"
 )
 
-type ChannelRepo interface {
-	GetOverlayID(channelID models.TwitchID) (uuid.UUID, error)
-}
-
-type channelRepo struct {
+type ChannelRepo struct {
 	db *gorm.DB
 }
 
-func NewChannelRepo(db *gorm.DB) ChannelRepo {
-	return &channelRepo{db: db}
+func NewChannelRepo(db *gorm.DB) *ChannelRepo {
+	return &ChannelRepo{db: db}
 }
 
-func (repo *channelRepo) GetOverlayID(channelID models.TwitchID) (uuid.UUID, error) {
+func (repo *ChannelRepo) GetOverlayID(channelID models.TwitchID) (uuid.UUID, error) {
 	var channel models.Channel
 
 	if result := repo.db.Where("channel_id = ?", channelID).First(&channel); result.Error != nil {

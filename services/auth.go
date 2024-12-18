@@ -6,7 +6,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
 )
 
 var ErrIdMismatch = errors.New("channelID and overlayID do not match")
@@ -24,28 +23,26 @@ type Receipt struct {
 	jwt.RegisteredClaims
 }
 
-type AuthService interface {
-	VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error
-	VerifyExtToken(tokenString string) (*ExtToken, error)
-	VerifyReceipt(tokenString string) (*Receipt, error)
-}
-
-type authService struct {
-	channelRepo  repositories.ChannelRepo
+type AuthService struct {
+	channelRepo  OverlayIDGetter
 	clientSecret string
 }
 
+type OverlayIDGetter interface {
+	GetOverlayID(channelID models.TwitchID) (uuid.UUID, error)
+}
+
 func NewAuthService(
-	channelRepo repositories.ChannelRepo,
+	channelRepo OverlayIDGetter,
 	clientSecret string,
-) AuthService {
-	return &authService{
+) *AuthService {
+	return &AuthService{
 		channelRepo:  channelRepo,
 		clientSecret: clientSecret,
 	}
 }
 
-func (s *authService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error {
+func (s *AuthService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error {
 	expectedID, err := s.channelRepo.GetOverlayID(channelID)
 	if err != nil {
 		return err
@@ -58,7 +55,7 @@ func (s *authService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.
 	return nil
 }
 
-func (s *authService) VerifyExtToken(tokenString string) (*ExtToken, error) {
+func (s *AuthService) VerifyExtToken(tokenString string) (*ExtToken, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &ExtToken{}, s.keyFunc)
 	if err != nil {
 		return nil, err
@@ -72,7 +69,7 @@ func (s *authService) VerifyExtToken(tokenString string) (*ExtToken, error) {
 	return claims, nil
 }
 
-func (s *authService) VerifyReceipt(tokenString string) (*Receipt, error) {
+func (s *AuthService) VerifyReceipt(tokenString string) (*Receipt, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &Receipt{}, s.keyFunc)
 	if err != nil {
 		return nil, err
@@ -86,7 +83,7 @@ func (s *authService) VerifyReceipt(tokenString string) (*Receipt, error) {
 	return claims, nil
 }
 
-func (s *authService) keyFunc(token *jwt.Token) (interface{}, error) {
+func (s *AuthService) keyFunc(token *jwt.Token) (interface{}, error) {
 	if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 		return nil, ErrUnexpectedSigningMethod
 	}
