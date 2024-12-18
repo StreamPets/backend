@@ -1,11 +1,14 @@
 package services
 
 import (
+	"errors"
 	"time"
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 )
+
+var ErrSelectUnknownItem = errors.New("user tried to select an item they do not own")
 
 type ItemRepository interface {
 	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
@@ -17,7 +20,7 @@ type ItemRepository interface {
 
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
-	CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) error
+	CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) (bool, error)
 }
 
 type ItemService struct {
@@ -41,8 +44,12 @@ func (s *ItemService) GetItemByID(itemID uuid.UUID) (models.Item, error) {
 }
 
 func (s *ItemService) SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error {
-	if err := s.itemRepo.CheckOwnedItem(userID, itemID); err != nil {
+	owned, err := s.itemRepo.CheckOwnedItem(userID, itemID)
+	if err != nil {
 		return err
+	}
+	if !owned {
+		return ErrSelectUnknownItem
 	}
 
 	return s.itemRepo.SetSelectedItem(channelID, userID, itemID)
