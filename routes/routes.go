@@ -20,7 +20,7 @@ func RegisterRoutes(
 	database := services.NewDatabaseService(itemRepo)
 
 	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo)
-	twitchBot := controllers.NewTwitchBotController(announcer, database, twitchRepo)
+	twitchBot := controllers.NewTwitchBotController(announcer, itemRepo, database, twitchRepo)
 	extension := controllers.NewExtensionController(announcer, authService, database, twitchRepo)
 
 	api := r.Group("/overlay")
