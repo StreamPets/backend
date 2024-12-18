@@ -18,7 +18,7 @@ type ViewerGetter interface {
 	GetViewer(userID, channelID models.TwitchID, username string) (services.Viewer, error)
 }
 
-type ItemGetterSetter interface {
+type ItemGetSetter interface {
 	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
 }
@@ -29,14 +29,14 @@ type UserIDGetter interface {
 
 type TwitchBotController struct {
 	Announcer Announcer
-	Items     ItemGetterSetter
+	Items     ItemGetSetter
 	Viewers   ViewerGetter
 	Users     UserIDGetter
 }
 
 func NewTwitchBotController(
 	announcer Announcer,
-	items ItemGetterSetter,
+	items ItemGetSetter,
 	viewers ViewerGetter,
 	users UserIDGetter,
 ) *TwitchBotController {

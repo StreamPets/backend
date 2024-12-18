@@ -41,7 +41,7 @@ func TestAddViewerToChannel(t *testing.T) {
 	viewer := services.Viewer{Username: username}
 
 	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetterSetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
@@ -79,7 +79,7 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 	channelName := "channel name"
 
 	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetterSetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
@@ -116,7 +116,7 @@ func TestAction(t *testing.T) {
 	action := "action"
 
 	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetterSetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
@@ -164,7 +164,7 @@ func TestUpdateViewer(t *testing.T) {
 	item := models.Item{ItemID: itemID, Image: image}
 
 	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetterSetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
