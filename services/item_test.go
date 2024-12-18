@@ -8,39 +8,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
-	"gorm.io/gorm"
 )
-
-func TestGetViewer(t *testing.T) {
-	mock.SetUp(t)
-
-	userID := models.TwitchID("user id")
-	channelID := models.TwitchID("channel id")
-	username := "username"
-	image := "image"
-	item := models.Item{Image: image}
-
-	itemMock := mock.Mock[ItemRepository]()
-	mock.When(itemMock.GetSelectedItem(userID, channelID)).ThenReturn(item, nil)
-
-	databaseService := NewDatabaseService(itemMock)
-
-	viewer, err := databaseService.GetViewer(userID, channelID, username)
-	if err != nil {
-		t.Errorf("did not expect an error but received %s", err.Error())
-	}
-
-	expected := Viewer{
-		UserID:   userID,
-		Username: username,
-		Image:    image,
-	}
-
-	mock.Verify(itemMock, mock.Once()).GetSelectedItem(userID, channelID)
-	if viewer != expected {
-		t.Errorf("expected %s got %s", expected, viewer)
-	}
-}
 
 func TestGetItemByName(t *testing.T) {
 	mock.SetUp(t)
@@ -54,7 +22,7 @@ func TestGetItemByName(t *testing.T) {
 
 	mock.When(itemMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
 
-	database := NewDatabaseService(itemMock)
+	database := NewItemService(itemMock)
 
 	got, err := database.GetItemByName(channelID, itemName)
 	if err != nil {
@@ -78,7 +46,7 @@ func TestGetItemByID(t *testing.T) {
 
 	mock.When(itemMock.GetItemByID(itemID)).ThenReturn(item, nil)
 
-	database := NewDatabaseService(itemMock)
+	database := NewItemService(itemMock)
 
 	got, err := database.GetItemByID(itemID)
 	if err != nil {
@@ -102,14 +70,15 @@ func TestSetSelectedItem(t *testing.T) {
 
 		itemMock := mock.Mock[ItemRepository]()
 
-		database := NewDatabaseService(itemMock)
+		database := NewItemService(itemMock)
+
+		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(true, nil)
 
 		err := database.SetSelectedItem(userID, channelID, itemID)
 		if err != nil {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		mock.Verify(itemMock, mock.Once()).CheckOwnedItem(userID, itemID)
 		mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelID, userID, itemID)
 	})
 
@@ -122,16 +91,18 @@ func TestSetSelectedItem(t *testing.T) {
 
 		itemMock := mock.Mock[ItemRepository]()
 
-		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(gorm.ErrRecordNotFound)
+		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(false, nil)
 
-		database := NewDatabaseService(itemMock)
+		database := NewItemService(itemMock)
 
 		err := database.SetSelectedItem(userID, channelID, itemID)
 		if err == nil {
 			t.Errorf("expected an error but did not receive one")
 		}
+		if err != ErrSelectUnknownItem {
+			t.Errorf("expected %s got %s", ErrSelectUnknownItem.Error(), err.Error())
+		}
 
-		mock.Verify(itemMock, mock.Once()).CheckOwnedItem(userID, itemID)
 		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelID, userID, itemID)
 	})
 }
@@ -149,9 +120,9 @@ func TestGetTodaysItems(t *testing.T) {
 
 	mock.When(itemMock.GetScheduledItems(channelID, dayOfWeek)).ThenReturn(expected, nil)
 
-	databaseService := NewDatabaseService(itemMock)
+	itemService := NewItemService(itemMock)
 
-	items, err := databaseService.GetTodaysItems(channelID)
+	items, err := itemService.GetTodaysItems(channelID)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
@@ -174,9 +145,9 @@ func TestGetOwnedItems(t *testing.T) {
 
 	mock.When(itemMock.GetOwnedItems(channelID, userID)).ThenReturn(expected, nil)
 
-	databaseService := NewDatabaseService(itemMock)
+	itemService := NewItemService(itemMock)
 
-	items, err := databaseService.GetOwnedItems(channelID, userID)
+	items, err := itemService.GetOwnedItems(channelID, userID)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
@@ -197,9 +168,9 @@ func TestAddOwnedItem(t *testing.T) {
 
 	mock.When(itemMock.AddOwnedItem(userID, itemID, transactionID)).ThenReturn(nil)
 
-	databaseService := NewDatabaseService(itemMock)
+	itemService := NewItemService(itemMock)
 
-	err := databaseService.AddOwnedItem(userID, itemID, transactionID)
+	err := itemService.AddOwnedItem(userID, itemID, transactionID)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}

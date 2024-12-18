@@ -41,15 +41,17 @@ func TestAddViewerToChannel(t *testing.T) {
 	viewer := services.Viewer{Username: username}
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[ViewerItemSetterGetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
+	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
-	mock.When(databaseMock.GetViewer(userID, channelID, username)).ThenReturn(viewer, nil)
+	mock.When(viewersMock.GetViewer(userID, channelID, username)).ThenReturn(viewer, nil)
 
 	controller := NewTwitchBotController(
 		announcerMock,
-		databaseMock,
+		itemsMock,
+		viewersMock,
 		usersMock,
 	)
 
@@ -77,12 +79,14 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 	channelName := "channel name"
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[ViewerItemSetterGetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
+	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	controller := NewTwitchBotController(
 		announcerMock,
-		databaseMock,
+		itemsMock,
+		viewersMock,
 		usersMock,
 	)
 
@@ -112,12 +116,14 @@ func TestAction(t *testing.T) {
 	action := "action"
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[ViewerItemSetterGetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
+	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	controller := NewTwitchBotController(
 		announcerMock,
-		databaseMock,
+		itemsMock,
+		viewersMock,
 		usersMock,
 	)
 
@@ -158,20 +164,22 @@ func TestUpdateViewer(t *testing.T) {
 	item := models.Item{ItemID: itemID, Image: image}
 
 	announcerMock := mock.Mock[Announcer]()
-	databaseMock := mock.Mock[ViewerItemSetterGetter]()
+	itemsMock := mock.Mock[ItemGetSetter]()
+	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
-	mock.When(databaseMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
+	mock.When(itemsMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
 
 	controller := NewTwitchBotController(
 		announcerMock,
-		databaseMock,
+		itemsMock,
+		viewersMock,
 		usersMock,
 	)
 
 	controller.UpdateViewer(setUpContext(userID, channelName, itemName))
 
-	mock.Verify(databaseMock, mock.Once()).SetSelectedItem(userID, channelID, itemID)
+	mock.Verify(itemsMock, mock.Once()).SetSelectedItem(userID, channelID, itemID)
 	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userID)
 }

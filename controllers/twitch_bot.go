@@ -18,14 +18,9 @@ type ViewerGetter interface {
 	GetViewer(userID, channelID models.TwitchID, username string) (services.Viewer, error)
 }
 
-type ItemGetterSetter interface {
+type ItemGetSetter interface {
 	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
-}
-
-type ViewerItemSetterGetter interface {
-	ViewerGetter
-	ItemGetterSetter
 }
 
 type UserIDGetter interface {
@@ -34,18 +29,21 @@ type UserIDGetter interface {
 
 type TwitchBotController struct {
 	Announcer Announcer
-	Database  ViewerItemSetterGetter
+	Items     ItemGetSetter
+	Viewers   ViewerGetter
 	Users     UserIDGetter
 }
 
 func NewTwitchBotController(
 	announcer Announcer,
-	database ViewerItemSetterGetter,
+	items ItemGetSetter,
+	viewers ViewerGetter,
 	users UserIDGetter,
 ) *TwitchBotController {
 	return &TwitchBotController{
 		Announcer: announcer,
-		Database:  database,
+		Items:     items,
+		Viewers:   viewers,
 		Users:     users,
 	}
 }
@@ -69,7 +67,7 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 		return
 	}
 
-	viewer, err := c.Database.GetViewer(params.UserID, channelID, params.Username)
+	viewer, err := c.Viewers.GetViewer(params.UserID, channelID, params.Username)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -113,13 +111,13 @@ func (c *TwitchBotController) UpdateViewer(ctx *gin.Context) {
 		return
 	}
 
-	item, err := c.Database.GetItemByName(channelID, params.ItemName)
+	item, err := c.Items.GetItemByName(channelID, params.ItemName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	if err = c.Database.SetSelectedItem(userID, channelID, item.ItemID); err != nil {
+	if err = c.Items.SetSelectedItem(userID, channelID, item.ItemID); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}

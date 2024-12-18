@@ -79,7 +79,14 @@ func (repo *itemRepository) AddOwnedItem(userID models.TwitchID, itemID, transac
 	return result.Error
 }
 
-func (repo *itemRepository) CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) error {
+func (repo *itemRepository) CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) (bool, error) {
 	result := repo.db.Where("user_id = ? AND item_id = ?", userID, itemID).First(&models.OwnedItem{})
-	return result.Error
+	if result.Error == gorm.ErrRecordNotFound {
+		return false, nil
+	}
+	if result.Error != nil {
+		return false, result.Error
+	}
+
+	return true, nil
 }
