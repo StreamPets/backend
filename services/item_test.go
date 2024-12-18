@@ -8,7 +8,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
-	"gorm.io/gorm"
 )
 
 func TestGetItemByName(t *testing.T) {
@@ -73,12 +72,13 @@ func TestSetSelectedItem(t *testing.T) {
 
 		database := NewItemService(itemMock)
 
+		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(true, nil)
+
 		err := database.SetSelectedItem(userID, channelID, itemID)
 		if err != nil {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		mock.Verify(itemMock, mock.Once()).CheckOwnedItem(userID, itemID)
 		mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelID, userID, itemID)
 	})
 
@@ -91,7 +91,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		itemMock := mock.Mock[ItemRepository]()
 
-		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(gorm.ErrRecordNotFound)
+		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(false, nil)
 
 		database := NewItemService(itemMock)
 
@@ -99,8 +99,10 @@ func TestSetSelectedItem(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected an error but did not receive one")
 		}
+		if err != ErrSelectUnknownItem {
+			t.Errorf("expected %s got %s", ErrSelectUnknownItem.Error(), err.Error())
+		}
 
-		mock.Verify(itemMock, mock.Once()).CheckOwnedItem(userID, itemID)
 		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelID, userID, itemID)
 	})
 }
