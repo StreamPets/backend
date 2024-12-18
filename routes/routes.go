@@ -17,11 +17,12 @@ func RegisterRoutes(
 	itemRepo := repositories.NewItemRepository(db)
 
 	announcer := services.NewAnnouncerService()
-	database := services.NewDatabaseService(itemRepo)
+	items := services.NewItemService(itemRepo)
+	viewers := services.NewViewerService(itemRepo)
 
 	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo)
-	twitchBot := controllers.NewTwitchBotController(announcer, itemRepo, database, twitchRepo)
-	extension := controllers.NewExtensionController(announcer, authService, database, twitchRepo)
+	twitchBot := controllers.NewTwitchBotController(announcer, items, viewers, twitchRepo)
+	extension := controllers.NewExtensionController(announcer, authService, items, twitchRepo)
 
 	api := r.Group("/overlay")
 	{
