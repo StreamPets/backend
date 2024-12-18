@@ -41,8 +41,8 @@ func NewOverlayController(
 }
 
 func (c *OverlayController) HandleListen(ctx *gin.Context) {
-	channelID := models.TwitchID(ctx.Query("channelID"))
-	overlayID, err := uuid.Parse(ctx.Query("overlayID"))
+	channelID := models.TwitchID(ctx.Query(ChannelID))
+	overlayID, err := uuid.Parse(ctx.Query(OverlayID))
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return

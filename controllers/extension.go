@@ -53,7 +53,7 @@ func NewExtensionController(
 }
 
 func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
-	tokenString := ctx.GetHeader("x-extension-jwt")
+	tokenString := ctx.GetHeader(XExtensionJwt)
 
 	token, err := c.Verifier.VerifyExtToken(tokenString)
 	if err != nil {
@@ -85,7 +85,7 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		ItemID  string `json:"item_id"`
 	}
 
-	tokenString := ctx.GetHeader("x-extension-jwt")
+	tokenString := ctx.GetHeader(XExtensionJwt)
 	token, err := c.Verifier.VerifyExtToken(tokenString)
 	if err != nil {
 		addErrorToCtx(err, ctx)
@@ -121,7 +121,7 @@ func (c *ExtensionController) SetSelectedItem(ctx *gin.Context) {
 		ItemID string `json:"item_id"`
 	}
 
-	tokenString := ctx.GetHeader("x-extension-jwt")
+	tokenString := ctx.GetHeader(XExtensionJwt)
 	token, err := c.Verifier.VerifyExtToken(tokenString)
 	if err != nil {
 		addErrorToCtx(err, ctx)

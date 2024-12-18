@@ -62,7 +62,7 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 		return
 	}
 
-	channelName := ctx.Param("channelName")
+	channelName := ctx.Param(ChannelName)
 	channelID, err := c.Users.GetUserID(channelName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
@@ -79,16 +79,16 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 }
 
 func (c *TwitchBotController) RemoveViewerFromChannel(ctx *gin.Context) {
-	channelName := ctx.Param("channelName")
-	userID := models.TwitchID(ctx.Param("userID"))
+	channelName := ctx.Param(ChannelName)
+	userID := models.TwitchID(ctx.Param(UserID))
 
 	c.Announcer.AnnouncePart(channelName, userID)
 }
 
 func (c *TwitchBotController) Action(ctx *gin.Context) {
-	channelName := ctx.Param("channelName")
-	action := ctx.Param("action")
-	userID := models.TwitchID(ctx.Param("userID"))
+	channelName := ctx.Param(ChannelName)
+	action := ctx.Param(Action)
+	userID := models.TwitchID(ctx.Param(UserID))
 
 	c.Announcer.AnnounceAction(channelName, action, userID)
 }
@@ -104,8 +104,8 @@ func (c *TwitchBotController) UpdateViewer(ctx *gin.Context) {
 		return
 	}
 
-	channelName := ctx.Param("channelName")
-	userID := models.TwitchID(ctx.Param("userID"))
+	channelName := ctx.Param(ChannelName)
+	userID := models.TwitchID(ctx.Param(UserID))
 
 	channelID, err := c.Users.GetUserID(channelName)
 	if err != nil {
