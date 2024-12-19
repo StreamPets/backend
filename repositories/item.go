@@ -30,12 +30,25 @@ func (repo *itemRepository) GetItemByID(itemID uuid.UUID) (models.Item, error) {
 func (repo *itemRepository) GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error) {
 	var selectedItem models.SelectedItem
 	result := repo.db.Where("user_id = ? AND channel_id = ?", userID, channelID).First(&selectedItem)
+
+	if result.Error == nil {
+		var item models.Item
+		result = repo.db.Where("item_id = ?", selectedItem.ItemID).First(&item)
+		return item, result.Error
+	}
+
+	if result.Error != gorm.ErrRecordNotFound {
+		return models.Item{}, result.Error
+	}
+
+	var defaultChannelItem models.DefaultChannelItem
+	result = repo.db.Where("channel_id = ?", channelID).First(&defaultChannelItem)
 	if result.Error != nil {
 		return models.Item{}, result.Error
 	}
 
 	var item models.Item
-	result = repo.db.Where("item_id = ?", selectedItem.ItemID).First(&item)
+	result = repo.db.Where("item_id = ?", defaultChannelItem.ItemID).First(&item)
 	return item, result.Error
 }
 
