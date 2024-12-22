@@ -1,0 +1,28 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: streampets-backend-ingress
+  namespace: streampets
+  annotations:
+    cert-manager.io/issuer: streampets-issuer
+  labels:
+    app: streampets-backend
+    project: streampets
+spec:
+  ingressClassName: traefik
+  rules:
+  - host: api.streampets.io
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: streampets-backend
+            port:
+              number: 80
+
+  tls:
+  - hosts:
+    - api.streampets.io
+    secretName: tls-delta-neutral
