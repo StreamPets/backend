@@ -31,6 +31,5 @@ func main() {
 	}))
 
 	routes.RegisterRoutes(r, db, twitch, auth)
-
 	r.Run()
 }
