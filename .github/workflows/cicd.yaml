@@ -15,7 +15,7 @@ jobs:
 
     - name: Build Docker image
       run: |
-        docker build -t ljheal/streampets-backend:latest .
+        docker build -t ljheal/streampets-backend:${{ github.sha }} .
     
     - name: Log in to Docker Hub
       uses: docker/login-action@v2
@@ -24,8 +24,12 @@ jobs:
         password: ${{ secrets.DOCKER_PASSWORD }}
 
     - name: Push Docker image to Docker Hub
-      run: |
-        docker push ljheal/streampets-backend:latest
+      uses: docker/build-push-action@v3
+      with:
+        push: true
+        tags: |
+          ljheal/streampets-backend:latest
+          ljheal/streampets-backend:${{ github.sha }}
 
   deploy:
     needs: build
@@ -50,3 +54,7 @@ jobs:
         kubectl apply -f .k8s/deployment.yaml
         kubectl apply -f .k8s/service.yaml
         kubectl apply -f .k8s/ingress.yaml
+        kubectl set image deployment/streampets-backend \
+          streampets-backend-container=docker.io/ljheal/streampets-backend:${{ github.sha }} \
+          -n streampets
+
