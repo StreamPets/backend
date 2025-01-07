@@ -1,6 +1,8 @@
 package main
 
 import (
+	"os"
+
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/config"
@@ -8,9 +10,12 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
-	if err != nil {
-		panic(err)
+	env := os.Getenv("ENVIRONMENT")
+	if env != "PRODUCTION" {
+		err := godotenv.Load()
+		if err != nil {
+			panic(err)
+		}
 	}
 
 	db := config.ConnectDB()
