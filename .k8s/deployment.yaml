@@ -22,3 +22,4 @@ spec:
             name: backend-env
         ports:
         - containerPort: 8000
+        
