@@ -9,4 +9,4 @@ spec:
   - port: 80
     targetPort: 8000
   selector:
-    app: streampets
+    app: streampets-backend
