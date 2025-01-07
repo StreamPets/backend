@@ -3,6 +3,7 @@ package main
 import (
 	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/config"
@@ -23,6 +24,11 @@ func main() {
 	auth := config.CreateAuthService(db)
 
 	r := gin.Default()
+
+	frontendUrl := os.Getenv("FRONTEND_URL")
+	r.Use(cors.New(cors.Config{
+		AllowOrigins: []string{frontendUrl},
+	}))
 
 	routes.RegisterRoutes(r, db, twitch, auth)
 
