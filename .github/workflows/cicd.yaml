@@ -57,4 +57,3 @@ jobs:
         kubectl set image deployment/streampets-backend \
           streampets-backend-container=docker.io/ljheal/streampets-backend:${{ github.sha }} \
           -n streampets
-
