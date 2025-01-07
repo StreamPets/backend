@@ -19,6 +19,6 @@ spec:
         image: ljheal/streampets-backend:latest
         envFrom:
         - secretRef:
-          name: backend-env
+            name: backend-env
         ports:
         - containerPort: 8000
