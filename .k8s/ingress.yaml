@@ -4,7 +4,7 @@ metadata:
   name: streampets-backend-ingress
   namespace: streampets
   annotations:
-    cert-manager.io/issuer: streampets-issuer
+    cert-manager.io/cluster-issuer: cloudflare-issuer
   labels:
     app: streampets-backend
     project: streampets
@@ -18,11 +18,11 @@ spec:
         pathType: Prefix
         backend:
           service:
-            name: streampets-backend
+            name: streampets-backend-service
             port:
               number: 80
 
   tls:
   - hosts:
     - api.streampets.io
-    secretName: tls-delta-neutral
+    secretName: tls-streampets-backend
