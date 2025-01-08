@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"io"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -68,11 +69,20 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 		c.Clients.RemoveClient(client)
 	}()
 
+	ticker := time.NewTicker(60 * time.Second)
+	defer ticker.Stop()
+
 	ctx.Stream(func(w io.Writer) bool {
-		if event, ok := <-client.Stream; ok {
-			ctx.SSEvent(event.Event, event.Message)
+		select {
+		case event, ok := <-client.Stream:
+			if ok {
+				ctx.SSEvent(event.Event, event.Message)
+				return true
+			}
+			return false
+		case <-ticker.C:
+			ctx.SSEvent("heartbeat", "ping")
 			return true
 		}
-		return false
 	})
 }
