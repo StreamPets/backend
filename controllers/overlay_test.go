@@ -42,29 +42,31 @@ func TestHandleListen(t *testing.T) {
 	channelID := models.TwitchID("channel id")
 	overlayID := uuid.New()
 	channelName := "channel name"
-	stream := make(services.EventStream)
-	client := services.Client{
-		ChannelName: channelName,
-		Stream:      stream,
-	}
 
 	t.Run("receive and send events from stream", func(t *testing.T) {
 		mock.SetUp(t)
 
 		ctx, recorder := setUpContext(string(channelID), overlayID.String())
 
+		stream := make(services.EventStream)
+		client := services.Client{
+			ChannelName: channelName,
+			Stream:      stream,
+		}
+
 		clientsMock := mock.Mock[ClientAddRemover]()
 		verifierMock := mock.Mock[OverlayIDVerifier]()
 		usersMock := mock.Mock[UsernameGetter]()
+		cacheMock := mock.Mock[ViewersGetter]()
 
 		mock.When(clientsMock.AddClient(channelName)).ThenReturn(client)
-		mock.When(verifierMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(nil)
 		mock.When(usersMock.GetUsername(channelID)).ThenReturn(channelName, nil)
 
 		controller := NewOverlayController(
 			clientsMock,
 			verifierMock,
 			usersMock,
+			cacheMock,
 		)
 
 		var wg sync.WaitGroup
@@ -101,6 +103,7 @@ func TestHandleListen(t *testing.T) {
 		clientsMock := mock.Mock[ClientAddRemover]()
 		verifierMock := mock.Mock[OverlayIDVerifier]()
 		usersMock := mock.Mock[UsernameGetter]()
+		cacheMock := mock.Mock[ViewersGetter]()
 
 		mock.When(verifierMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(services.ErrIdMismatch)
 
@@ -108,6 +111,47 @@ func TestHandleListen(t *testing.T) {
 			clientsMock,
 			verifierMock,
 			usersMock,
+			cacheMock,
+		)
+
+		controller.HandleListen(ctx)
+
+		mock.Verify(verifierMock, mock.Once()).VerifyOverlayID(channelID, overlayID)
+		mock.Verify(clientsMock, mock.Never()).AddClient(channelName)
+
+		response := recorder.Body.String()
+		if !strings.Contains(response, services.ErrIdMismatch.Error()) {
+			t.Errorf("expected event in response, got %s", response)
+		}
+	})
+
+	t.Run("cached viewers are returned in server-sent events", func(t *testing.T) {
+		mock.SetUp(t)
+
+		ctx, recorder := setUpContext(string(channelID), overlayID.String())
+
+		viewerID := models.TwitchID("viewer id")
+		viewers := []services.Viewer{{UserID: viewerID, Username: "username", Image: "image"}}
+		stream := make(services.EventStream)
+		client := services.Client{
+			ChannelName: channelName,
+			Stream:      stream,
+		}
+
+		clientsMock := mock.Mock[ClientAddRemover]()
+		verifierMock := mock.Mock[OverlayIDVerifier]()
+		usersMock := mock.Mock[UsernameGetter]()
+		cacheMock := mock.Mock[ViewersGetter]()
+
+		mock.When(usersMock.GetUsername(channelID)).ThenReturn(channelName, nil)
+		mock.When(clientsMock.AddClient(channelName)).ThenReturn(client)
+		mock.When(cacheMock.GetViewers(channelID)).ThenReturn(viewers)
+
+		controller := NewOverlayController(
+			clientsMock,
+			verifierMock,
+			usersMock,
+			cacheMock,
 		)
 
 		var wg sync.WaitGroup
@@ -118,14 +162,12 @@ func TestHandleListen(t *testing.T) {
 			controller.HandleListen(ctx)
 		}()
 
+		close(stream)
 		wg.Wait()
 
-		mock.Verify(verifierMock, mock.Once()).VerifyOverlayID(channelID, overlayID)
-		mock.Verify(clientsMock, mock.Never()).AddClient(channelName)
-
 		response := recorder.Body.String()
-		if !strings.Contains(response, services.ErrIdMismatch.Error()) {
-			t.Errorf("expected event in response, got %s", response)
+		if !strings.Contains(response, string(viewerID)) {
+			t.Errorf("expected %s in response, got %s", viewerID, response)
 		}
 	})
 }

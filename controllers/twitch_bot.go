@@ -27,11 +27,18 @@ type UserIDGetter interface {
 	GetUserID(username string) (models.TwitchID, error)
 }
 
+type ViewerCache interface {
+	AddViewer(channelID models.TwitchID, viewer services.Viewer)
+	RemoveViewer(channelID, viewerID models.TwitchID)
+	UpdateViewer(channelID, viewerID models.TwitchID, image string)
+}
+
 type TwitchBotController struct {
 	Announcer Announcer
 	Items     ItemGetSetter
 	Viewers   ViewerGetter
 	Users     UserIDGetter
+	Cache     ViewerCache
 }
 
 func NewTwitchBotController(
@@ -39,12 +46,14 @@ func NewTwitchBotController(
 	items ItemGetSetter,
 	viewers ViewerGetter,
 	users UserIDGetter,
+	cache ViewerCache,
 ) *TwitchBotController {
 	return &TwitchBotController{
 		Announcer: announcer,
 		Items:     items,
 		Viewers:   viewers,
 		Users:     users,
+		Cache:     cache,
 	}
 }
 
@@ -73,6 +82,7 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 		return
 	}
 
+	c.Cache.AddViewer(channelID, viewer)
 	c.Announcer.AnnounceJoin(channelName, viewer)
 }
 
@@ -80,6 +90,13 @@ func (c *TwitchBotController) RemoveViewerFromChannel(ctx *gin.Context) {
 	channelName := ctx.Param(ChannelName)
 	userID := models.TwitchID(ctx.Param(UserID))
 
+	channelID, err := c.Users.GetUserID(channelName)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
+	c.Cache.RemoveViewer(channelID, userID)
 	c.Announcer.AnnouncePart(channelName, userID)
 }
 
@@ -122,5 +139,6 @@ func (c *TwitchBotController) UpdateViewer(ctx *gin.Context) {
 		return
 	}
 
+	c.Cache.UpdateViewer(channelID, userID, item.Image)
 	c.Announcer.AnnounceUpdate(channelName, item.Image, userID)
 }
