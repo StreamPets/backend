@@ -3,9 +3,9 @@ package services
 import "github.com/streampets/backend/models"
 
 type Viewer struct {
-	UserID   models.TwitchID
-	Username string
-	Image    string
+	UserID   models.TwitchID `json:"userID"`
+	Username string          `json:"username"`
+	Image    string          `json:"color"`
 }
 
 type ItemRepo interface {

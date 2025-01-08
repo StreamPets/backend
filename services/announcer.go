@@ -93,23 +93,23 @@ func (s *AnnouncerService) AnnounceUpdate(channelName, image string, userID mode
 	}
 }
 
-func (stream *AnnouncerService) listen() {
+func (s *AnnouncerService) listen() {
 	for {
 		select {
 
-		case client := <-stream.newClients:
-			_, ok := stream.totalClients[client.ChannelName]
+		case client := <-s.newClients:
+			_, ok := s.totalClients[client.ChannelName]
 			if !ok {
-				stream.totalClients[client.ChannelName] = make(map[EventStream]bool)
+				s.totalClients[client.ChannelName] = make(map[EventStream]bool)
 			}
-			stream.totalClients[client.ChannelName][client.Stream] = true
+			s.totalClients[client.ChannelName][client.Stream] = true
 
-		case client := <-stream.closedClients:
-			delete(stream.totalClients[client.ChannelName], client.Stream)
+		case client := <-s.closedClients:
+			delete(s.totalClients[client.ChannelName], client.Stream)
 			close(client.Stream)
 
-		case wrappedEvent := <-stream.announce:
-			for eventStream := range stream.totalClients[wrappedEvent.ChannelName] {
+		case wrappedEvent := <-s.announce:
+			for eventStream := range s.totalClients[wrappedEvent.ChannelName] {
 				eventStream <- wrappedEvent.Event
 			}
 		}
