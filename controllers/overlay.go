@@ -79,9 +79,11 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
-	for _, viewer := range c.Cache.GetViewers(channelID) {
-		ctx.SSEvent("JOIN", viewer)
-	}
+	go func() {
+		for _, viewer := range c.Cache.GetViewers(channelID) {
+			client.Stream <- services.Event{Event: "JOIN", Message: viewer}
+		}
+	}()
 
 	ctx.Stream(func(w io.Writer) bool {
 		select {
