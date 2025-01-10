@@ -26,8 +26,6 @@ func RegisterRoutes(
 	twitchBot := controllers.NewTwitchBotController(announcer, items, viewers, twitchRepo, cache)
 	extension := controllers.NewExtensionController(announcer, authService, items, twitchRepo)
 
-	twitch := twitch.TwitchController{}
-
 	api := r.Group("/overlay")
 	{
 		api.GET("/listen", overlay.HandleListen)

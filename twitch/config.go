@@ -2,7 +2,7 @@ package twitch
 
 import (
 	"errors"
-	"github.com/nicklaw5/helix"
+	"github.com/nicklaw5/helix/v2"
 )
 
 const (
@@ -19,7 +19,7 @@ type Channel struct {
 }
 
 var EVENT_PATH = map[string]string{
-	"channel.chat.message":                   "/message",
+	helix.EventSubTypeChannelChatMessage:     "/message",
 	helix.EventSubTypeChannelFollow:          "/follow",
 	helix.EventSubTypeChannelBan:             "/ban",
 	helix.EventSubTypeChannelUnban:           "/ban-end",
