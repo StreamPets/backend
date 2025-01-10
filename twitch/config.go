@@ -1,37 +1,22 @@
 package twitch
 
 import (
-	"errors"
+	"github.com/gin-gonic/gin"
 	"github.com/nicklaw5/helix/v2"
 )
-
-const (
-	BOT_TOKEN = iota
-	LRU_LIMIT
-	BOT_PREFIX
-)
-
-type Channel struct {
-	name      string
-	challenge string
-	userId    string
-	eventsubs []string
-}
 
 var EVENT_PATH = map[string]string{
 	helix.EventSubTypeChannelChatMessage:     "/message",
 	helix.EventSubTypeChannelFollow:          "/follow",
-	helix.EventSubTypeChannelBan:             "/ban",
-	helix.EventSubTypeChannelUnban:           "/ban-end",
 	helix.EventSubTypeChannelSubscription:    "/sub",
 	helix.EventSubTypeChannelSubscriptionEnd: "/sub-end",
 }
 
 var client *helix.Client
 var uri string
-var channels map[string]*Channel
+var channels map[string]*TwitchChannel
 
-func Init(URI, clientId, appAccessToken string) {
+func Init(URI, clientId, appAccessToken, token string) {
 	var err error = nil
 	client, err = helix.NewClient(&helix.Options{
 		ClientID:       clientId,
@@ -41,58 +26,85 @@ func Init(URI, clientId, appAccessToken string) {
 		panic(err)
 	}
 	uri = URI + "/wh"
-	channels = make(map[string]*Channel)
+	channels = make(map[string]*TwitchChannel)
 }
 
 func Close() {
 	for _, channel := range channels {
-		for _, eventsub := range channel.eventsubs {
-			client.RemoveEventSubSubscription(eventsub)
-			// TODO Cleanup remaining subscriptions in case of leftovers
-		}
+		channel.close()
 	}
 }
 
-func (c *Channel) bind(event string) error {
-	if _, has := EVENT_PATH[event]; !has {
-		return errors.New("No such event")
+/******************************************************************************
+       Following callback methods distributes events to dedicated channels
+*****************************************************************************/
+
+func OnMessageReceived(ctx *gin.Context) {
+	type eventMessage struct {
+		Subscription helix.EventSubSubscription            `json:"subscription"`
+		Event        helix.EventSubChannelChatMessageEvent `json:"event"`
 	}
-	_, err := client.CreateEventSubSubscription(&helix.EventSubSubscription{
-		Type:    event,
-		Version: "1",
-		Condition: helix.EventSubCondition{
-			BroadcasterUserID: c.userId,
-		},
-		Transport: helix.EventSubTransport{
-			Method:   "webhook",
-			Callback: uri + EVENT_PATH[event],
-			Secret:   c.challenge,
-		},
+	var msgEvent eventMessage
+	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
+		ch.onMessageReceived(&msgEvent.Event)
+	}
+	ctx.String(200, "OK")
+}
+
+func OnFollow(ctx *gin.Context) {
+	type eventMessage struct {
+		Subscription helix.EventSubSubscription       `json:"subscription"`
+		Event        helix.EventSubChannelFollowEvent `json:"event"`
+	}
+	var msgEvent eventMessage
+	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
+		ch.onFollow(&msgEvent.Event)
+	}
+	ctx.String(200, "OK")
+}
+
+func OnSubscription(ctx *gin.Context) {
+	type eventMessage struct {
+		Subscription helix.EventSubSubscription          `json:"subscription"`
+		Event        helix.EventSubChannelSubscribeEvent `json:"event"`
+	}
+	var msgEvent eventMessage
+	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
+		ch.onSubscription(&msgEvent.Event, true)
+	}
+	ctx.String(200, "OK")
+}
+
+func OnSubscriptionEnd(ctx *gin.Context) {
+	type eventMessage struct {
+		Subscription helix.EventSubSubscription          `json:"subscription"`
+		Event        helix.EventSubChannelSubscribeEvent `json:"event"`
+	}
+	var msgEvent eventMessage
+	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
+		ch.onSubscription(&msgEvent.Event, false)
+	}
+	ctx.String(200, "OK")
+}
+
+func addErrorToCtx(err error, ctx *gin.Context) {
+	ctx.JSON(403, gin.H{
+		"message": err.Error(),
 	})
-	if err != nil {
-		return err
-	}
-	//TODO Add subscription-id to subscriptions slice
-	return nil
-}
-
-func AddChannel(channel, userId, challenge string) error {
-	if _, ok := channels[channel]; ok {
-		return errors.New("channel already exists")
-
-	}
-	channels[channel] = &Channel{
-		name:      channel,
-		userId:    userId,
-		challenge: challenge,
-		eventsubs: make([]string, len(EVENT_PATH)),
-	}
-	for _, v := range EVENT_PATH {
-		err := channels[channel].bind(v)
-		if err != nil {
-			return err
-		}
-		// TODO Better handling
-	}
-	return nil
 }

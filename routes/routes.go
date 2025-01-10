@@ -50,8 +50,6 @@ func RegisterRoutes(
 	{
 		api.POST("/message", twitch.OnMessageReceived)
 		api.POST("/follow", twitch.OnFollow)
-		api.POST("/ban", twitch.OnBanEnabled)
-		api.POST("/ban-end", twitch.OnBanDisabled)
 		api.POST("/sub", twitch.OnSubscription)
 		api.POST("/sub-end", twitch.OnSubscriptionEnd)
 	}
