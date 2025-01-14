@@ -12,13 +12,12 @@ import (
 )
 
 var EVENT_PATH = map[string]string{
-	helix.EventSubTypeChannelChatMessage:     "/message",
-	helix.EventSubTypeChannelFollow:          "/follow",
-	helix.EventSubTypeChannelSubscription:    "/sub",
-	helix.EventSubTypeChannelSubscriptionEnd: "/sub-end",
+	helix.EventSubTypeChannelChatMessage:     "/wh/message",
+	helix.EventSubTypeChannelFollow:          "/wh/follow",
+	helix.EventSubTypeChannelSubscription:    "/wh/sub",
+	helix.EventSubTypeChannelSubscriptionEnd: "/wh/sub-end",
 }
 
-var uri string
 var channels map[string]*TwitchChannel
 var clientId string
 var appAccessToken string
@@ -41,8 +40,11 @@ func init() {
 	if err != nil {
 		panic(fmt.Errorf("Error occurred while obtaining App Access Token %s", err))
 	}
-	uri = URI + "/wh"
 	channels = make(map[string]*TwitchChannel)
+
+	for k := range EVENT_PATH {
+		EVENT_PATH[k] = URI + EVENT_PATH[k]
+	}
 }
 
 func getAccessToken(clientID, clientSecret string) (string, error) {

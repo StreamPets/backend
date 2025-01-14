@@ -1,7 +1,6 @@
 package twitch
 
 import (
-	"errors"
 	"strings"
 
 	"github.com/nicklaw5/helix/v2"
@@ -51,19 +50,15 @@ func NewTwitchChannel(channelName, channelUserID, accessToken, challenge, prefix
 	for _, v := range EVENT_PATH {
 		err := ch.bind(v)
 		if err != nil {
+			ch.Close()
 			return nil, err
 		}
-		// TODO Better handling
 	}
-
 	channels[channelUserID] = &ch
 	return &ch, nil
 }
 
 func (c *TwitchChannel) bind(event string) error {
-	if _, has := EVENT_PATH[event]; !has {
-		return errors.New("No such event")
-	}
 	req := helix.EventSubSubscription{
 		Type:    event,
 		Version: "1",
@@ -72,7 +67,7 @@ func (c *TwitchChannel) bind(event string) error {
 		},
 		Transport: helix.EventSubTransport{
 			Method:   "webhook",
-			Callback: uri + EVENT_PATH[event],
+			Callback: EVENT_PATH[event],
 			Secret:   c.Challenge,
 		},
 	}
