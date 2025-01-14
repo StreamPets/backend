@@ -20,21 +20,34 @@ type TwitchChannel struct {
 	CmdChan    chan models.CommandEvent
 	FollowChan chan models.User
 	SubChan    chan models.SubEvent
+	StreamChan chan models.StreamEvent
+
+	client      *helix.Client
+	accessToken string
 }
 
-func NewTwitchChannel(channelName, channelUserID, challenge, prefix string) (*TwitchChannel, error) {
+func NewTwitchChannel(channelName, channelUserID, accessToken, challenge, prefix string) (*TwitchChannel, error) {
 	ch := TwitchChannel{
-		Name:       channelName,
-		UserId:     channelUserID,
-		Challenge:  challenge,
-		prefix:     prefix,
-		JoinChan:   make(chan models.User, 10),
-		MsgChan:    make(chan models.ChatMessageEvent, 25),
-		CmdChan:    make(chan models.CommandEvent, 25),
-		FollowChan: make(chan models.User),
-		SubChan:    make(chan models.SubEvent),
+		Name:        channelName,
+		UserId:      channelUserID,
+		Challenge:   challenge,
+		prefix:      prefix,
+		accessToken: accessToken,
+		JoinChan:    make(chan models.User, 10),
+		MsgChan:     make(chan models.ChatMessageEvent, 25),
+		CmdChan:     make(chan models.CommandEvent, 25),
+		FollowChan:  make(chan models.User),
+		SubChan:     make(chan models.SubEvent),
 	}
-
+	client, err := helix.NewClient(&helix.Options{
+		ClientID:        clientId,
+		AppAccessToken:  appAccessToken,
+		UserAccessToken: ch.accessToken,
+	})
+	if err != nil {
+		return nil, err
+	}
+	ch.client = client
 	for _, v := range EVENT_PATH {
 		err := ch.bind(v)
 		if err != nil {
@@ -43,6 +56,7 @@ func NewTwitchChannel(channelName, channelUserID, challenge, prefix string) (*Tw
 		// TODO Better handling
 	}
 
+	channels[channelUserID] = &ch
 	return &ch, nil
 }
 
@@ -62,7 +76,7 @@ func (c *TwitchChannel) bind(event string) error {
 			Secret:   c.Challenge,
 		},
 	}
-	_, err := client.CreateEventSubSubscription(&req)
+	_, err := c.client.CreateEventSubSubscription(&req)
 	if err != nil {
 		return err
 	}
@@ -70,9 +84,9 @@ func (c *TwitchChannel) bind(event string) error {
 	return nil
 }
 
-func (c *TwitchChannel) close() {
+func (c *TwitchChannel) Close() {
 	for _, id := range c.eventsubs {
-		_, err := client.RemoveEventSubSubscription(id)
+		_, err := c.client.RemoveEventSubSubscription(id)
 		if err != nil {
 			//TODO I hope Twitch implemented a mechanism to close itself
 		}
@@ -131,5 +145,20 @@ func (c *TwitchChannel) onSubscription(event *helix.EventSubChannelSubscribeEven
 		User:     *c.joinOrGet(models.TwitchID(event.UserID), event.UserName),
 		IsSubbed: isSubbed,
 	}
+}
 
+func (c *TwitchChannel) onStreamStarted(event *helix.EventSubStreamOnlineEvent) {
+	c.StreamChan <- models.StreamEvent{
+		User:      *c.joinOrGet(models.TwitchID(event.BroadcasterUserID), event.BroadcasterUserName),
+		IsOnline:  true,
+		Type:      event.Type,
+		StartDate: event.StartedAt.Time,
+	}
+}
+
+func (c *TwitchChannel) onStreamStopped(event *helix.EventSubStreamOfflineEvent) {
+	c.StreamChan <- models.StreamEvent{
+		User:     *c.joinOrGet(models.TwitchID(event.BroadcasterUserID), event.BroadcasterUserName),
+		IsOnline: false,
+	}
 }

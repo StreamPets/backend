@@ -1,7 +1,13 @@
 package twitch
 
 import (
-	"github.com/gin-gonic/gin"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"net/url"
+	"os"
+
 	"github.com/nicklaw5/helix/v2"
 )
 
@@ -12,99 +18,57 @@ var EVENT_PATH = map[string]string{
 	helix.EventSubTypeChannelSubscriptionEnd: "/sub-end",
 }
 
-var client *helix.Client
 var uri string
 var channels map[string]*TwitchChannel
+var clientId string
+var appAccessToken string
 
-func Init(URI, clientId, appAccessToken, token string) {
-	var err error = nil
-	client, err = helix.NewClient(&helix.Options{
-		ClientID:       clientId,
-		AppAccessToken: appAccessToken,
-	})
+func init() {
+	URI := os.Getenv("APP_URI")
+	if clientId == "" {
+		panic(fmt.Errorf("URI Path (APP_URI) is not set."))
+	}
+	clientId = os.Getenv("CLIENT_ID")
+	if clientId == "" {
+		panic(fmt.Errorf("Twitch App client ID (CLIENT_ID) is not set."))
+	}
+	secret := os.Getenv("CLIENT_SECRET")
+	if secret == "" {
+		panic(fmt.Errorf("Twitch app token (CLIENT_SECRET) is not set."))
+	}
+	var err error
+	appAccessToken, err = getAccessToken(clientId, secret)
 	if err != nil {
-		panic(err)
+		panic(fmt.Errorf("Error occurred while obtaining App Access Token %s", err))
 	}
 	uri = URI + "/wh"
 	channels = make(map[string]*TwitchChannel)
 }
 
-func Close() {
-	for _, channel := range channels {
-		channel.close()
+func getAccessToken(clientID, clientSecret string) (string, error) {
+	type accessTokenResponse struct {
+		AccessToken string `json:"access_token"`
 	}
-}
-
-/******************************************************************************
-       Following callback methods distributes events to dedicated channels
-*****************************************************************************/
-
-func OnMessageReceived(ctx *gin.Context) {
-	type eventMessage struct {
-		Subscription helix.EventSubSubscription            `json:"subscription"`
-		Event        helix.EventSubChannelChatMessageEvent `json:"event"`
-	}
-	var msgEvent eventMessage
-	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
-		ch.onMessageReceived(&msgEvent.Event)
-	}
-	ctx.String(200, "OK")
-}
-
-func OnFollow(ctx *gin.Context) {
-	type eventMessage struct {
-		Subscription helix.EventSubSubscription       `json:"subscription"`
-		Event        helix.EventSubChannelFollowEvent `json:"event"`
-	}
-	var msgEvent eventMessage
-	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
-		ch.onFollow(&msgEvent.Event)
-	}
-	ctx.String(200, "OK")
-}
-
-func OnSubscription(ctx *gin.Context) {
-	type eventMessage struct {
-		Subscription helix.EventSubSubscription          `json:"subscription"`
-		Event        helix.EventSubChannelSubscribeEvent `json:"event"`
-	}
-	var msgEvent eventMessage
-	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
-		ch.onSubscription(&msgEvent.Event, true)
-	}
-	ctx.String(200, "OK")
-}
-
-func OnSubscriptionEnd(ctx *gin.Context) {
-	type eventMessage struct {
-		Subscription helix.EventSubSubscription          `json:"subscription"`
-		Event        helix.EventSubChannelSubscribeEvent `json:"event"`
-	}
-	var msgEvent eventMessage
-	if err := ctx.ShouldBindJSON(&msgEvent); err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-	if ch, ok := channels[msgEvent.Subscription.Condition.BroadcasterUserID]; ok {
-		ch.onSubscription(&msgEvent.Event, false)
-	}
-	ctx.String(200, "OK")
-}
-
-func addErrorToCtx(err error, ctx *gin.Context) {
-	ctx.JSON(403, gin.H{
-		"message": err.Error(),
+	resp, err := http.PostForm("https://id.twitch.tv/oauth2/token", url.Values{
+		"client_id":     {clientID},
+		"client_secret": {clientSecret},
+		"grant_type":    {"client_credentials"},
 	})
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	body, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	var data accessTokenResponse
+	json.Unmarshal(body, &data)
+	return data.AccessToken, nil
+}
+
+func CloseAllStreams() {
+	for _, channel := range channels {
+		channel.Close()
+	}
 }

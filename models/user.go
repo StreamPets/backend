@@ -1,5 +1,7 @@
 package models
 
+import "time"
+
 type TwitchID string
 
 type User struct {
@@ -28,4 +30,13 @@ type CommandEvent struct {
 	User    User
 	Command CMD
 	Args    []string
+}
+
+type StreamEvent struct {
+	User     User
+	IsOnline bool
+	// Optional Arguments
+	// Only available when IsOnline==true
+	Type      string
+	StartDate time.Time
 }
