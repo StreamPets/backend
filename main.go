@@ -25,9 +25,14 @@ func main() {
 
 	r := gin.Default()
 
-	frontendUrl := os.Getenv("FRONTEND_URL")
+	overlayUrl := os.Getenv("FRONTEND_URL") // TODO: Rename in .env
+	extensionUrl := os.Getenv("EXTENSION_URL")
+
 	r.Use(cors.New(cors.Config{
-		AllowOrigins: []string{frontendUrl},
+		AllowOrigins:     []string{overlayUrl, extensionUrl},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		AllowCredentials: true,
 	}))
 
 	routes.RegisterRoutes(r, db, twitch, auth)

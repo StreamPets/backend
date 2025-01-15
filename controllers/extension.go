@@ -20,6 +20,7 @@ type TokenVerifier interface {
 
 type StoreService interface {
 	GetItemByID(itemID uuid.UUID) (models.Item, error)
+	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
 	GetTodaysItems(channelID models.TwitchID) ([]models.Item, error)
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
@@ -67,15 +68,33 @@ func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
 		return
 	}
 
+	ctx.JSON(http.StatusOK, storeItems)
+}
+
+func (c *ExtensionController) GetUserData(ctx *gin.Context) {
+	tokenString := ctx.GetHeader(XExtensionJwt)
+
+	token, err := c.Verifier.VerifyExtToken(tokenString)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
 	ownedItems, err := c.Store.GetOwnedItems(token.ChannelID, token.UserID)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
+	selectedItem, err := c.Store.GetSelectedItem(token.UserID, token.ChannelID)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
 	ctx.JSON(http.StatusOK, gin.H{
-		"store": storeItems,
-		"owned": ownedItems,
+		"selected": selectedItem,
+		"owned":    ownedItems,
 	})
 }
 
@@ -98,6 +117,7 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
+	// TODO: Verify that the item is of same rarity of item bought in receipt
 	itemID, err := uuid.Parse(params.ItemID)
 	if err != nil {
 		addErrorToCtx(err, ctx)
