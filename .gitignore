@@ -24,4 +24,5 @@ go.work.sum
 # env file
 .env
 
-playground.go
+# air temp files
+tmp/
