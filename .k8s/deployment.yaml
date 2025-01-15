@@ -16,7 +16,7 @@ spec:
     spec:
       containers:
       - name: streampets-backend-container
-        image: ljheal/streampets-backend
+        image: ljheal/streampets-backend:latest
         envFrom:
         - secretRef:
             name: backend-env
