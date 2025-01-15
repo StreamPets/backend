@@ -18,7 +18,6 @@ func CreateTestDB() *gorm.DB {
 		&models.DefaultChannelItem{},
 		&models.Item{},
 		&models.OwnedItem{},
-		&models.Schedule{},
 		&models.SelectedItem{},
 		&models.User{},
 	); err != nil {

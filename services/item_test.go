@@ -3,7 +3,6 @@ package services
 import (
 	"slices"
 	"testing"
-	"time"
 
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
@@ -107,27 +106,23 @@ func TestSetSelectedItem(t *testing.T) {
 	})
 }
 
-func TestGetTodaysItems(t *testing.T) {
+func TestGetChannelsItems(t *testing.T) {
 	mock.SetUp(t)
 
-	currentTime := time.Now()
-	dayOfWeek := models.DayOfWeek(currentTime.Weekday().String())
 	channelID := models.TwitchID("channel id")
-
 	itemMock := mock.Mock[ItemRepository]()
 
 	expected := []models.Item{{}}
-
-	mock.When(itemMock.GetScheduledItems(channelID, dayOfWeek)).ThenReturn(expected, nil)
+	mock.When(itemMock.GetChannelsItems(channelID)).ThenReturn(expected, nil)
 
 	itemService := NewItemService(itemMock)
 
-	items, err := itemService.GetTodaysItems(channelID)
+	items, err := itemService.GetChannelsItems(channelID)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
 
-	mock.Verify(itemMock, mock.Once()).GetScheduledItems(channelID, dayOfWeek)
+	mock.Verify(itemMock, mock.Once()).GetChannelsItems(channelID)
 
 	if !slices.Equal(items, expected) {
 		t.Errorf("expected %s got %s", expected, items)

@@ -16,8 +16,7 @@ type ItemRepository interface {
 	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
 
-	GetScheduledItems(channelID models.TwitchID, dayOfWeek models.DayOfWeek) ([]models.Item, error)
-	GetChannelItems(channelID models.TwitchID) ([]models.Item, error)
+	GetChannelsItems(channelID models.TwitchID) ([]models.Item, error)
 
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
@@ -60,13 +59,8 @@ func (s *ItemService) SetSelectedItem(userID, channelID models.TwitchID, itemID 
 	return s.itemRepo.SetSelectedItem(channelID, userID, itemID)
 }
 
-func (s *ItemService) GetTodaysItems(channelID models.TwitchID) ([]models.Item, error) {
-	// currentTime := time.Now()
-	// dayOfWeek := models.DayOfWeek(currentTime.Weekday().String())
-
-	// return s.itemRepo.GetScheduledItems(channelID, dayOfWeek)
-
-	return s.itemRepo.GetChannelItems(channelID)
+func (s *ItemService) GetChannelsItems(channelID models.TwitchID) ([]models.Item, error) {
+	return s.itemRepo.GetChannelsItems(channelID)
 }
 
 func (s *ItemService) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {

@@ -22,7 +22,7 @@ type StoreService interface {
 	GetItemByID(itemID uuid.UUID) (models.Item, error)
 	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
 	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
-	GetTodaysItems(channelID models.TwitchID) ([]models.Item, error)
+	GetChannelsItems(channelID models.TwitchID) ([]models.Item, error)
 	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
 	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
 }
@@ -62,7 +62,7 @@ func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
 		return
 	}
 
-	storeItems, err := c.Store.GetTodaysItems(token.ChannelID)
+	storeItems, err := c.Store.GetChannelsItems(token.ChannelID)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -117,7 +117,6 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
-	// TODO: Verify that the item is of same rarity of item bought in receipt
 	itemID, err := uuid.Parse(params.ItemID)
 	if err != nil {
 		addErrorToCtx(err, ctx)

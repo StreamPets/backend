@@ -25,7 +25,7 @@ func main() {
 
 	r := gin.Default()
 
-	overlayUrl := os.Getenv("FRONTEND_URL") // TODO: Rename in .env
+	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
 
 	r.Use(cors.New(cors.Config{

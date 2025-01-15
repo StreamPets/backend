@@ -51,7 +51,7 @@ func TestGetStoreData(t *testing.T) {
 	usersMock := mock.Mock[UserGetter]()
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(storeMock.GetTodaysItems(channelID)).ThenReturn(storeItems, nil)
+	mock.When(storeMock.GetChannelsItems(channelID)).ThenReturn(storeItems, nil)
 	mock.When(storeMock.GetOwnedItems(channelID, userID)).ThenReturn(ownedItems, nil)
 
 	controller := NewExtensionController(
@@ -65,7 +65,7 @@ func TestGetStoreData(t *testing.T) {
 	controller.GetStoreData(ctx)
 
 	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(storeMock, mock.Once()).GetTodaysItems(channelID)
+	mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelID)
 	mock.Verify(storeMock, mock.Once()).GetOwnedItems(channelID, userID)
 
 	if recorder.Code != http.StatusOK {

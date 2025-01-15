@@ -51,15 +51,6 @@ CREATE TABLE owned_items (
 );
 CREATE INDEX owneditems_userid_idx ON public.owned_items USING btree (user_id, channel_id);
 
-CREATE TABLE schedules (
-	schedule_id uuid NOT NULL,
-	day_of_week varchar NOT NULL,
-	item_id uuid NOT NULL,
-	channel_id varchar NOT NULL,
-	CONSTRAINT schedule_pk PRIMARY KEY (schedule_id),
-	CONSTRAINT schedule_channelitems_fk FOREIGN KEY (channel_id,item_id) REFERENCES channel_items(channel_id,item_id)
-);
-
 CREATE TABLE selected_items (
 	user_id varchar NOT NULL,
 	channel_id varchar NOT NULL,
