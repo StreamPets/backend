@@ -2,33 +2,33 @@ package services
 
 import "github.com/streampets/backend/models"
 
-type Viewer struct {
-	UserID   models.TwitchID `json:"userID"`
+type Pet struct {
+	ViewerId models.TwitchId `json:"viewerId"`
 	Username string          `json:"username"`
 	Image    string          `json:"color"`
 }
 
 type ItemRepo interface {
-	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
+	GetSelectedItem(viewerId, channelId models.TwitchId) (models.Item, error)
 }
 
-type ViewerService struct {
+type PetService struct {
 	Items ItemRepo
 }
 
-func NewViewerService(
+func NewPetService(
 	items ItemRepo,
-) *ViewerService {
-	return &ViewerService{
+) *PetService {
+	return &PetService{
 		Items: items,
 	}
 }
 
-func (s *ViewerService) GetViewer(userID, channelID models.TwitchID, username string) (Viewer, error) {
-	item, err := s.Items.GetSelectedItem(userID, channelID)
+func (s *PetService) GetPet(viewerId, channelId models.TwitchId, username string) (Pet, error) {
+	item, err := s.Items.GetSelectedItem(viewerId, channelId)
 	if err != nil {
-		return Viewer{}, err
+		return Pet{}, err
 	}
 
-	return Viewer{UserID: userID, Username: username, Image: item.Image}, nil
+	return Pet{ViewerId: viewerId, Username: username, Image: item.Image}, nil
 }

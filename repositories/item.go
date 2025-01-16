@@ -17,25 +17,25 @@ func NewItemRepository(db *gorm.DB) *itemRepository {
 	return &itemRepository{db: db}
 }
 
-func (repo *itemRepository) GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error) {
+func (repo *itemRepository) GetItemByName(channelId models.TwitchId, itemName string) (models.Item, error) {
 	var item models.Item
-	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ? AND items.name = ?", channelID, itemName).First(&item)
+	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ? AND items.name = ?", channelId, itemName).First(&item)
 	return item, result.Error
 }
 
-func (repo *itemRepository) GetItemByID(itemID uuid.UUID) (models.Item, error) {
+func (repo *itemRepository) GetItemById(itemId uuid.UUID) (models.Item, error) {
 	var item models.Item
-	result := repo.db.Where("item_id = ?", itemID).First(&item)
+	result := repo.db.Where("item_id = ?", itemId).First(&item)
 	return item, result.Error
 }
 
-func (repo *itemRepository) GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error) {
+func (repo *itemRepository) GetSelectedItem(viewerId, channelId models.TwitchId) (models.Item, error) {
 	var selectedItem models.SelectedItem
-	result := repo.db.Where("user_id = ? AND channel_id = ?", userID, channelID).First(&selectedItem)
+	result := repo.db.Where("viewer_id = ? AND channel_id = ?", viewerId, channelId).First(&selectedItem)
 
 	if result.Error == nil {
 		var item models.Item
-		result = repo.db.Where("item_id = ?", selectedItem.ItemID).First(&item)
+		result = repo.db.Where("item_id = ?", selectedItem.ItemId).First(&item)
 		return item, result.Error
 	}
 
@@ -44,62 +44,62 @@ func (repo *itemRepository) GetSelectedItem(userID, channelID models.TwitchID) (
 	}
 
 	var defaultChannelItem models.DefaultChannelItem
-	result = repo.db.Where("channel_id = ?", channelID).First(&defaultChannelItem)
+	result = repo.db.Where("channel_id = ?", channelId).First(&defaultChannelItem)
 	if result.Error != nil {
 		return models.Item{}, result.Error
 	}
 
 	var item models.Item
-	result = repo.db.Where("item_id = ?", defaultChannelItem.ItemID).First(&item)
+	result = repo.db.Where("item_id = ?", defaultChannelItem.ItemId).First(&item)
 	return item, result.Error
 }
 
-func (repo *itemRepository) SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error {
+func (repo *itemRepository) SetSelectedItem(viewerId, channelId models.TwitchId, itemId uuid.UUID) error {
 	return repo.db.Clauses(clause.OnConflict{
 		DoNothing: false,
 		UpdateAll: true,
 	}).Create(&models.SelectedItem{
-		UserID:    userID,
-		ChannelID: channelID,
-		ItemID:    itemID,
+		ViewerId:  viewerId,
+		ChannelId: channelId,
+		ItemId:    itemId,
 	}).Error
 }
 
-func (repo *itemRepository) GetChannelsItems(channelID models.TwitchID) ([]models.Item, error) {
+func (repo *itemRepository) GetChannelsItems(channelId models.TwitchId) ([]models.Item, error) {
 	var items []models.Item
-	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ?", channelID).Find(&items)
+	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ?", channelId).Find(&items)
 	return items, result.Error
 }
 
-func (repo *itemRepository) GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error) {
+func (repo *itemRepository) GetOwnedItems(channelId, viewerId models.TwitchId) ([]models.Item, error) {
 	var items []models.Item
-	result := repo.db.Joins("JOIN owned_items ON owned_items.item_id = items.item_id AND owned_items.channel_id = ? AND owned_items.user_id = ?", channelID, userID).Find(&items)
+	result := repo.db.Joins("JOIN owned_items ON owned_items.item_id = items.item_id AND owned_items.channel_id = ? AND owned_items.viewer_id = ?", channelId, viewerId).Find(&items)
 	return items, result.Error
 }
 
-func (repo *itemRepository) AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error {
+func (repo *itemRepository) AddOwnedItem(viewerId models.TwitchId, itemId, transactionId uuid.UUID) error {
 	var channelItem models.ChannelItem
-	result := repo.db.Where("item_id = ?", itemID).Find(&channelItem)
+	result := repo.db.Where("item_id = ?", itemId).Find(&channelItem)
 	if result.Error != nil {
 		return result.Error
 	}
 
 	if os.Getenv("ENVIRONMENT") == "DEVELOPMENT" {
-		transactionID = uuid.New()
+		transactionId = uuid.New()
 	}
 
 	result = repo.db.Create(&models.OwnedItem{
-		UserID:        userID,
-		ChannelID:     channelItem.ChannelID,
-		ItemID:        itemID,
-		TransactionID: transactionID,
+		ViewerId:      viewerId,
+		ChannelId:     channelItem.ChannelId,
+		ItemId:        itemId,
+		TransactionId: transactionId,
 	})
 
 	return result.Error
 }
 
-func (repo *itemRepository) CheckOwnedItem(userID models.TwitchID, itemID uuid.UUID) (bool, error) {
-	result := repo.db.Where("user_id = ? AND item_id = ?", userID, itemID).First(&models.OwnedItem{})
+func (repo *itemRepository) CheckOwnedItem(viewerId models.TwitchId, itemId uuid.UUID) (bool, error) {
+	result := repo.db.Where("viewer_id = ? AND item_id = ?", viewerId, itemId).First(&models.OwnedItem{})
 	if result.Error == gorm.ErrRecordNotFound {
 		return false, nil
 	}

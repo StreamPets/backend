@@ -10,29 +10,29 @@ import (
 func TestGetViewer(t *testing.T) {
 	mock.SetUp(t)
 
-	userID := models.TwitchID("user id")
-	channelID := models.TwitchID("channel id")
+	viewerId := models.TwitchId("viewer id")
+	channelId := models.TwitchId("channel id")
 	username := "username"
 	image := "image"
 	item := models.Item{Image: image}
 
 	itemMock := mock.Mock[ItemRepo]()
-	mock.When(itemMock.GetSelectedItem(userID, channelID)).ThenReturn(item, nil)
+	mock.When(itemMock.GetSelectedItem(viewerId, channelId)).ThenReturn(item, nil)
 
-	viewerService := NewViewerService(itemMock)
+	viewerService := NewPetService(itemMock)
 
-	viewer, err := viewerService.GetViewer(userID, channelID, username)
+	viewer, err := viewerService.GetPet(viewerId, channelId, username)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
 
-	expected := Viewer{
-		UserID:   userID,
+	expected := Pet{
+		ViewerId: viewerId,
 		Username: username,
 		Image:    image,
 	}
 
-	mock.Verify(itemMock, mock.Once()).GetSelectedItem(userID, channelID)
+	mock.Verify(itemMock, mock.Once()).GetSelectedItem(viewerId, channelId)
 	if viewer != expected {
 		t.Errorf("expected %s got %s", expected, viewer)
 	}

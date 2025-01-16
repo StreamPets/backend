@@ -8,49 +8,49 @@ import (
 )
 
 type Announcer interface {
-	AnnounceJoin(channelName string, viewer services.Viewer)
-	AnnouncePart(channelName string, userID models.TwitchID)
-	AnnounceAction(channelName, action string, userID models.TwitchID)
-	AnnounceUpdate(channelName, image string, userID models.TwitchID)
+	AnnounceJoin(channelName string, viewer services.Pet)
+	AnnouncePart(channelName string, viewerId models.TwitchId)
+	AnnounceAction(channelName, action string, viewerId models.TwitchId)
+	AnnounceUpdate(channelName, image string, viewerId models.TwitchId)
 }
 
-type ViewerGetter interface {
-	GetViewer(userID, channelID models.TwitchID, username string) (services.Viewer, error)
+type PetGetter interface {
+	GetPet(viewerId, channelId models.TwitchId, username string) (services.Pet, error)
 }
 
 type ItemGetSetter interface {
-	GetItemByName(channelID models.TwitchID, itemName string) (models.Item, error)
-	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
+	GetItemByName(channelId models.TwitchId, itemName string) (models.Item, error)
+	SetSelectedItem(viewerId, channelId models.TwitchId, itemId uuid.UUID) error
 }
 
-type UserIDGetter interface {
-	GetUserID(username string) (models.TwitchID, error)
+type UserIdGetter interface {
+	GetUserId(username string) (models.TwitchId, error)
 }
 
 type TwitchBotController struct {
 	Announcer Announcer
 	Items     ItemGetSetter
-	Viewers   ViewerGetter
-	Users     UserIDGetter
+	Pets      PetGetter
+	Users     UserIdGetter
 }
 
 func NewTwitchBotController(
 	announcer Announcer,
 	items ItemGetSetter,
-	viewers ViewerGetter,
-	users UserIDGetter,
+	pets PetGetter,
+	users UserIdGetter,
 ) *TwitchBotController {
 	return &TwitchBotController{
 		Announcer: announcer,
 		Items:     items,
-		Viewers:   viewers,
+		Pets:      pets,
 		Users:     users,
 	}
 }
 
 func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 	type Params struct {
-		UserID   models.TwitchID `json:"user_id"`
+		ViewerId models.TwitchId `json:"viewer_id"`
 		Username string          `json:"username"`
 	}
 
@@ -61,13 +61,13 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 	}
 
 	channelName := ctx.Param(ChannelName)
-	channelID, err := c.Users.GetUserID(channelName)
+	channelId, err := c.Users.GetUserId(channelName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	viewer, err := c.Viewers.GetViewer(params.UserID, channelID, params.Username)
+	viewer, err := c.Pets.GetPet(params.ViewerId, channelId, params.Username)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -78,17 +78,17 @@ func (c *TwitchBotController) AddViewerToChannel(ctx *gin.Context) {
 
 func (c *TwitchBotController) RemoveViewerFromChannel(ctx *gin.Context) {
 	channelName := ctx.Param(ChannelName)
-	userID := models.TwitchID(ctx.Param(UserID))
+	viewerId := models.TwitchId(ctx.Param(ViewerId))
 
-	c.Announcer.AnnouncePart(channelName, userID)
+	c.Announcer.AnnouncePart(channelName, viewerId)
 }
 
 func (c *TwitchBotController) Action(ctx *gin.Context) {
 	channelName := ctx.Param(ChannelName)
 	action := ctx.Param(Action)
-	userID := models.TwitchID(ctx.Param(UserID))
+	viewerId := models.TwitchId(ctx.Param(ViewerId))
 
-	c.Announcer.AnnounceAction(channelName, action, userID)
+	c.Announcer.AnnounceAction(channelName, action, viewerId)
 }
 
 func (c *TwitchBotController) UpdateViewer(ctx *gin.Context) {
@@ -103,24 +103,24 @@ func (c *TwitchBotController) UpdateViewer(ctx *gin.Context) {
 	}
 
 	channelName := ctx.Param(ChannelName)
-	userID := models.TwitchID(ctx.Param(UserID))
+	viewerId := models.TwitchId(ctx.Param(ViewerId))
 
-	channelID, err := c.Users.GetUserID(channelName)
+	channelId, err := c.Users.GetUserId(channelName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	item, err := c.Items.GetItemByName(channelID, params.ItemName)
+	item, err := c.Items.GetItemByName(channelId, params.ItemName)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	if err = c.Items.SetSelectedItem(userID, channelID, item.ItemID); err != nil {
+	if err = c.Items.SetSelectedItem(viewerId, channelId, item.ItemId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	c.Announcer.AnnounceUpdate(channelName, item.Image, userID)
+	c.Announcer.AnnounceUpdate(channelName, item.Image, viewerId)
 }

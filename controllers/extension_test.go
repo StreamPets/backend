@@ -32,33 +32,33 @@ func TestGetStoreData(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
 	tokenString := "token string"
-	token := services.ExtToken{ChannelID: channelID, UserID: userID}
+	token := services.ExtToken{ChannelId: channelId, ViewerId: viewerId}
 
 	storeItems := []models.Item{{}, {}}
 
 	announcerMock := mock.Mock[UpdateAnnouncer]()
 	verifierMock := mock.Mock[TokenVerifier]()
 	storeMock := mock.Mock[StoreService]()
-	usersMock := mock.Mock[UserGetter]()
+	usernameMock := mock.Mock[UsernameGetter]()
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(storeMock.GetChannelsItems(channelID)).ThenReturn(storeItems, nil)
+	mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
 
 	controller := NewExtensionController(
 		announcerMock,
 		verifierMock,
 		storeMock,
-		usersMock,
+		usernameMock,
 	)
 
 	ctx, recorder := setUpContext(tokenString)
 	controller.GetStoreData(ctx)
 
 	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelID)
+	mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
 
 	if recorder.Code != http.StatusOK {
 		t.Errorf("expected %d got %d", http.StatusOK, recorder.Code)
@@ -74,7 +74,7 @@ func TestGetStoreData(t *testing.T) {
 	}
 }
 
-func TestGetUserData(t *testing.T) {
+func TestGetViewerData(t *testing.T) {
 	mock.SetUp(t)
 
 	type Response struct {
@@ -95,36 +95,36 @@ func TestGetUserData(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
 
 	tokenString := "token string"
 	token := &services.ExtToken{
-		UserID:    userID,
-		ChannelID: channelID,
+		ViewerId:  viewerId,
+		ChannelId: channelId,
 	}
 
-	selectedItem := models.Item{ItemID: uuid.New()}
+	selectedItem := models.Item{ItemId: uuid.New()}
 	ownedItems := []models.Item{selectedItem}
 
 	announcerMock := mock.Mock[UpdateAnnouncer]()
 	verifierMock := mock.Mock[TokenVerifier]()
 	storeMock := mock.Mock[StoreService]()
-	usersMock := mock.Mock[UserGetter]()
+	usernameMock := mock.Mock[UsernameGetter]()
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-	mock.When(storeMock.GetOwnedItems(channelID, userID)).ThenReturn(ownedItems, nil)
-	mock.When(storeMock.GetSelectedItem(userID, channelID)).ThenReturn(selectedItem, nil)
+	mock.When(storeMock.GetOwnedItems(channelId, viewerId)).ThenReturn(ownedItems, nil)
+	mock.When(storeMock.GetSelectedItem(viewerId, channelId)).ThenReturn(selectedItem, nil)
 
 	extController := NewExtensionController(
 		announcerMock,
 		verifierMock,
 		storeMock,
-		usersMock,
+		usernameMock,
 	)
 
 	ctx, recorder := setUpContext(tokenString)
-	extController.GetUserData(ctx)
+	extController.GetViewerData(ctx)
 
 	var response Response
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
@@ -142,13 +142,13 @@ func TestGetUserData(t *testing.T) {
 func TestBuyStoreItem(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(token, receipt, itemID string) *gin.Context {
+	setUpContext := func(token, receipt, itemId string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
 			"receipt": "%s",
 			"item_id": "%s"
-		}`, receipt, itemID))
+		}`, receipt, itemId))
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
@@ -160,49 +160,49 @@ func TestBuyStoreItem(t *testing.T) {
 		return ctx
 	}
 
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
-	itemID := uuid.New()
-	transactionID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
+	itemId := uuid.New()
+	transactionId := uuid.New()
 
 	tokenString := "token string"
 	receiptString := "receipt string"
 
-	token := services.ExtToken{ChannelID: channelID, UserID: userID}
-	receipt := services.Receipt{TransactionID: transactionID}
+	token := services.ExtToken{ChannelId: channelId, ViewerId: viewerId}
+	receipt := services.Receipt{TransactionId: transactionId}
 
 	announcerMock := mock.Mock[UpdateAnnouncer]()
 	verifierMock := mock.Mock[TokenVerifier]()
 	storeMock := mock.Mock[StoreService]()
-	usersMock := mock.Mock[UserGetter]()
+	usernameMock := mock.Mock[UsernameGetter]()
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
 	mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(&receipt, nil)
-	mock.When(storeMock.AddOwnedItem(userID, itemID, transactionID)).ThenReturn(nil)
+	mock.When(storeMock.AddOwnedItem(viewerId, itemId, transactionId)).ThenReturn(nil)
 
 	controller := NewExtensionController(
 		announcerMock,
 		verifierMock,
 		storeMock,
-		usersMock,
+		usernameMock,
 	)
 
-	controller.BuyStoreItem(setUpContext(tokenString, receiptString, itemID.String()))
+	controller.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
 
 	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
 	mock.Verify(verifierMock, mock.Once()).VerifyReceipt(receiptString)
-	mock.Verify(storeMock, mock.Once()).AddOwnedItem(userID, itemID, transactionID)
+	mock.Verify(storeMock, mock.Once()).AddOwnedItem(viewerId, itemId, transactionId)
 }
 
 func TestSetSelectedItem(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(token, itemID string) *gin.Context {
+	setUpContext := func(token, itemId string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
 			"item_id": "%s"
-		}`, itemID))
+		}`, itemId))
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
@@ -218,39 +218,39 @@ func TestSetSelectedItem(t *testing.T) {
 	tokenString := "token string"
 	image := "image"
 
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
-	itemID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
+	itemId := uuid.New()
 
-	item := models.Item{ItemID: itemID, Image: image}
+	item := models.Item{ItemId: itemId, Image: image}
 
 	token := services.ExtToken{
-		ChannelID: channelID,
-		UserID:    userID,
+		ChannelId: channelId,
+		ViewerId:  viewerId,
 	}
 
 	announcerMock := mock.Mock[UpdateAnnouncer]()
 	verifierMock := mock.Mock[TokenVerifier]()
 	storeMock := mock.Mock[StoreService]()
-	usersMock := mock.Mock[UserGetter]()
+	usernameMock := mock.Mock[UsernameGetter]()
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(usersMock.GetUsername(channelID)).ThenReturn(channelName, nil)
-	mock.When(storeMock.SetSelectedItem(userID, channelID, itemID)).ThenReturn(nil)
-	mock.When(storeMock.GetItemByID(itemID)).ThenReturn(item, nil)
+	mock.When(usernameMock.GetUsername(channelId)).ThenReturn(channelName, nil)
+	mock.When(storeMock.SetSelectedItem(viewerId, channelId, itemId)).ThenReturn(nil)
+	mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
 
 	controller := NewExtensionController(
 		announcerMock,
 		verifierMock,
 		storeMock,
-		usersMock,
+		usernameMock,
 	)
 
-	ctx := setUpContext(tokenString, itemID.String())
+	ctx := setUpContext(tokenString, itemId.String())
 
 	controller.SetSelectedItem(ctx)
 
 	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(storeMock, mock.Once()).SetSelectedItem(userID, channelID, itemID)
-	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userID)
+	mock.Verify(storeMock, mock.Once()).SetSelectedItem(viewerId, channelId, itemId)
+	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, viewerId)
 }

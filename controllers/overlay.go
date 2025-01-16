@@ -15,46 +15,46 @@ type ClientAddRemover interface {
 	RemoveClient(client services.Client)
 }
 
-type OverlayIDVerifier interface {
-	VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error
+type OverlayIdVerifier interface {
+	VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error
 }
 
 type UsernameGetter interface {
-	GetUsername(userID models.TwitchID) (string, error)
+	GetUsername(viewerId models.TwitchId) (string, error)
 }
 
 type OverlayController struct {
 	Clients ClientAddRemover
-	Overlay OverlayIDVerifier
-	Users   UsernameGetter
+	Overlay OverlayIdVerifier
+	Viewers UsernameGetter
 }
 
 func NewOverlayController(
 	clients ClientAddRemover,
-	overlay OverlayIDVerifier,
-	users UsernameGetter,
+	overlay OverlayIdVerifier,
+	viewers UsernameGetter,
 ) *OverlayController {
 	return &OverlayController{
 		Clients: clients,
 		Overlay: overlay,
-		Users:   users,
+		Viewers: viewers,
 	}
 }
 
 func (c *OverlayController) HandleListen(ctx *gin.Context) {
-	channelID := models.TwitchID(ctx.Query(ChannelID))
-	overlayID, err := uuid.Parse(ctx.Query(OverlayID))
+	channelId := models.TwitchId(ctx.Query(ChannelId))
+	overlayId, err := uuid.Parse(ctx.Query(OverlayId))
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	if err := c.Overlay.VerifyOverlayID(channelID, overlayID); err != nil {
+	if err := c.Overlay.VerifyOverlayId(channelId, overlayId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	channelName, err := c.Users.GetUsername(channelID)
+	channelName, err := c.Viewers.GetUsername(channelId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return

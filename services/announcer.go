@@ -24,10 +24,10 @@ type Client struct {
 }
 
 type ViewerCache interface {
-	AddViewer(channelName string, viewer Viewer)
-	RemoveViewer(channelName string, viewerID models.TwitchID)
-	UpdateViewer(channelName, image string, viewerID models.TwitchID)
-	GetViewers(channelName string) []Viewer
+	AddViewer(channelName string, viewer Pet)
+	RemoveViewer(channelName string, viewerId models.TwitchId)
+	UpdateViewer(channelName, image string, viewerId models.TwitchId)
+	GetViewers(channelName string) []Pet
 }
 
 type AnnouncerService struct {
@@ -62,7 +62,7 @@ func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Viewer) {
+func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Pet) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
@@ -73,36 +73,36 @@ func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Viewer) {
 	s.cache.AddViewer(channelName, viewer)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelName string, viewerID models.TwitchID) {
+func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
 			Event:   "PART",
-			Message: viewerID,
+			Message: viewerId,
 		},
 	}
-	s.cache.RemoveViewer(channelName, viewerID)
+	s.cache.RemoveViewer(channelName, viewerId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerID models.TwitchID) {
+func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("%s-%s", action, viewerID),
-			Message: viewerID,
+			Event:   fmt.Sprintf("%s-%s", action, viewerId),
+			Message: viewerId,
 		},
 	}
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerID models.TwitchID) {
+func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("COLOR-%s", viewerID),
+			Event:   fmt.Sprintf("COLOR-%s", viewerId),
 			Message: image,
 		},
 	}
-	s.cache.UpdateViewer(channelName, image, viewerID)
+	s.cache.UpdateViewer(channelName, image, viewerId)
 }
 
 func (s *AnnouncerService) listen() {

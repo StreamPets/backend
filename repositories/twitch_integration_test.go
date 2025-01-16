@@ -17,10 +17,10 @@ func setupTwitchRepository() *TwitchRepository {
 		panic(err)
 	}
 
-	clientID := os.Getenv("CLIENT_ID")
+	clientId := os.Getenv("CLIENT_ID")
 	clientSecret := os.Getenv("CLIENT_SECRET")
 
-	repo, err := NewTwitchRepository(clientID, clientSecret)
+	repo, err := NewTwitchRepository(clientId, clientSecret)
 	if err != nil {
 		panic(err)
 	}
@@ -29,12 +29,12 @@ func setupTwitchRepository() *TwitchRepository {
 }
 
 func TestGetUsername(t *testing.T) {
-	channelID := models.TwitchID("83125762")
+	channelId := models.TwitchId("83125762")
 	expected := "ljrexcodes"
 
 	twitchRepo := setupTwitchRepository()
 
-	username, err := twitchRepo.GetUsername(channelID)
+	username, err := twitchRepo.GetUsername(channelId)
 	if err != nil {
 		t.Errorf("did not expect an error but received: %s", err.Error())
 	}
@@ -44,18 +44,18 @@ func TestGetUsername(t *testing.T) {
 	}
 }
 
-func TestGetUserID(t *testing.T) {
+func TestGetViewerId(t *testing.T) {
 	channelName := "ljrexcodes"
-	expected := models.TwitchID("83125762")
+	expected := models.TwitchId("83125762")
 
 	twitchRepo := setupTwitchRepository()
 
-	userID, err := twitchRepo.GetUserID(channelName)
+	viewerId, err := twitchRepo.GetViewerId(channelName)
 	if err != nil {
 		t.Errorf("did not expect an error but received: %s", err.Error())
 	}
 
-	if userID != expected {
-		t.Errorf("expected %s got %s", expected, userID)
+	if viewerId != expected {
+		t.Errorf("expected %s got %s", expected, viewerId)
 	}
 }

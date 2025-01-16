@@ -13,7 +13,7 @@ func TestGetViewers(t *testing.T) {
 	cache := NewViewerCacheService()
 
 	got := cache.GetViewers(channelName)
-	want := []Viewer{}
+	want := []Pet{}
 
 	if !slices.Equal(got, want) {
 		t.Errorf("got %s want %s", got, want)
@@ -24,8 +24,8 @@ func TestAddViewer(t *testing.T) {
 	channelNameOne := "channel name one"
 	channelNameTwo := "channel name two"
 
-	viewerOne := Viewer{UserID: models.TwitchID("user id one")}
-	viewerTwo := Viewer{UserID: models.TwitchID("user id two")}
+	viewerOne := Pet{ViewerId: models.TwitchId("viewer id one")}
+	viewerTwo := Pet{ViewerId: models.TwitchId("viewer id two")}
 
 	cache := NewViewerCacheService()
 
@@ -35,8 +35,8 @@ func TestAddViewer(t *testing.T) {
 	viewersOne := cache.GetViewers(channelNameOne)
 	viewersTwo := cache.GetViewers(channelNameTwo)
 
-	wantOne := []Viewer{viewerOne}
-	wantTwo := []Viewer{viewerTwo}
+	wantOne := []Pet{viewerOne}
+	wantTwo := []Pet{viewerTwo}
 
 	if !slices.Equal(viewersOne, wantOne) {
 		t.Errorf("got %s want %s", viewersOne, wantOne)
@@ -48,16 +48,16 @@ func TestAddViewer(t *testing.T) {
 
 func TestRemoveViewer(t *testing.T) {
 	channelName := "channel name"
-	viewerID := models.TwitchID("viewer id")
-	viewer := Viewer{UserID: viewerID}
+	viewerId := models.TwitchId("viewer id")
+	viewer := Pet{ViewerId: viewerId}
 
 	cache := NewViewerCacheService()
 
 	cache.AddViewer(channelName, viewer)
-	cache.RemoveViewer(channelName, viewer.UserID)
+	cache.RemoveViewer(channelName, viewer.ViewerId)
 
 	got := cache.GetViewers(channelName)
-	want := []Viewer{}
+	want := []Pet{}
 
 	if !slices.Equal(got, want) {
 		t.Errorf("got %s want %s", got, want)
@@ -66,14 +66,14 @@ func TestRemoveViewer(t *testing.T) {
 
 func TestUpdateViewer(t *testing.T) {
 	channelName := "channel name"
-	viewerID := models.TwitchID("viewer id")
-	viewer := Viewer{UserID: viewerID}
+	viewerId := models.TwitchId("viewer id")
+	viewer := Pet{ViewerId: viewerId}
 	image := "image"
 
 	cache := NewViewerCacheService()
 
 	cache.AddViewer(channelName, viewer)
-	cache.UpdateViewer(channelName, image, viewerID)
+	cache.UpdateViewer(channelName, image, viewerId)
 
 	viewers := cache.GetViewers(channelName)
 

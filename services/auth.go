@@ -8,32 +8,32 @@ import (
 	"github.com/streampets/backend/models"
 )
 
-var ErrIdMismatch = errors.New("channelID and overlayID do not match")
+var ErrIdMismatch = errors.New("channel id and overlay id do not match")
 var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
 var ErrInvalidToken = errors.New("token is not valid")
 
 type ExtToken struct {
-	ChannelID models.TwitchID `json:"channel_id"`
-	UserID    models.TwitchID `json:"user_id"`
+	ChannelId models.TwitchId `json:"channel_id"`
+	ViewerId  models.TwitchId `json:"viewer_id"`
 	jwt.RegisteredClaims
 }
 
 type Receipt struct {
-	TransactionID uuid.UUID `json:"transaction_id"`
+	TransactionId uuid.UUID `json:"transaction_id"`
 	jwt.RegisteredClaims
 }
 
 type AuthService struct {
-	channelRepo  OverlayIDGetter
+	channelRepo  OverlayIdGetter
 	clientSecret string
 }
 
-type OverlayIDGetter interface {
-	GetOverlayID(channelID models.TwitchID) (uuid.UUID, error)
+type OverlayIdGetter interface {
+	GetOverlayId(channelId models.TwitchId) (uuid.UUID, error)
 }
 
 func NewAuthService(
-	channelRepo OverlayIDGetter,
+	channelRepo OverlayIdGetter,
 	clientSecret string,
 ) *AuthService {
 	return &AuthService{
@@ -42,13 +42,13 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) VerifyOverlayID(channelID models.TwitchID, overlayID uuid.UUID) error {
-	expectedID, err := s.channelRepo.GetOverlayID(channelID)
+func (s *AuthService) VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error {
+	expectedId, err := s.channelRepo.GetOverlayId(channelId)
 	if err != nil {
 		return err
 	}
 
-	if overlayID != expectedID {
+	if overlayId != expectedId {
 		return ErrIdMismatch
 	}
 

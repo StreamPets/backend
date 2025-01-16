@@ -3,8 +3,8 @@ package models
 import "github.com/google/uuid"
 
 type OwnedItem struct {
-	UserID        TwitchID  `gorm:"primaryKey"`
-	ChannelID     TwitchID  `gorm:"primaryKey"`
-	ItemID        uuid.UUID `gorm:"primaryKey;type:uuid"`
-	TransactionID uuid.UUID `gorm:"unique"`
+	ViewerId      TwitchId  `gorm:"primaryKey"`
+	ChannelId     TwitchId  `gorm:"primaryKey"`
+	ItemId        uuid.UUID `gorm:"primaryKey;type:uuid"`
+	TransactionId uuid.UUID `gorm:"unique"`
 }

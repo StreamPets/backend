@@ -8,14 +8,14 @@ import (
 	"github.com/streampets/backend/test"
 )
 
-func TestGetOverlayID(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	overlayID := uuid.New()
+func TestGetOverlayId(t *testing.T) {
+	channelId := models.TwitchId("channel id")
+	overlayId := uuid.New()
 
 	channel := models.Channel{
-		ChannelID:   channelID,
+		ChannelId:   channelId,
 		ChannelName: "channel name",
-		OverlayID:   overlayID,
+		OverlayId:   overlayId,
 	}
 
 	db := test.CreateTestDB()
@@ -25,12 +25,12 @@ func TestGetOverlayID(t *testing.T) {
 
 	repo := NewChannelRepo(db)
 
-	got, err := repo.GetOverlayID(channelID)
+	got, err := repo.GetOverlayId(channelId)
 	if err != nil {
 		t.Errorf("did not expect an error but received: %s", err.Error())
 	}
 
-	if got != overlayID {
-		t.Errorf("expected %s got %s", overlayID, got)
+	if got != overlayId {
+		t.Errorf("expected %s got %s", overlayId, got)
 	}
 }

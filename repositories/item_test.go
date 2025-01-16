@@ -11,16 +11,16 @@ import (
 
 func TestGetSelectedItem(t *testing.T) {
 	t.Run("selected item returned when item selected", func(t *testing.T) {
-		channelID := models.TwitchID("channel id")
-		userID := models.TwitchID("user id")
+		channelId := models.TwitchId("channel id")
+		viewerId := models.TwitchId("viewer id")
 
-		itemID := uuid.New()
-		item := models.Item{ItemID: itemID}
+		itemId := uuid.New()
+		item := models.Item{ItemId: itemId}
 
 		selectedItem := models.SelectedItem{
-			UserID:    userID,
-			ChannelID: channelID,
-			ItemID:    itemID,
+			ViewerId:  viewerId,
+			ChannelId: channelId,
+			ItemId:    itemId,
 		}
 
 		db := test.CreateTestDB()
@@ -32,22 +32,22 @@ func TestGetSelectedItem(t *testing.T) {
 		}
 
 		itemRepo := NewItemRepository(db)
-		got, err := itemRepo.GetSelectedItem(userID, channelID)
+		got, err := itemRepo.GetSelectedItem(viewerId, channelId)
 
 		assertNoError(err, t)
 		assertItemsEqual(got, item, t)
 	})
 
 	t.Run("default item returned when no item selected", func(t *testing.T) {
-		channelID := models.TwitchID("channel id")
-		userID := models.TwitchID("user id")
+		channelId := models.TwitchId("channel id")
+		viewerId := models.TwitchId("viewer id")
 
-		itemID := uuid.New()
-		item := models.Item{ItemID: itemID}
+		itemId := uuid.New()
+		item := models.Item{ItemId: itemId}
 
 		defaultItem := models.DefaultChannelItem{
-			ItemID:    itemID,
-			ChannelID: channelID,
+			ItemId:    itemId,
+			ChannelId: channelId,
 		}
 
 		db := test.CreateTestDB()
@@ -59,7 +59,7 @@ func TestGetSelectedItem(t *testing.T) {
 		}
 
 		itemRepo := NewItemRepository(db)
-		got, err := itemRepo.GetSelectedItem(userID, channelID)
+		got, err := itemRepo.GetSelectedItem(viewerId, channelId)
 
 		assertNoError(err, t)
 		assertItemsEqual(got, item, t)
@@ -67,19 +67,19 @@ func TestGetSelectedItem(t *testing.T) {
 }
 
 func TestSetSelectedItem(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
 
-	itemID := uuid.New()
-	item := models.Item{ItemID: itemID}
+	itemId := uuid.New()
+	item := models.Item{ItemId: itemId}
 
-	newItemID := uuid.New()
-	newItem := models.Item{ItemID: newItemID}
+	newItemId := uuid.New()
+	newItem := models.Item{ItemId: newItemId}
 
 	selectedItem := models.SelectedItem{
-		UserID:    userID,
-		ChannelID: channelID,
-		ItemID:    itemID,
+		ViewerId:  viewerId,
+		ChannelId: channelId,
+		ItemId:    itemId,
 	}
 
 	db := test.CreateTestDB()
@@ -95,31 +95,31 @@ func TestSetSelectedItem(t *testing.T) {
 
 	itemRepo := NewItemRepository(db)
 
-	got, err := itemRepo.GetSelectedItem(userID, channelID)
+	got, err := itemRepo.GetSelectedItem(viewerId, channelId)
 	assertNoError(err, t)
 	assertItemsEqual(got, item, t)
 
-	err = itemRepo.SetSelectedItem(userID, channelID, newItemID)
+	err = itemRepo.SetSelectedItem(viewerId, channelId, newItemId)
 	assertNoError(err, t)
 
-	got, err = itemRepo.GetSelectedItem(userID, channelID)
+	got, err = itemRepo.GetSelectedItem(viewerId, channelId)
 	assertNoError(err, t)
 	assertItemsEqual(got, newItem, t)
 }
 
 func TestGetItemByName(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	itemID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	itemId := uuid.New()
 	itemName := "item name"
 
 	item := models.Item{
-		ItemID: itemID,
+		ItemId: itemId,
 		Name:   itemName,
 	}
 
 	channelItem := models.ChannelItem{
-		ChannelID: channelID,
-		ItemID:    itemID,
+		ChannelId: channelId,
+		ItemId:    itemId,
 	}
 
 	db := test.CreateTestDB()
@@ -131,15 +131,15 @@ func TestGetItemByName(t *testing.T) {
 	}
 
 	itemRepo := NewItemRepository(db)
-	got, err := itemRepo.GetItemByName(channelID, itemName)
+	got, err := itemRepo.GetItemByName(channelId, itemName)
 
 	assertNoError(err, t)
 	assertItemsEqual(got, item, t)
 }
 
-func TestGetItemByID(t *testing.T) {
-	itemID := uuid.New()
-	item := models.Item{ItemID: itemID}
+func TestGetItemById(t *testing.T) {
+	itemId := uuid.New()
+	item := models.Item{ItemId: itemId}
 
 	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
@@ -147,18 +147,18 @@ func TestGetItemByID(t *testing.T) {
 	}
 
 	itemRepo := NewItemRepository(db)
-	got, err := itemRepo.GetItemByID(itemID)
+	got, err := itemRepo.GetItemById(itemId)
 
 	assertNoError(err, t)
 	assertItemsEqual(got, item, t)
 }
 
 func TestGetChannelsItems(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	itemID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	itemId := uuid.New()
 
 	item := models.Item{
-		ItemID:  itemID,
+		ItemId:  itemId,
 		Name:    "item name",
 		Rarity:  "rarity",
 		Image:   "image",
@@ -166,8 +166,8 @@ func TestGetChannelsItems(t *testing.T) {
 	}
 
 	channelItem := models.ChannelItem{
-		ChannelID: channelID,
-		ItemID:    itemID,
+		ChannelId: channelId,
+		ItemId:    itemId,
 	}
 
 	db := test.CreateTestDB()
@@ -180,7 +180,7 @@ func TestGetChannelsItems(t *testing.T) {
 
 	itemRepo := NewItemRepository(db)
 
-	items, err := itemRepo.GetChannelsItems(channelID)
+	items, err := itemRepo.GetChannelsItems(channelId)
 	assertNoError(err, t)
 
 	expected := []models.Item{item}
@@ -190,22 +190,16 @@ func TestGetChannelsItems(t *testing.T) {
 }
 
 func TestGetOwnedItems(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
-	itemID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
 
-	item := models.Item{
-		ItemID:  itemID,
-		Name:    "item name",
-		Rarity:  "rarity",
-		Image:   "image",
-		PrevImg: "prev image",
-	}
+	itemId := uuid.New()
+	item := models.Item{ItemId: itemId}
 
 	owneditem := models.OwnedItem{
-		UserID:    "user id",
-		ChannelID: "channel id",
-		ItemID:    itemID,
+		ViewerId:  viewerId,
+		ChannelId: channelId,
+		ItemId:    itemId,
 	}
 
 	db := test.CreateTestDB()
@@ -218,7 +212,7 @@ func TestGetOwnedItems(t *testing.T) {
 
 	itemRepo := NewItemRepository(db)
 
-	items, err := itemRepo.GetOwnedItems(channelID, userID)
+	items, err := itemRepo.GetOwnedItems(channelId, viewerId)
 	assertNoError(err, t)
 
 	expected := []models.Item{item}
@@ -228,14 +222,14 @@ func TestGetOwnedItems(t *testing.T) {
 }
 
 func TestAddOwnedItem(t *testing.T) {
-	channelID := models.TwitchID("channel id")
-	userID := models.TwitchID("user id")
-	itemID := uuid.New()
-	transactionID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	viewerId := models.TwitchId("viewer id")
+	itemId := uuid.New()
+	transactionId := uuid.New()
 
 	channelItem := models.ChannelItem{
-		ItemID:    itemID,
-		ChannelID: channelID,
+		ItemId:    itemId,
+		ChannelId: channelId,
 	}
 
 	db := test.CreateTestDB()
@@ -245,17 +239,17 @@ func TestAddOwnedItem(t *testing.T) {
 
 	itemRepo := NewItemRepository(db)
 
-	err := itemRepo.AddOwnedItem(userID, itemID, transactionID)
+	err := itemRepo.AddOwnedItem(viewerId, itemId, transactionId)
 
 	assertNoError(err, t)
 }
 
 func TestCheckOwnedItem(t *testing.T) {
-	t.Run("true when user owns item", func(t *testing.T) {
-		userID := models.TwitchID("user id")
-		itemID := uuid.New()
+	t.Run("true when viewer owns item", func(t *testing.T) {
+		viewerId := models.TwitchId("viewer id")
+		itemId := uuid.New()
 
-		ownedItem := models.OwnedItem{UserID: userID, ItemID: itemID}
+		ownedItem := models.OwnedItem{ViewerId: viewerId, ItemId: itemId}
 
 		db := test.CreateTestDB()
 		if result := db.Create(&ownedItem); result.Error != nil {
@@ -264,20 +258,20 @@ func TestCheckOwnedItem(t *testing.T) {
 
 		itemRepo := NewItemRepository(db)
 
-		owned, err := itemRepo.CheckOwnedItem(userID, itemID)
+		owned, err := itemRepo.CheckOwnedItem(viewerId, itemId)
 		assertNoError(err, t)
 		assertTrue(owned, t)
 	})
 
 	t.Run("false when item is unowned", func(t *testing.T) {
-		userID := models.TwitchID("user id")
-		itemID := uuid.New()
+		viewerId := models.TwitchId("viewer id")
+		itemId := uuid.New()
 
 		db := test.CreateTestDB()
 
 		itemRepo := NewItemRepository(db)
 
-		owned, err := itemRepo.CheckOwnedItem(userID, itemID)
+		owned, err := itemRepo.CheckOwnedItem(viewerId, itemId)
 		assertNoError(err, t)
 		assertTrue(!owned, t)
 	})

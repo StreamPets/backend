@@ -13,7 +13,7 @@ import (
 func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce join", func(t *testing.T) {
 		channelName := "channel name"
-		viewer := Viewer{}
+		viewer := Pet{}
 
 		cacheMock := mock.Mock[ViewerCache]()
 		announcer := NewAnnouncerService(cacheMock)
@@ -50,7 +50,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 
 	t.Run("add client and announce part", func(t *testing.T) {
 		channelName := "channel name"
-		userID := models.TwitchID("user id")
+		viewerId := models.TwitchId("viewer id")
 
 		cacheMock := mock.Mock[ViewerCache]()
 		announcer := NewAnnouncerService(cacheMock)
@@ -71,10 +71,10 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			}
 		}()
 
-		announcer.AnnouncePart(channelName, userID)
+		announcer.AnnouncePart(channelName, viewerId)
 		wg.Wait()
 
-		expected := Event{Event: "PART", Message: userID}
+		expected := Event{Event: "PART", Message: viewerId}
 		if len(events) != 1 {
 			t.Errorf("expected 1 event but got %d", len(events))
 		}
@@ -82,12 +82,12 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			t.Errorf("expected %s got %s", expected, events[0])
 		}
 
-		mock.Verify(cacheMock, mock.Once()).RemoveViewer(channelName, userID)
+		mock.Verify(cacheMock, mock.Once()).RemoveViewer(channelName, viewerId)
 	})
 
 	t.Run("add client and announce action", func(t *testing.T) {
 		channelName := "channel name"
-		userID := models.TwitchID("user id")
+		viewerId := models.TwitchId("viewer id")
 		action := "action"
 
 		cacheMock := mock.Mock[ViewerCache]()
@@ -109,12 +109,12 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			}
 		}()
 
-		announcer.AnnounceAction(channelName, action, userID)
+		announcer.AnnounceAction(channelName, action, viewerId)
 		wg.Wait()
 
 		expected := Event{
-			Event:   fmt.Sprintf("%s-%s", action, userID),
-			Message: userID,
+			Event:   fmt.Sprintf("%s-%s", action, viewerId),
+			Message: viewerId,
 		}
 
 		if len(events) != 1 {
@@ -127,7 +127,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 
 	t.Run("add client and announce update", func(t *testing.T) {
 		channelName := "channel name"
-		userID := models.TwitchID("user id")
+		viewerId := models.TwitchId("viewer id")
 		image := "image"
 
 		cacheMock := mock.Mock[ViewerCache]()
@@ -149,10 +149,10 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			}
 		}()
 
-		announcer.AnnounceUpdate(channelName, image, userID)
+		announcer.AnnounceUpdate(channelName, image, viewerId)
 		wg.Wait()
 
-		expected := fmt.Sprintf("%s-%s", "COLOR", userID)
+		expected := fmt.Sprintf("%s-%s", "COLOR", viewerId)
 
 		if len(events) != 1 {
 			t.Errorf("expected 1 event but got %d", len(events))
@@ -161,13 +161,13 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			t.Errorf("expected %s got %s", expected, events[0].Event)
 		}
 
-		mock.Verify(cacheMock, mock.Once()).UpdateViewer(channelName, image, userID)
+		mock.Verify(cacheMock, mock.Once()).UpdateViewer(channelName, image, viewerId)
 	})
 }
 
 func TestRemoveClientWithAnnouncements(t *testing.T) {
 	channelName := "channel name"
-	viewer := Viewer{}
+	viewer := Pet{}
 
 	cacheMock := mock.Mock[ViewerCache]()
 	announcer := NewAnnouncerService(cacheMock)
@@ -201,7 +201,7 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	channelOneName := "channel one name"
 	channelTwoName := "channel two name"
-	viewer := Viewer{}
+	viewer := Pet{}
 
 	cacheMock := mock.Mock[ViewerCache]()
 	announcer := NewAnnouncerService(cacheMock)
@@ -252,7 +252,7 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 
 func TestAddClient(t *testing.T) {
 	channelName := "channel name"
-	viewers := []Viewer{{}, {}}
+	viewers := []Pet{{}, {}}
 
 	cacheMock := mock.Mock[ViewerCache]()
 	mock.When(cacheMock.GetViewers(channelName)).ThenReturn(viewers)
@@ -260,13 +260,13 @@ func TestAddClient(t *testing.T) {
 	announcer := NewAnnouncerService(cacheMock)
 	client := announcer.AddClient(channelName)
 
-	got := []Viewer{}
+	got := []Pet{}
 	var wg sync.WaitGroup
 	wg.Add(len(viewers))
 
 	go func() {
 		for event := range client.Stream {
-			viewer, ok := event.Message.(Viewer)
+			viewer, ok := event.Message.(Pet)
 			if !ok {
 				t.Errorf("expected a viewer but got %s", event.Message)
 			}

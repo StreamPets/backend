@@ -31,7 +31,7 @@ func ConnectDB() *gorm.DB {
 		&models.Item{},
 		&models.OwnedItem{},
 		&models.SelectedItem{},
-		&models.User{},
+		&models.Viewer{},
 	); err != nil {
 		panic(err)
 	}
