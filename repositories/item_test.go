@@ -1,4 +1,4 @@
-package repositories_test
+package repositories
 
 import (
 	"slices"
@@ -6,7 +6,6 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/test"
 )
 
@@ -32,7 +31,7 @@ func TestGetSelectedItem(t *testing.T) {
 			panic(result.Error)
 		}
 
-		itemRepo := repositories.NewItemRepository(db)
+		itemRepo := NewItemRepository(db)
 		got, err := itemRepo.GetSelectedItem(userID, channelID)
 
 		assertNoError(err, t)
@@ -59,7 +58,7 @@ func TestGetSelectedItem(t *testing.T) {
 			panic(result.Error)
 		}
 
-		itemRepo := repositories.NewItemRepository(db)
+		itemRepo := NewItemRepository(db)
 		got, err := itemRepo.GetSelectedItem(userID, channelID)
 
 		assertNoError(err, t)
@@ -94,7 +93,7 @@ func TestSetSelectedItem(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := repositories.NewItemRepository(db)
+	itemRepo := NewItemRepository(db)
 
 	got, err := itemRepo.GetSelectedItem(userID, channelID)
 	assertNoError(err, t)
@@ -131,7 +130,7 @@ func TestGetItemByName(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := repositories.NewItemRepository(db)
+	itemRepo := NewItemRepository(db)
 	got, err := itemRepo.GetItemByName(channelID, itemName)
 
 	assertNoError(err, t)
@@ -147,7 +146,7 @@ func TestGetItemByID(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := repositories.NewItemRepository(db)
+	itemRepo := NewItemRepository(db)
 	got, err := itemRepo.GetItemByID(itemID)
 
 	assertNoError(err, t)
@@ -179,7 +178,7 @@ func TestGetChannelsItems(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := repositories.NewItemRepository(db)
+	itemRepo := NewItemRepository(db)
 
 	items, err := itemRepo.GetChannelsItems(channelID)
 	assertNoError(err, t)
@@ -217,7 +216,7 @@ func TestGetOwnedItems(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := repositories.NewItemRepository(db)
+	itemRepo := NewItemRepository(db)
 
 	items, err := itemRepo.GetOwnedItems(channelID, userID)
 	assertNoError(err, t)
@@ -244,7 +243,7 @@ func TestAddOwnedItem(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := repositories.NewItemRepository(db)
+	itemRepo := NewItemRepository(db)
 
 	err := itemRepo.AddOwnedItem(userID, itemID, transactionID)
 
@@ -263,7 +262,7 @@ func TestCheckOwnedItem(t *testing.T) {
 			panic(result.Error)
 		}
 
-		itemRepo := repositories.NewItemRepository(db)
+		itemRepo := NewItemRepository(db)
 
 		owned, err := itemRepo.CheckOwnedItem(userID, itemID)
 		assertNoError(err, t)
@@ -276,7 +275,7 @@ func TestCheckOwnedItem(t *testing.T) {
 
 		db := test.CreateTestDB()
 
-		itemRepo := repositories.NewItemRepository(db)
+		itemRepo := NewItemRepository(db)
 
 		owned, err := itemRepo.CheckOwnedItem(userID, itemID)
 		assertNoError(err, t)

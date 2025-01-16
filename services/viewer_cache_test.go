@@ -8,11 +8,11 @@ import (
 )
 
 func TestGetViewers(t *testing.T) {
-	channelID := models.TwitchID("channel id")
+	channelName := "channel name"
 
 	cache := NewViewerCacheService()
 
-	got := cache.GetViewers(channelID)
+	got := cache.GetViewers(channelName)
 	want := []Viewer{}
 
 	if !slices.Equal(got, want) {
@@ -21,19 +21,19 @@ func TestGetViewers(t *testing.T) {
 }
 
 func TestAddViewer(t *testing.T) {
-	channelIdOne := models.TwitchID("channel id one")
-	channelIdTwo := models.TwitchID("channel id two")
+	channelNameOne := "channel name one"
+	channelNameTwo := "channel name two"
 
 	viewerOne := Viewer{UserID: models.TwitchID("user id one")}
 	viewerTwo := Viewer{UserID: models.TwitchID("user id two")}
 
 	cache := NewViewerCacheService()
 
-	cache.AddViewer(channelIdOne, viewerOne)
-	cache.AddViewer(channelIdTwo, viewerTwo)
+	cache.AddViewer(channelNameOne, viewerOne)
+	cache.AddViewer(channelNameTwo, viewerTwo)
 
-	viewersOne := cache.GetViewers(channelIdOne)
-	viewersTwo := cache.GetViewers(channelIdTwo)
+	viewersOne := cache.GetViewers(channelNameOne)
+	viewersTwo := cache.GetViewers(channelNameTwo)
 
 	wantOne := []Viewer{viewerOne}
 	wantTwo := []Viewer{viewerTwo}
@@ -47,16 +47,16 @@ func TestAddViewer(t *testing.T) {
 }
 
 func TestRemoveViewer(t *testing.T) {
-	channelID := models.TwitchID("channel id")
+	channelName := "channel name"
 	viewerID := models.TwitchID("viewer id")
 	viewer := Viewer{UserID: viewerID}
 
 	cache := NewViewerCacheService()
 
-	cache.AddViewer(channelID, viewer)
-	cache.RemoveViewer(channelID, viewer.UserID)
+	cache.AddViewer(channelName, viewer)
+	cache.RemoveViewer(channelName, viewer.UserID)
 
-	got := cache.GetViewers(channelID)
+	got := cache.GetViewers(channelName)
 	want := []Viewer{}
 
 	if !slices.Equal(got, want) {
@@ -65,17 +65,17 @@ func TestRemoveViewer(t *testing.T) {
 }
 
 func TestUpdateViewer(t *testing.T) {
-	channelID := models.TwitchID("channel id")
+	channelName := "channel name"
 	viewerID := models.TwitchID("viewer id")
 	viewer := Viewer{UserID: viewerID}
 	image := "image"
 
 	cache := NewViewerCacheService()
 
-	cache.AddViewer(channelID, viewer)
-	cache.UpdateViewer(channelID, viewerID, image)
+	cache.AddViewer(channelName, viewer)
+	cache.UpdateViewer(channelName, image, viewerID)
 
-	viewers := cache.GetViewers(channelID)
+	viewers := cache.GetViewers(channelName)
 
 	if len(viewers) != 1 {
 		t.Errorf("expected a singleton list but was of length %d", len(viewers))

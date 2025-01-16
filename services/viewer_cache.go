@@ -3,25 +3,25 @@ package services
 import "github.com/streampets/backend/models"
 
 type ViewerCacheService struct {
-	viewers map[models.TwitchID]map[models.TwitchID]Viewer
+	viewers map[string]map[models.TwitchID]Viewer
 }
 
 func NewViewerCacheService() *ViewerCacheService {
-	return &ViewerCacheService{make(map[models.TwitchID]map[models.TwitchID]Viewer)}
+	return &ViewerCacheService{make(map[string]map[models.TwitchID]Viewer)}
 }
 
-func (s *ViewerCacheService) AddViewer(channelID models.TwitchID, viewer Viewer) {
-	viewers, ok := s.viewers[channelID]
+func (s *ViewerCacheService) AddViewer(channelName string, viewer Viewer) {
+	viewers, ok := s.viewers[channelName]
 	if !ok {
 		viewers = make(map[models.TwitchID]Viewer)
-		s.viewers[channelID] = viewers
+		s.viewers[channelName] = viewers
 	}
 
 	viewers[viewer.UserID] = viewer
 }
 
-func (s *ViewerCacheService) RemoveViewer(channelID, viewerID models.TwitchID) {
-	viewers, ok := s.viewers[channelID]
+func (s *ViewerCacheService) RemoveViewer(channelName string, viewerID models.TwitchID) {
+	viewers, ok := s.viewers[channelName]
 	if !ok {
 		return
 	}
@@ -29,8 +29,8 @@ func (s *ViewerCacheService) RemoveViewer(channelID, viewerID models.TwitchID) {
 	delete(viewers, viewerID)
 }
 
-func (s *ViewerCacheService) UpdateViewer(channelID, viewerID models.TwitchID, image string) {
-	viewers, ok := s.viewers[channelID]
+func (s *ViewerCacheService) UpdateViewer(channelName, image string, viewerID models.TwitchID) {
+	viewers, ok := s.viewers[channelName]
 	if !ok {
 		return
 	}
@@ -41,11 +41,11 @@ func (s *ViewerCacheService) UpdateViewer(channelID, viewerID models.TwitchID, i
 	}
 
 	viewer.Image = image
-	s.viewers[channelID][viewerID] = viewer
+	s.viewers[channelName][viewerID] = viewer
 }
 
-func (s *ViewerCacheService) GetViewers(channelID models.TwitchID) []Viewer {
-	viewers, ok := s.viewers[channelID]
+func (s *ViewerCacheService) GetViewers(channelName string) []Viewer {
+	viewers, ok := s.viewers[channelName]
 	if !ok {
 		return []Viewer{}
 	}

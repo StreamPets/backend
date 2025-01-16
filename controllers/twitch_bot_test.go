@@ -44,7 +44,6 @@ func TestAddViewerToChannel(t *testing.T) {
 	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
-	cacheMock := mock.Mock[ViewerCache]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
 	mock.When(viewersMock.GetViewer(userID, channelID, username)).ThenReturn(viewer, nil)
@@ -54,13 +53,11 @@ func TestAddViewerToChannel(t *testing.T) {
 		itemsMock,
 		viewersMock,
 		usersMock,
-		cacheMock,
 	)
 
 	controller.AddViewerToChannel(setUpContext(userID, channelName, username))
 
 	mock.Verify(announcerMock, mock.Once()).AnnounceJoin(channelName, viewer)
-	mock.Verify(cacheMock, mock.Once()).AddViewer(channelID, viewer)
 }
 
 func TestRemoveViewerFromChannel(t *testing.T) {
@@ -86,7 +83,6 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
-	cacheMock := mock.Mock[ViewerCache]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
 
@@ -95,13 +91,11 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 		itemsMock,
 		viewersMock,
 		usersMock,
-		cacheMock,
 	)
 
 	controller.RemoveViewerFromChannel(setUpContext(userID, channelName))
 
 	mock.Verify(announcerMock, mock.Once()).AnnouncePart(channelName, userID)
-	mock.Verify(cacheMock, mock.Once()).RemoveViewer(channelID, userID)
 }
 
 func TestAction(t *testing.T) {
@@ -128,14 +122,12 @@ func TestAction(t *testing.T) {
 	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
-	cacheMock := mock.Mock[ViewerCache]()
 
 	controller := NewTwitchBotController(
 		announcerMock,
 		itemsMock,
 		viewersMock,
 		usersMock,
-		cacheMock,
 	)
 
 	controller.Action(setUpContext(userID, channelName, action))
@@ -178,7 +170,6 @@ func TestUpdateViewer(t *testing.T) {
 	itemsMock := mock.Mock[ItemGetSetter]()
 	viewersMock := mock.Mock[ViewerGetter]()
 	usersMock := mock.Mock[UserIDGetter]()
-	cacheMock := mock.Mock[ViewerCache]()
 
 	mock.When(usersMock.GetUserID(channelName)).ThenReturn(channelID, nil)
 	mock.When(itemsMock.GetItemByName(channelID, itemName)).ThenReturn(item, nil)
@@ -188,12 +179,10 @@ func TestUpdateViewer(t *testing.T) {
 		itemsMock,
 		viewersMock,
 		usersMock,
-		cacheMock,
 	)
 
 	controller.UpdateViewer(setUpContext(userID, channelName, itemName))
 
 	mock.Verify(itemsMock, mock.Once()).SetSelectedItem(userID, channelID, itemID)
-	mock.Verify(cacheMock, mock.Once()).UpdateViewer(channelID, userID, image)
 	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userID)
 }

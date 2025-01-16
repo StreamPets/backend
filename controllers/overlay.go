@@ -23,28 +23,21 @@ type UsernameGetter interface {
 	GetUsername(userID models.TwitchID) (string, error)
 }
 
-type ViewersGetter interface {
-	GetViewers(channelID models.TwitchID) []services.Viewer
-}
-
 type OverlayController struct {
 	Clients ClientAddRemover
 	Overlay OverlayIDVerifier
 	Users   UsernameGetter
-	Cache   ViewersGetter
 }
 
 func NewOverlayController(
 	clients ClientAddRemover,
 	overlay OverlayIDVerifier,
 	users UsernameGetter,
-	cache ViewersGetter,
 ) *OverlayController {
 	return &OverlayController{
 		Clients: clients,
 		Overlay: overlay,
 		Users:   users,
-		Cache:   cache,
 	}
 }
 
@@ -78,12 +71,6 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
-
-	go func() {
-		for _, viewer := range c.Cache.GetViewers(channelID) {
-			client.Stream <- services.Event{Event: "JOIN", Message: viewer}
-		}
-	}()
 
 	ctx.Stream(func(w io.Writer) bool {
 		select {
