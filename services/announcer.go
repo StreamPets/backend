@@ -116,12 +116,10 @@ func (s *AnnouncerService) listen() {
 			}
 			s.totalClients[client.ChannelName][client.Stream] = true
 
-			// Initialise a WG here
 			go func() {
 				for _, viewer := range s.cache.GetViewers(client.ChannelName) {
 					client.Stream <- Event{Event: "JOIN", Message: viewer}
 				}
-				// Call WG.Done() here
 			}()
 
 		case client := <-s.closedClients:
