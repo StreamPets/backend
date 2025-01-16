@@ -84,7 +84,6 @@ func (repo *itemRepository) AddOwnedItem(userID models.TwitchID, itemID, transac
 		return result.Error
 	}
 
-	// TODO: How frowned upon is this?
 	if os.Getenv("ENVIRONMENT") == "DEVELOPMENT" {
 		transactionID = uuid.New()
 	}
