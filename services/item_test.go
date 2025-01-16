@@ -59,6 +59,28 @@ func TestGetItemByID(t *testing.T) {
 	mock.Verify(itemMock, mock.Once()).GetItemByID(itemID)
 }
 
+func TestGetSelectedItem(t *testing.T) {
+	mock.SetUp(t)
+
+	userID := models.TwitchID("user id")
+	channelID := models.TwitchID("channel id")
+	want := models.Item{ItemID: uuid.New()}
+
+	itemMock := mock.Mock[ItemRepository]()
+	mock.When(itemMock.GetSelectedItem(userID, channelID)).ThenReturn(want, nil)
+
+	itemService := NewItemService(itemMock)
+
+	got, err := itemService.GetSelectedItem(userID, channelID)
+	if err != nil {
+		t.Errorf("did not expect an error but got %s", err.Error())
+	}
+
+	if got != want {
+		t.Errorf("got %s want %s", got, want)
+	}
+}
+
 func TestSetSelectedItem(t *testing.T) {
 	t.Run("item is set as selected when owned", func(t *testing.T) {
 		mock.SetUp(t)
@@ -68,14 +90,13 @@ func TestSetSelectedItem(t *testing.T) {
 		itemID := uuid.New()
 
 		itemMock := mock.Mock[ItemRepository]()
-
-		database := NewItemService(itemMock)
-
 		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(true, nil)
 
-		err := database.SetSelectedItem(userID, channelID, itemID)
+		itemService := NewItemService(itemMock)
+
+		err := itemService.SetSelectedItem(userID, channelID, itemID)
 		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
+			t.Errorf("did not expect an error but got %s", err.Error())
 		}
 
 		mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelID, userID, itemID)
@@ -89,12 +110,11 @@ func TestSetSelectedItem(t *testing.T) {
 		itemID := uuid.New()
 
 		itemMock := mock.Mock[ItemRepository]()
-
 		mock.When(itemMock.CheckOwnedItem(userID, itemID)).ThenReturn(false, nil)
 
-		database := NewItemService(itemMock)
+		itemService := NewItemService(itemMock)
 
-		err := database.SetSelectedItem(userID, channelID, itemID)
+		err := itemService.SetSelectedItem(userID, channelID, itemID)
 		if err == nil {
 			t.Errorf("expected an error but did not receive one")
 		}
@@ -110,9 +130,9 @@ func TestGetChannelsItems(t *testing.T) {
 	mock.SetUp(t)
 
 	channelID := models.TwitchID("channel id")
-	itemMock := mock.Mock[ItemRepository]()
-
 	expected := []models.Item{{}}
+
+	itemMock := mock.Mock[ItemRepository]()
 	mock.When(itemMock.GetChannelsItems(channelID)).ThenReturn(expected, nil)
 
 	itemService := NewItemService(itemMock)

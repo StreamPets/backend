@@ -154,7 +154,7 @@ func TestGetItemByID(t *testing.T) {
 	assertItemsEqual(got, item, t)
 }
 
-func TestGetScheduledItems(t *testing.T) {
+func TestGetChannelsItems(t *testing.T) {
 	channelID := models.TwitchID("channel id")
 	itemID := uuid.New()
 
@@ -166,8 +166,16 @@ func TestGetScheduledItems(t *testing.T) {
 		PrevImg: "prev image",
 	}
 
+	channelItem := models.ChannelItem{
+		ChannelID: channelID,
+		ItemID:    itemID,
+	}
+
 	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+	if result := db.Create(&channelItem); result.Error != nil {
 		panic(result.Error)
 	}
 
