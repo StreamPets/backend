@@ -9,7 +9,7 @@ import (
 )
 
 func TestGetOverlayId(t *testing.T) {
-	channelId := models.TwitchId("channel id")
+	channelId := models.UserId("channel id")
 	overlayId := uuid.New()
 
 	channel := models.Channel{

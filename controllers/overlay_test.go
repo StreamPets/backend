@@ -39,7 +39,7 @@ func TestHandleListen(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelId := models.TwitchId("channel id")
+	channelId := models.UserId("channel id")
 	overlayId := uuid.New()
 	channelName := "channel name"
 

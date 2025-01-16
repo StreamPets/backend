@@ -25,8 +25,8 @@ type Client struct {
 
 type ViewerCache interface {
 	AddViewer(channelName string, viewer Pet)
-	RemoveViewer(channelName string, viewerId models.TwitchId)
-	UpdateViewer(channelName, image string, viewerId models.TwitchId)
+	RemoveViewer(channelName string, viewerId models.UserId)
+	UpdateViewer(channelName, image string, viewerId models.UserId)
 	GetViewers(channelName string) []Pet
 }
 
@@ -73,7 +73,7 @@ func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Pet) {
 	s.cache.AddViewer(channelName, viewer)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.TwitchId) {
+func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.UserId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
@@ -84,7 +84,7 @@ func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.Twit
 	s.cache.RemoveViewer(channelName, viewerId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerId models.TwitchId) {
+func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerId models.UserId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
@@ -94,7 +94,7 @@ func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerId m
 	}
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerId models.TwitchId) {
+func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerId models.UserId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{

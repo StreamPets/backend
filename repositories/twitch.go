@@ -13,8 +13,8 @@ import (
 
 type userResponse struct {
 	Data []struct {
-		UserId   models.TwitchId `json:"id"`
-		Username string          `json:"login"`
+		UserId   models.UserId `json:"id"`
+		Username string        `json:"login"`
 	} `json:"data"`
 }
 
@@ -36,7 +36,7 @@ func NewTwitchRepository(id, secret string) (*TwitchRepository, error) {
 	return repo, nil
 }
 
-func (repo *TwitchRepository) GetUsername(userId models.TwitchId) (string, error) {
+func (repo *TwitchRepository) GetUsername(userId models.UserId) (string, error) {
 	params := fmt.Sprintf("id=%s", userId)
 
 	user, err := repo.getUserWithRefresh(params)
@@ -47,7 +47,7 @@ func (repo *TwitchRepository) GetUsername(userId models.TwitchId) (string, error
 	return user.Data[0].Username, nil
 }
 
-func (repo *TwitchRepository) GetUserId(username string) (models.TwitchId, error) {
+func (repo *TwitchRepository) GetUserId(username string) (models.UserId, error) {
 	params := fmt.Sprintf("login=%s", username)
 
 	user, err := repo.getUserWithRefresh(params)

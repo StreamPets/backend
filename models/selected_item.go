@@ -5,7 +5,7 @@ import (
 )
 
 type SelectedItem struct {
-	ViewerId  TwitchId  `gorm:"primaryKey"`
-	ChannelId TwitchId  `gorm:"primaryKey"`
+	ViewerId  UserId    `gorm:"primaryKey"`
+	ChannelId UserId    `gorm:"primaryKey"`
 	ItemId    uuid.UUID `gorm:"type:uuid"`
 }

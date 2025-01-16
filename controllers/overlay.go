@@ -16,11 +16,11 @@ type ClientAddRemover interface {
 }
 
 type OverlayIdVerifier interface {
-	VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error
+	VerifyOverlayId(channelId models.UserId, overlayId uuid.UUID) error
 }
 
 type UsernameGetter interface {
-	GetUsername(viewerId models.TwitchId) (string, error)
+	GetUsername(viewerId models.UserId) (string, error)
 }
 
 type OverlayController struct {
@@ -42,7 +42,7 @@ func NewOverlayController(
 }
 
 func (c *OverlayController) HandleListen(ctx *gin.Context) {
-	channelId := models.TwitchId(ctx.Query(ChannelId))
+	channelId := models.UserId(ctx.Query(ChannelId))
 	overlayId, err := uuid.Parse(ctx.Query(OverlayId))
 	if err != nil {
 		addErrorToCtx(err, ctx)

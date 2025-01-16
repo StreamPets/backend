@@ -11,8 +11,8 @@ import (
 
 func TestGetSelectedItem(t *testing.T) {
 	t.Run("selected item returned when item selected", func(t *testing.T) {
-		channelId := models.TwitchId("channel id")
-		viewerId := models.TwitchId("viewer id")
+		channelId := models.UserId("channel id")
+		viewerId := models.UserId("viewer id")
 
 		itemId := uuid.New()
 		item := models.Item{ItemId: itemId}
@@ -39,8 +39,8 @@ func TestGetSelectedItem(t *testing.T) {
 	})
 
 	t.Run("default item returned when no item selected", func(t *testing.T) {
-		channelId := models.TwitchId("channel id")
-		viewerId := models.TwitchId("viewer id")
+		channelId := models.UserId("channel id")
+		viewerId := models.UserId("viewer id")
 
 		itemId := uuid.New()
 		item := models.Item{ItemId: itemId}
@@ -67,8 +67,8 @@ func TestGetSelectedItem(t *testing.T) {
 }
 
 func TestSetSelectedItem(t *testing.T) {
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 
 	itemId := uuid.New()
 	item := models.Item{ItemId: itemId}
@@ -108,7 +108,7 @@ func TestSetSelectedItem(t *testing.T) {
 }
 
 func TestGetItemByName(t *testing.T) {
-	channelId := models.TwitchId("channel id")
+	channelId := models.UserId("channel id")
 	itemId := uuid.New()
 	itemName := "item name"
 
@@ -154,7 +154,7 @@ func TestGetItemById(t *testing.T) {
 }
 
 func TestGetChannelsItems(t *testing.T) {
-	channelId := models.TwitchId("channel id")
+	channelId := models.UserId("channel id")
 	itemId := uuid.New()
 
 	item := models.Item{
@@ -190,8 +190,8 @@ func TestGetChannelsItems(t *testing.T) {
 }
 
 func TestGetOwnedItems(t *testing.T) {
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 
 	itemId := uuid.New()
 	item := models.Item{ItemId: itemId}
@@ -222,8 +222,8 @@ func TestGetOwnedItems(t *testing.T) {
 }
 
 func TestAddOwnedItem(t *testing.T) {
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 	itemId := uuid.New()
 	transactionId := uuid.New()
 
@@ -246,7 +246,7 @@ func TestAddOwnedItem(t *testing.T) {
 
 func TestCheckOwnedItem(t *testing.T) {
 	t.Run("true when viewer owns item", func(t *testing.T) {
-		viewerId := models.TwitchId("viewer id")
+		viewerId := models.UserId("viewer id")
 		itemId := uuid.New()
 
 		ownedItem := models.OwnedItem{ViewerId: viewerId, ItemId: itemId}
@@ -264,7 +264,7 @@ func TestCheckOwnedItem(t *testing.T) {
 	})
 
 	t.Run("false when item is unowned", func(t *testing.T) {
-		viewerId := models.TwitchId("viewer id")
+		viewerId := models.UserId("viewer id")
 		itemId := uuid.New()
 
 		db := test.CreateTestDB()

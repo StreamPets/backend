@@ -50,7 +50,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 
 	t.Run("add client and announce part", func(t *testing.T) {
 		channelName := "channel name"
-		viewerId := models.TwitchId("viewer id")
+		viewerId := models.UserId("viewer id")
 
 		cacheMock := mock.Mock[ViewerCache]()
 		announcer := NewAnnouncerService(cacheMock)
@@ -87,7 +87,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 
 	t.Run("add client and announce action", func(t *testing.T) {
 		channelName := "channel name"
-		viewerId := models.TwitchId("viewer id")
+		viewerId := models.UserId("viewer id")
 		action := "action"
 
 		cacheMock := mock.Mock[ViewerCache]()
@@ -127,7 +127,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 
 	t.Run("add client and announce update", func(t *testing.T) {
 		channelName := "channel name"
-		viewerId := models.TwitchId("viewer id")
+		viewerId := models.UserId("viewer id")
 		image := "image"
 
 		cacheMock := mock.Mock[ViewerCache]()

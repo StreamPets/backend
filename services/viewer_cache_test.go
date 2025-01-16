@@ -24,8 +24,8 @@ func TestAddViewer(t *testing.T) {
 	channelNameOne := "channel name one"
 	channelNameTwo := "channel name two"
 
-	viewerOne := Pet{ViewerId: models.TwitchId("viewer id one")}
-	viewerTwo := Pet{ViewerId: models.TwitchId("viewer id two")}
+	viewerOne := Pet{ViewerId: models.UserId("viewer id one")}
+	viewerTwo := Pet{ViewerId: models.UserId("viewer id two")}
 
 	cache := NewViewerCacheService()
 
@@ -48,7 +48,7 @@ func TestAddViewer(t *testing.T) {
 
 func TestRemoveViewer(t *testing.T) {
 	channelName := "channel name"
-	viewerId := models.TwitchId("viewer id")
+	viewerId := models.UserId("viewer id")
 	viewer := Pet{ViewerId: viewerId}
 
 	cache := NewViewerCacheService()
@@ -66,7 +66,7 @@ func TestRemoveViewer(t *testing.T) {
 
 func TestUpdateViewer(t *testing.T) {
 	channelName := "channel name"
-	viewerId := models.TwitchId("viewer id")
+	viewerId := models.UserId("viewer id")
 	viewer := Pet{ViewerId: viewerId}
 	image := "image"
 

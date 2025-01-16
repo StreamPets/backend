@@ -32,8 +32,8 @@ func TestGetStoreData(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 	tokenString := "token string"
 	token := services.ExtToken{ChannelId: channelId, ViewerId: viewerId}
 
@@ -95,8 +95,8 @@ func TestGetViewerData(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 
 	tokenString := "token string"
 	token := &services.ExtToken{
@@ -160,8 +160,8 @@ func TestBuyStoreItem(t *testing.T) {
 		return ctx
 	}
 
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 	itemId := uuid.New()
 	transactionId := uuid.New()
 
@@ -218,8 +218,8 @@ func TestSetSelectedItem(t *testing.T) {
 	tokenString := "token string"
 	image := "image"
 
-	channelId := models.TwitchId("channel id")
-	viewerId := models.TwitchId("viewer id")
+	channelId := models.UserId("channel id")
+	viewerId := models.UserId("viewer id")
 	itemId := uuid.New()
 
 	item := models.Item{ItemId: itemId, Image: image}

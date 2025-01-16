@@ -13,7 +13,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := models.UserId("channel id")
 		overlayId := uuid.New()
 
 		repoMock := mock.Mock[OverlayIdGetter]()
@@ -31,7 +31,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := models.UserId("channel id")
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
@@ -53,8 +53,8 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelId := models.TwitchId("channel id")
-		viewerId := models.TwitchId("viewer id")
+		channelId := models.UserId("channel id")
+		viewerId := models.UserId("viewer id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,
@@ -86,8 +86,8 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelId := models.TwitchId("channel id")
-		viewerId := models.TwitchId("viewer id")
+		channelId := models.UserId("channel id")
+		viewerId := models.UserId("viewer id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,

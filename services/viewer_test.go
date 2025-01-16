@@ -10,8 +10,8 @@ import (
 func TestGetViewer(t *testing.T) {
 	mock.SetUp(t)
 
-	viewerId := models.TwitchId("viewer id")
-	channelId := models.TwitchId("channel id")
+	viewerId := models.UserId("viewer id")
+	channelId := models.UserId("channel id")
 	username := "username"
 	image := "image"
 	item := models.Item{Image: image}

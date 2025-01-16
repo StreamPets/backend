@@ -17,7 +17,7 @@ import (
 func TestAddViewerToChannel(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(viewerId models.TwitchId, channelName, username string) *gin.Context {
+	setUpContext := func(viewerId models.UserId, channelName, username string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -33,8 +33,8 @@ func TestAddViewerToChannel(t *testing.T) {
 		return ctx
 	}
 
-	viewerId := models.TwitchId("viewer id")
-	channelId := models.TwitchId("channel id")
+	viewerId := models.UserId("viewer id")
+	channelId := models.UserId("channel id")
 	username := "username"
 	channelName := "channel name"
 
@@ -63,7 +63,7 @@ func TestAddViewerToChannel(t *testing.T) {
 func TestRemoveViewerFromChannel(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(viewerId models.TwitchId, channelName string) *gin.Context {
+	setUpContext := func(viewerId models.UserId, channelName string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -75,8 +75,8 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 		return ctx
 	}
 
-	viewerId := models.TwitchId("viewer id")
-	channelId := models.TwitchId("channel id")
+	viewerId := models.UserId("viewer id")
+	channelId := models.UserId("channel id")
 	channelName := "channel name"
 
 	announcerMock := mock.Mock[Announcer]()
@@ -101,7 +101,7 @@ func TestRemoveViewerFromChannel(t *testing.T) {
 func TestAction(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(viewerId models.TwitchId, channelName, action string) *gin.Context {
+	setUpContext := func(viewerId models.UserId, channelName, action string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -114,7 +114,7 @@ func TestAction(t *testing.T) {
 		return ctx
 	}
 
-	viewerId := models.TwitchId("viewer id")
+	viewerId := models.UserId("viewer id")
 	channelName := "channel name"
 	action := "action"
 
@@ -138,7 +138,7 @@ func TestAction(t *testing.T) {
 func TestUpdateViewer(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(viewerId models.TwitchId, channelName, itemName string) *gin.Context {
+	setUpContext := func(viewerId models.UserId, channelName, itemName string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -156,8 +156,8 @@ func TestUpdateViewer(t *testing.T) {
 		return ctx
 	}
 
-	viewerId := models.TwitchId("viewer id")
-	channelId := models.TwitchId("channel id")
+	viewerId := models.UserId("viewer id")
+	channelId := models.UserId("channel id")
 	channelName := "channel name"
 	itemName := "item name"
 

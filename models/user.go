@@ -1,8 +1,8 @@
 package models
 
-type TwitchId string
+type UserId string
 
 type Viewer struct {
-	ViewerId TwitchId `gorm:"primaryKey"`
+	ViewerId UserId `gorm:"primaryKey"`
 	Username string
 }

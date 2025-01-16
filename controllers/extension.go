@@ -10,7 +10,7 @@ import (
 )
 
 type UpdateAnnouncer interface {
-	AnnounceUpdate(channelName, image string, viewerId models.TwitchId)
+	AnnounceUpdate(channelName, image string, viewerId models.UserId)
 }
 
 type TokenVerifier interface {
@@ -20,11 +20,11 @@ type TokenVerifier interface {
 
 type StoreService interface {
 	GetItemById(itemId uuid.UUID) (models.Item, error)
-	GetSelectedItem(viewerId, channelId models.TwitchId) (models.Item, error)
-	SetSelectedItem(viewerId, channelId models.TwitchId, itemId uuid.UUID) error
-	GetChannelsItems(channelId models.TwitchId) ([]models.Item, error)
-	GetOwnedItems(channelId, viewerId models.TwitchId) ([]models.Item, error)
-	AddOwnedItem(viewerId models.TwitchId, itemId, transactionId uuid.UUID) error
+	GetSelectedItem(viewerId, channelId models.UserId) (models.Item, error)
+	SetSelectedItem(viewerId, channelId models.UserId, itemId uuid.UUID) error
+	GetChannelsItems(channelId models.UserId) ([]models.Item, error)
+	GetOwnedItems(channelId, viewerId models.UserId) ([]models.Item, error)
+	AddOwnedItem(viewerId models.UserId, itemId, transactionId uuid.UUID) error
 }
 
 type ExtensionController struct {
