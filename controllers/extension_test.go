@@ -17,11 +17,6 @@ import (
 )
 
 func TestGetStoreData(t *testing.T) {
-	type Response struct {
-		Owned []models.Item `json:"owned"`
-		Store []models.Item `json:"store"`
-	}
-
 	mock.SetUp(t)
 
 	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
@@ -43,7 +38,6 @@ func TestGetStoreData(t *testing.T) {
 	token := services.ExtToken{ChannelID: channelID, UserID: userID}
 
 	storeItems := []models.Item{{}, {}}
-	ownedItems := []models.Item{{}}
 
 	announcerMock := mock.Mock[UpdateAnnouncer]()
 	verifierMock := mock.Mock[TokenVerifier]()
@@ -51,8 +45,7 @@ func TestGetStoreData(t *testing.T) {
 	usersMock := mock.Mock[UserGetter]()
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(storeMock.GetTodaysItems(channelID)).ThenReturn(storeItems, nil)
-	mock.When(storeMock.GetOwnedItems(channelID, userID)).ThenReturn(ownedItems, nil)
+	mock.When(storeMock.GetChannelsItems(channelID)).ThenReturn(storeItems, nil)
 
 	controller := NewExtensionController(
 		announcerMock,
@@ -65,23 +58,84 @@ func TestGetStoreData(t *testing.T) {
 	controller.GetStoreData(ctx)
 
 	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(storeMock, mock.Once()).GetTodaysItems(channelID)
-	mock.Verify(storeMock, mock.Once()).GetOwnedItems(channelID, userID)
+	mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelID)
 
 	if recorder.Code != http.StatusOK {
 		t.Errorf("expected %d got %d", http.StatusOK, recorder.Code)
 	}
 
-	var response Response
+	var response []models.Item
 	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Error("could not parse json response")
+		t.Errorf("could not parse json response")
 	}
 
-	if !slices.Equal(response.Owned, ownedItems) {
-		t.Errorf("expected %s got %s", ownedItems, response.Owned)
+	if !slices.Equal(response, storeItems) {
+		t.Errorf("expected %s got %s", storeItems, response)
 	}
-	if !slices.Equal(response.Store, storeItems) {
-		t.Errorf("expected %s got %s", storeItems, response.Store)
+}
+
+func TestGetUserData(t *testing.T) {
+	mock.SetUp(t)
+
+	type Response struct {
+		OwnedItems   []models.Item `json:"owned"`
+		SelectedItem models.Item   `json:"selected"`
+	}
+
+	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("GET", "/items", nil)
+
+		req.Header.Add("x-extension-jwt", tokenString)
+
+		ctx.Request = req
+		return ctx, recorder
+	}
+
+	channelID := models.TwitchID("channel id")
+	userID := models.TwitchID("user id")
+
+	tokenString := "token string"
+	token := &services.ExtToken{
+		UserID:    userID,
+		ChannelID: channelID,
+	}
+
+	selectedItem := models.Item{ItemID: uuid.New()}
+	ownedItems := []models.Item{selectedItem}
+
+	announcerMock := mock.Mock[UpdateAnnouncer]()
+	verifierMock := mock.Mock[TokenVerifier]()
+	storeMock := mock.Mock[StoreService]()
+	usersMock := mock.Mock[UserGetter]()
+
+	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+	mock.When(storeMock.GetOwnedItems(channelID, userID)).ThenReturn(ownedItems, nil)
+	mock.When(storeMock.GetSelectedItem(userID, channelID)).ThenReturn(selectedItem, nil)
+
+	extController := NewExtensionController(
+		announcerMock,
+		verifierMock,
+		storeMock,
+		usersMock,
+	)
+
+	ctx, recorder := setUpContext(tokenString)
+	extController.GetUserData(ctx)
+
+	var response Response
+	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+		t.Errorf("could not parse json response")
+	}
+
+	if !slices.Equal(response.OwnedItems, ownedItems) {
+		t.Errorf("got %s want %s", response.OwnedItems, ownedItems)
+	}
+	if response.SelectedItem != selectedItem {
+		t.Errorf("got %s want %s", response.SelectedItem, selectedItem)
 	}
 }
 

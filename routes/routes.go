@@ -22,26 +22,28 @@ func RegisterRoutes(
 	cache := services.NewViewerCacheService()
 
 	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo, cache)
-	twitchBot := controllers.NewTwitchBotController(announcer, items, viewers, twitchRepo, cache)
 	extension := controllers.NewExtensionController(announcer, authService, items, twitchRepo)
 
-	api := r.Group("/overlay")
+	twitchBot := controllers.NewTwitchBotController(announcer, items, viewers, twitchRepo, cache)
+
+	overlayRouter := r.Group("/overlay")
 	{
-		api.GET("/listen", overlay.HandleListen)
+		overlayRouter.GET("/listen", overlay.HandleListen)
 	}
 
-	api = r.Group("/channels")
+	extRouter := r.Group("/extension")
+	{
+		extRouter.GET("/user", extension.GetUserData)
+		extRouter.GET("/items", extension.GetStoreData)
+		extRouter.POST("/items", extension.BuyStoreItem)
+		extRouter.PUT("/items", extension.SetSelectedItem)
+	}
+
+	api := r.Group("/channels")
 	{
 		api.POST("/:channelName/viewers", twitchBot.AddViewerToChannel)
 		api.DELETE("/:channelName/viewers/:userID", twitchBot.RemoveViewerFromChannel)
 		api.POST("/:channelName/viewers/:userID/:action", twitchBot.Action)
 		api.PUT("/:channelName/viewers/:userID", twitchBot.UpdateViewer)
-	}
-
-	api = r.Group("/items")
-	{
-		api.GET("/", extension.GetStoreData)
-		api.POST("/", extension.BuyStoreItem)
-		api.PUT("/", extension.SetSelectedItem)
 	}
 }

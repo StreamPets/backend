@@ -154,9 +154,8 @@ func TestGetItemByID(t *testing.T) {
 	assertItemsEqual(got, item, t)
 }
 
-func TestGetScheduledItems(t *testing.T) {
+func TestGetChannelsItems(t *testing.T) {
 	channelID := models.TwitchID("channel id")
-	dayOfWeek := models.Monday
 	itemID := uuid.New()
 
 	item := models.Item{
@@ -167,24 +166,22 @@ func TestGetScheduledItems(t *testing.T) {
 		PrevImg: "prev image",
 	}
 
-	schedule := models.Schedule{
-		ScheduleID: uuid.New(),
-		DayOfWeek:  dayOfWeek,
-		ItemID:     itemID,
-		ChannelID:  channelID,
+	channelItem := models.ChannelItem{
+		ChannelID: channelID,
+		ItemID:    itemID,
 	}
 
 	db := test.CreateTestDB()
 	if result := db.Create(&item); result.Error != nil {
 		panic(result.Error)
 	}
-	if result := db.Create(&schedule); result.Error != nil {
+	if result := db.Create(&channelItem); result.Error != nil {
 		panic(result.Error)
 	}
 
 	itemRepo := repositories.NewItemRepository(db)
 
-	items, err := itemRepo.GetScheduledItems(channelID, dayOfWeek)
+	items, err := itemRepo.GetChannelsItems(channelID)
 	assertNoError(err, t)
 
 	expected := []models.Item{item}

@@ -10,9 +10,9 @@ const (
 )
 
 type Item struct {
-	ItemID  uuid.UUID `gorm:"primaryKey;type:uuid"`
+	ItemID  uuid.UUID `gorm:"primaryKey;type:uuid" json:"id"`
 	Name    string
-	Rarity  Rarity
-	Image   string
-	PrevImg string
+	Rarity  Rarity `json:"rarity"`
+	Image   string `json:"img"`
+	PrevImg string `json:"prev"`
 }
