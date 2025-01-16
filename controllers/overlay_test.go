@@ -57,7 +57,6 @@ func TestHandleListen(t *testing.T) {
 		clientsMock := mock.Mock[ClientAddRemover]()
 		verifierMock := mock.Mock[OverlayIDVerifier]()
 		usersMock := mock.Mock[UsernameGetter]()
-		cacheMock := mock.Mock[ViewersGetter]()
 
 		mock.When(clientsMock.AddClient(channelName)).ThenReturn(client)
 		mock.When(usersMock.GetUsername(channelID)).ThenReturn(channelName, nil)
@@ -66,7 +65,6 @@ func TestHandleListen(t *testing.T) {
 			clientsMock,
 			verifierMock,
 			usersMock,
-			cacheMock,
 		)
 
 		var wg sync.WaitGroup
@@ -103,7 +101,6 @@ func TestHandleListen(t *testing.T) {
 		clientsMock := mock.Mock[ClientAddRemover]()
 		verifierMock := mock.Mock[OverlayIDVerifier]()
 		usersMock := mock.Mock[UsernameGetter]()
-		cacheMock := mock.Mock[ViewersGetter]()
 
 		mock.When(verifierMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(services.ErrIdMismatch)
 
@@ -111,7 +108,6 @@ func TestHandleListen(t *testing.T) {
 			clientsMock,
 			verifierMock,
 			usersMock,
-			cacheMock,
 		)
 
 		controller.HandleListen(ctx)
