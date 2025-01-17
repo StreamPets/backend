@@ -139,7 +139,7 @@ func TestGetUserData(t *testing.T) {
 	}
 }
 
-func TestBuyStoreItem(t *testing.T) {
+func TestBuyStoreItem2(t *testing.T) {
 	mock.SetUp(t)
 
 	setUpContext := func(token, receipt, itemId string) *gin.Context {
@@ -203,6 +203,73 @@ func TestBuyStoreItem(t *testing.T) {
 	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
 	mock.Verify(verifierMock, mock.Once()).VerifyReceipt(receiptString)
 	mock.Verify(storeMock, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+}
+
+func TestBuyStoreItem(t *testing.T) {
+	setUpContext := func(token, receipt string, itemId uuid.UUID) *gin.Context {
+		gin.SetMode(gin.TestMode)
+
+		jsonData := []byte(fmt.Sprintf(`{
+			"receipt": "%s",
+			"item_id": "%s"
+		}`, receipt, itemId))
+
+		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
+		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
+
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+		req.Header.Add("x-extension-jwt", token)
+
+		ctx.Request = req
+		return ctx
+	}
+
+	t.Run("item not added when receipt and item rarity do not match", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+		itemRarity := models.Rarity("item rarity")
+		receiptRarity := models.Rarity("receipt rarity")
+
+		userId := models.TwitchId("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		item := models.Item{
+			ItemId: itemId,
+			Rarity: itemRarity,
+		}
+
+		receipt := &services.Receipt{
+			Data: services.Data{
+				TransactionId: transactionId,
+				Product: services.Product{
+					Rarity: receiptRarity,
+				},
+			},
+		}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+
+		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
+	})
 }
 
 func TestSetSelectedItem(t *testing.T) {

@@ -116,7 +116,12 @@ func TestVerifyReceipt(t *testing.T) {
 		transactionId := uuid.New()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"transaction_id": transactionId,
+			"data": map[string]interface{}{
+				"transactionId": transactionId,
+				"product": map[string]interface{}{
+					"sku": "common",
+				},
+			},
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))

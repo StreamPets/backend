@@ -2,7 +2,6 @@ package services
 
 import (
 	"errors"
-	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -80,12 +79,6 @@ func (s *AuthService) VerifyExtToken(tokenString string) (*ExtToken, error) {
 }
 
 func (s *AuthService) VerifyReceipt(tokenString string) (*Receipt, error) {
-	fakeToken, err := jwt.Parse(tokenString, s.keyFunc)
-	if err != nil {
-		return nil, err
-	}
-	fmt.Println(fakeToken)
-
 	token, err := jwt.ParseWithClaims(tokenString, &Receipt{}, s.keyFunc)
 	if err != nil {
 		return nil, err
