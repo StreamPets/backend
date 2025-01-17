@@ -132,8 +132,8 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		if got.TransactionId != transactionId {
-			t.Errorf("expected %s got %s", transactionId, got.TransactionId)
+		if got.Data.TransactionId != transactionId {
+			t.Errorf("expected %s got %s", transactionId, got.Data.TransactionId)
 		}
 	})
 

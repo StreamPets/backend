@@ -2,6 +2,7 @@ package services
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
@@ -18,8 +19,17 @@ type ExtToken struct {
 	jwt.RegisteredClaims
 }
 
+type Product struct {
+	Rarity models.Rarity `json:"sku"`
+}
+
+type Data struct {
+	TransactionId uuid.UUID `json:"transactionId"`
+	Product       Product   `json:"product"`
+}
+
 type Receipt struct {
-	TransactionId uuid.UUID `json:"transaction_id"`
+	Data Data `json:"data"`
 	jwt.RegisteredClaims
 }
 
@@ -70,6 +80,12 @@ func (s *AuthService) VerifyExtToken(tokenString string) (*ExtToken, error) {
 }
 
 func (s *AuthService) VerifyReceipt(tokenString string) (*Receipt, error) {
+	fakeToken, err := jwt.Parse(tokenString, s.keyFunc)
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(fakeToken)
+
 	token, err := jwt.ParseWithClaims(tokenString, &Receipt{}, s.keyFunc)
 	if err != nil {
 		return nil, err

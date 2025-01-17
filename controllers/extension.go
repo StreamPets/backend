@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -118,13 +119,24 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
+	item, err := c.Store.GetItemById(itemId)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
 	receipt, err := c.Verifier.VerifyReceipt(params.Receipt)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	if err := c.Store.AddOwnedItem(token.UserId, itemId, receipt.TransactionId); err != nil {
+	if item.Rarity != receipt.Data.Product.Rarity {
+		addErrorToCtx(errors.New("receipt and item rarity do not match"), ctx)
+		return
+	}
+
+	if err := c.Store.AddOwnedItem(token.UserId, itemId, receipt.Data.TransactionId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}

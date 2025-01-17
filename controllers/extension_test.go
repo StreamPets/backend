@@ -164,12 +164,22 @@ func TestBuyStoreItem(t *testing.T) {
 	userId := models.TwitchId("user id")
 	itemId := uuid.New()
 	transactionId := uuid.New()
+	rarity := models.Rarity("common")
 
 	tokenString := "token string"
 	receiptString := "receipt string"
 
 	token := services.ExtToken{ChannelId: channelId, UserId: userId}
-	receipt := services.Receipt{TransactionId: transactionId}
+	receipt := services.Receipt{
+		Data: services.Data{
+			TransactionId: transactionId,
+			Product: services.Product{
+				Rarity: rarity,
+			},
+		},
+	}
+
+	item := models.Item{ItemId: itemId, Rarity: rarity}
 
 	announcerMock := mock.Mock[UpdateAnnouncer]()
 	verifierMock := mock.Mock[TokenVerifier]()
@@ -178,6 +188,7 @@ func TestBuyStoreItem(t *testing.T) {
 
 	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
 	mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(&receipt, nil)
+	mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
 	mock.When(storeMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(nil)
 
 	controller := NewExtensionController(
