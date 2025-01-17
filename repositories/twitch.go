@@ -13,7 +13,7 @@ import (
 
 type userResponse struct {
 	Data []struct {
-		UserID   models.TwitchID `json:"id"`
+		UserId   models.TwitchId `json:"id"`
 		Username string          `json:"login"`
 	} `json:"data"`
 }
@@ -23,21 +23,21 @@ type accessTokenResponse struct {
 }
 
 type TwitchRepository struct {
-	clientID     string
+	clientId     string
 	clientSecret string
 	accessToken  string
 }
 
 func NewTwitchRepository(id, secret string) (*TwitchRepository, error) {
-	repo := &TwitchRepository{clientID: id, clientSecret: secret}
+	repo := &TwitchRepository{clientId: id, clientSecret: secret}
 	if err := repo.refreshAccessToken(); err != nil {
 		return repo, err
 	}
 	return repo, nil
 }
 
-func (repo *TwitchRepository) GetUsername(userID models.TwitchID) (string, error) {
-	params := fmt.Sprintf("id=%s", userID)
+func (repo *TwitchRepository) GetUsername(userId models.TwitchId) (string, error) {
+	params := fmt.Sprintf("id=%s", userId)
 
 	user, err := repo.getUserWithRefresh(params)
 	if err != nil {
@@ -47,7 +47,7 @@ func (repo *TwitchRepository) GetUsername(userID models.TwitchID) (string, error
 	return user.Data[0].Username, nil
 }
 
-func (repo *TwitchRepository) GetUserID(username string) (models.TwitchID, error) {
+func (repo *TwitchRepository) GetUserId(username string) (models.TwitchId, error) {
 	params := fmt.Sprintf("login=%s", username)
 
 	user, err := repo.getUserWithRefresh(params)
@@ -55,11 +55,11 @@ func (repo *TwitchRepository) GetUserID(username string) (models.TwitchID, error
 		return "", err
 	}
 
-	return user.Data[0].UserID, nil
+	return user.Data[0].UserId, nil
 }
 
 func (repo *TwitchRepository) getUserWithRefresh(params string) (userResponse, error) {
-	resp, err := getUser(params, repo.accessToken, repo.clientID)
+	resp, err := getUser(params, repo.accessToken, repo.clientId)
 	if err != nil {
 		return userResponse{}, err
 	}
@@ -68,7 +68,7 @@ func (repo *TwitchRepository) getUserWithRefresh(params string) (userResponse, e
 		if err := repo.refreshAccessToken(); err != nil {
 			return userResponse{}, err
 		}
-		resp, err = getUser(params, repo.accessToken, repo.clientID)
+		resp, err = getUser(params, repo.accessToken, repo.clientId)
 		if err != nil {
 			return userResponse{}, err
 		}
@@ -87,7 +87,7 @@ func (repo *TwitchRepository) getUserWithRefresh(params string) (userResponse, e
 }
 
 func (repo *TwitchRepository) refreshAccessToken() error {
-	resp, err := getAccessToken(repo.clientID, repo.clientSecret)
+	resp, err := getAccessToken(repo.clientId, repo.clientSecret)
 	if err != nil {
 		return err
 	}
@@ -112,16 +112,16 @@ func parseResponse(data interface{}, resp *http.Response) error {
 }
 
 // Could be in separate TwitchApi file
-func getAccessToken(clientID, clientSecret string) (*http.Response, error) {
+func getAccessToken(clientId, clientSecret string) (*http.Response, error) {
 	return http.PostForm("https://id.twitch.tv/oauth2/token", url.Values{
-		"client_id":     {clientID},
+		"client_id":     {clientId},
 		"client_secret": {clientSecret},
 		"grant_type":    {"client_credentials"},
 	})
 }
 
 // Could be in separate TwitchApi file
-func getUser(params, accessToken, clientID string) (*http.Response, error) {
+func getUser(params, accessToken, clientId string) (*http.Response, error) {
 	url := fmt.Sprintf("https://api.twitch.tv/helix/users?%s", params)
 	req, err := http.NewRequest("GET", url, nil)
 	if err != nil {
@@ -129,7 +129,7 @@ func getUser(params, accessToken, clientID string) (*http.Response, error) {
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", accessToken))
-	req.Header.Add("Client-Id", clientID)
+	req.Header.Add("Client-Id", clientId)
 
 	return http.DefaultClient.Do(req)
 }

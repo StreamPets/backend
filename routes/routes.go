@@ -16,15 +16,15 @@ func RegisterRoutes(
 ) {
 	itemRepo := repositories.NewItemRepository(db)
 
-	cache := services.NewViewerCacheService()
+	cache := services.NewPetCacheService()
 	announcer := services.NewAnnouncerService(cache)
 	items := services.NewItemService(itemRepo)
-	viewers := services.NewViewerService(itemRepo)
+	petService := services.NewPetService(itemRepo)
 
 	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo)
 	extension := controllers.NewExtensionController(announcer, authService, items, twitchRepo)
 
-	twitchBot := controllers.NewTwitchBotController(announcer, items, viewers, twitchRepo)
+	twitchBot := controllers.NewTwitchBotController(announcer, items, petService, twitchRepo)
 
 	overlayRouter := r.Group("/overlay")
 	{
@@ -41,9 +41,9 @@ func RegisterRoutes(
 
 	api := r.Group("/channels")
 	{
-		api.POST("/:channelName/viewers", twitchBot.AddViewerToChannel)
-		api.DELETE("/:channelName/viewers/:userID", twitchBot.RemoveViewerFromChannel)
-		api.POST("/:channelName/viewers/:userID/:action", twitchBot.Action)
-		api.PUT("/:channelName/viewers/:userID", twitchBot.UpdateViewer)
+		api.POST("/:channelName/users", twitchBot.AddPetToChannel)
+		api.DELETE("/:channelName/users/:userId", twitchBot.RemoveUserFromChannel)
+		api.POST("/:channelName/users/:userId/:action", twitchBot.Action)
+		api.PUT("/:channelName/users/:userId", twitchBot.UpdateUser)
 	}
 }

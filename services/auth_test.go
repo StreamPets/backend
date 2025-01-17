@@ -9,42 +9,42 @@ import (
 	"github.com/streampets/backend/models"
 )
 
-func TestVerifyOverlayID(t *testing.T) {
+func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelID := models.TwitchID("channel id")
-		overlayID := uuid.New()
+		channelId := models.TwitchId("channel id")
+		overlayId := uuid.New()
 
-		repoMock := mock.Mock[OverlayIDGetter]()
-		mock.When(repoMock.GetOverlayID(channelID)).ThenReturn(overlayID, nil)
+		repoMock := mock.Mock[OverlayIdGetter]()
+		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
 		authService := NewAuthService(repoMock, "")
 
-		if err := authService.VerifyOverlayID(channelID, overlayID); err != nil {
+		if err := authService.VerifyOverlayId(channelId, overlayId); err != nil {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		mock.Verify(repoMock, mock.Once()).GetOverlayID(channelID)
+		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
 	})
 
 	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelID := models.TwitchID("channel id")
+		channelId := models.TwitchId("channel id")
 
-		repoMock := mock.Mock[OverlayIDGetter]()
-		mock.When(repoMock.GetOverlayID(channelID)).ThenReturn(uuid.New(), nil)
+		repoMock := mock.Mock[OverlayIdGetter]()
+		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
 
 		authService := NewAuthService(repoMock, "")
 
-		if err := authService.VerifyOverlayID(channelID, uuid.New()); err == nil {
+		if err := authService.VerifyOverlayId(channelId, uuid.New()); err == nil {
 			t.Errorf("expected an error, but did not received one")
 		} else if err != ErrIdMismatch {
 			t.Errorf("expected %s got %s", err.Error(), ErrIdMismatch.Error())
 		}
 
-		mock.Verify(repoMock, mock.Once()).GetOverlayID(channelID)
+		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
 	})
 }
 
@@ -53,12 +53,12 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelID := models.TwitchID("channel id")
-		userID := models.TwitchID("user id")
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"channel_id": channelID,
-			"user_id":    userID,
+			"channel_id": channelId,
+			"user_id":    userId,
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))
@@ -66,7 +66,7 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[OverlayIDGetter]()
+		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyExtToken(tokenString)
@@ -74,11 +74,11 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		if got.ChannelID != channelID {
-			t.Errorf("expected %s got %s", channelID, got.ChannelID)
+		if got.ChannelId != channelId {
+			t.Errorf("expected %s got %s", channelId, got.ChannelId)
 		}
-		if got.UserID != userID {
-			t.Errorf("expected %s got %s", userID, got.UserID)
+		if got.UserId != userId {
+			t.Errorf("expected %s got %s", userId, got.UserId)
 		}
 	})
 
@@ -86,12 +86,12 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelID := models.TwitchID("channel id")
-		userID := models.TwitchID("user id")
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"channel_id": channelID,
-			"user_id":    userID,
+			"channel_id": channelId,
+			"user_id":    userId,
 		})
 
 		tokenString, err := token.SignedString([]byte("fake secret"))
@@ -99,7 +99,7 @@ func TestVerifyExtToken(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[OverlayIDGetter]()
+		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyExtToken(tokenString); err == nil {
@@ -113,10 +113,10 @@ func TestVerifyReceipt(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		transactionID := uuid.New()
+		transactionId := uuid.New()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"transaction_id": transactionID,
+			"transaction_id": transactionId,
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))
@@ -124,7 +124,7 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[OverlayIDGetter]()
+		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyReceipt(tokenString)
@@ -132,8 +132,8 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		if got.TransactionID != transactionID {
-			t.Errorf("expected %s got %s", transactionID, got.TransactionID)
+		if got.TransactionId != transactionId {
+			t.Errorf("expected %s got %s", transactionId, got.TransactionId)
 		}
 	})
 
@@ -141,10 +141,10 @@ func TestVerifyReceipt(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		transactionID := uuid.New()
+		transactionId := uuid.New()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"transaction_id": transactionID,
+			"transaction_id": transactionId,
 		})
 
 		tokenString, err := token.SignedString([]byte("fake secret"))
@@ -152,7 +152,7 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		repoMock := mock.Mock[OverlayIDGetter]()
+		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		if _, err = authService.VerifyReceipt(tokenString); err == nil {

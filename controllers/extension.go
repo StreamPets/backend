@@ -10,7 +10,7 @@ import (
 )
 
 type UpdateAnnouncer interface {
-	AnnounceUpdate(channelName, image string, userID models.TwitchID)
+	AnnounceUpdate(channelName, image string, userId models.TwitchId)
 }
 
 type TokenVerifier interface {
@@ -19,37 +19,32 @@ type TokenVerifier interface {
 }
 
 type StoreService interface {
-	GetItemByID(itemID uuid.UUID) (models.Item, error)
-	GetSelectedItem(userID, channelID models.TwitchID) (models.Item, error)
-	SetSelectedItem(userID, channelID models.TwitchID, itemID uuid.UUID) error
-	GetChannelsItems(channelID models.TwitchID) ([]models.Item, error)
-	GetOwnedItems(channelID, userID models.TwitchID) ([]models.Item, error)
-	AddOwnedItem(userID models.TwitchID, itemID, transactionID uuid.UUID) error
-}
-
-type UserGetter interface {
-	GetUsername(userID models.TwitchID) (string, error)
-	GetUserID(username string) (models.TwitchID, error)
+	GetItemById(itemId uuid.UUID) (models.Item, error)
+	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
+	SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error
+	GetChannelsItems(channelId models.TwitchId) ([]models.Item, error)
+	GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error)
+	AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error
 }
 
 type ExtensionController struct {
 	Announcer UpdateAnnouncer
 	Verifier  TokenVerifier
 	Store     StoreService
-	Users     UserGetter
+	Usernames UsernameGetter
 }
 
 func NewExtensionController(
 	announcer UpdateAnnouncer,
 	verifier TokenVerifier,
 	store StoreService,
-	users UserGetter,
+	usernames UsernameGetter,
 ) *ExtensionController {
 	return &ExtensionController{
 		Announcer: announcer,
 		Verifier:  verifier,
 		Store:     store,
-		Users:     users,
+		Usernames: usernames,
 	}
 }
 
@@ -62,7 +57,7 @@ func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
 		return
 	}
 
-	storeItems, err := c.Store.GetChannelsItems(token.ChannelID)
+	storeItems, err := c.Store.GetChannelsItems(token.ChannelId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -80,13 +75,13 @@ func (c *ExtensionController) GetUserData(ctx *gin.Context) {
 		return
 	}
 
-	ownedItems, err := c.Store.GetOwnedItems(token.ChannelID, token.UserID)
+	ownedItems, err := c.Store.GetOwnedItems(token.ChannelId, token.UserId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	selectedItem, err := c.Store.GetSelectedItem(token.UserID, token.ChannelID)
+	selectedItem, err := c.Store.GetSelectedItem(token.UserId, token.ChannelId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -101,7 +96,7 @@ func (c *ExtensionController) GetUserData(ctx *gin.Context) {
 func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 	type Params struct {
 		Receipt string `json:"receipt"`
-		ItemID  string `json:"item_id"`
+		ItemId  string `json:"item_id"`
 	}
 
 	tokenString := ctx.GetHeader(XExtensionJwt)
@@ -117,7 +112,7 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
-	itemID, err := uuid.Parse(params.ItemID)
+	itemId, err := uuid.Parse(params.ItemId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -129,7 +124,7 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.Store.AddOwnedItem(token.UserID, itemID, receipt.TransactionID); err != nil {
+	if err := c.Store.AddOwnedItem(token.UserId, itemId, receipt.TransactionId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
@@ -137,7 +132,7 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 
 func (c *ExtensionController) SetSelectedItem(ctx *gin.Context) {
 	type Params struct {
-		ItemID string `json:"item_id"`
+		ItemId string `json:"item_id"`
 	}
 
 	tokenString := ctx.GetHeader(XExtensionJwt)
@@ -153,28 +148,28 @@ func (c *ExtensionController) SetSelectedItem(ctx *gin.Context) {
 		return
 	}
 
-	itemID, err := uuid.Parse(params.ItemID)
+	itemId, err := uuid.Parse(params.ItemId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	item, err := c.Store.GetItemByID(itemID)
+	item, err := c.Store.GetItemById(itemId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	if err = c.Store.SetSelectedItem(token.UserID, token.ChannelID, itemID); err != nil {
+	if err = c.Store.SetSelectedItem(token.UserId, token.ChannelId, itemId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	channelName, err := c.Users.GetUsername(token.ChannelID)
+	channelName, err := c.Usernames.GetUsername(token.ChannelId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	c.Announcer.AnnounceUpdate(channelName, item.Image, token.UserID)
+	c.Announcer.AnnounceUpdate(channelName, item.Image, token.UserId)
 }

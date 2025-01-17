@@ -3,7 +3,7 @@ package models
 import "github.com/google/uuid"
 
 type Channel struct {
-	ChannelID   TwitchID `gorm:"primaryKey"`
+	ChannelId   TwitchId `gorm:"primaryKey"`
 	ChannelName string
-	OverlayID   uuid.UUID `gorm:"type:uuid"`
+	OverlayId   uuid.UUID `gorm:"type:uuid"`
 }

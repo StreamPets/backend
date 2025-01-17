@@ -23,7 +23,7 @@ func (c *CloseNotifierResponseWriter) CloseNotify() <-chan bool {
 }
 
 func TestHandleListen(t *testing.T) {
-	setUpContext := func(channelID, overlayID string) (*gin.Context, *CloseNotifierResponseWriter) {
+	setUpContext := func(channelId, overlayId string) (*gin.Context, *CloseNotifierResponseWriter) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := &CloseNotifierResponseWriter{httptest.NewRecorder()}
@@ -31,22 +31,22 @@ func TestHandleListen(t *testing.T) {
 		req, _ := http.NewRequest("GET", "/listen", nil)
 
 		values := req.URL.Query()
-		values.Add("channelID", channelID)
-		values.Add("overlayID", overlayID)
+		values.Add("channelId", channelId)
+		values.Add("overlayId", overlayId)
 		req.URL.RawQuery = values.Encode()
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
-	channelID := models.TwitchID("channel id")
-	overlayID := uuid.New()
+	channelId := models.TwitchId("channel id")
+	overlayId := uuid.New()
 	channelName := "channel name"
 
 	t.Run("receive and send events from stream", func(t *testing.T) {
 		mock.SetUp(t)
 
-		ctx, recorder := setUpContext(string(channelID), overlayID.String())
+		ctx, recorder := setUpContext(string(channelId), overlayId.String())
 
 		stream := make(services.EventStream)
 		client := services.Client{
@@ -55,16 +55,16 @@ func TestHandleListen(t *testing.T) {
 		}
 
 		clientsMock := mock.Mock[ClientAddRemover]()
-		verifierMock := mock.Mock[OverlayIDVerifier]()
-		usersMock := mock.Mock[UsernameGetter]()
+		verifierMock := mock.Mock[OverlayIdVerifier]()
+		userMock := mock.Mock[UsernameGetter]()
 
 		mock.When(clientsMock.AddClient(channelName)).ThenReturn(client)
-		mock.When(usersMock.GetUsername(channelID)).ThenReturn(channelName, nil)
+		mock.When(userMock.GetUsername(channelId)).ThenReturn(channelName, nil)
 
 		controller := NewOverlayController(
 			clientsMock,
 			verifierMock,
-			usersMock,
+			userMock,
 		)
 
 		var wg sync.WaitGroup
@@ -80,7 +80,7 @@ func TestHandleListen(t *testing.T) {
 		close(stream)
 		wg.Wait()
 
-		mock.Verify(verifierMock, mock.Once()).VerifyOverlayID(channelID, overlayID)
+		mock.Verify(verifierMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
 		mock.Verify(clientsMock, mock.Once()).AddClient(channelName)
 		mock.Verify(clientsMock, mock.Once()).RemoveClient(client)
 
@@ -96,23 +96,23 @@ func TestHandleListen(t *testing.T) {
 	t.Run("client not added when overlay id and channel id do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		ctx, recorder := setUpContext(string(channelID), overlayID.String())
+		ctx, recorder := setUpContext(string(channelId), overlayId.String())
 
 		clientsMock := mock.Mock[ClientAddRemover]()
-		verifierMock := mock.Mock[OverlayIDVerifier]()
-		usersMock := mock.Mock[UsernameGetter]()
+		verifierMock := mock.Mock[OverlayIdVerifier]()
+		userMock := mock.Mock[UsernameGetter]()
 
-		mock.When(verifierMock.VerifyOverlayID(channelID, overlayID)).ThenReturn(services.ErrIdMismatch)
+		mock.When(verifierMock.VerifyOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
 
 		controller := NewOverlayController(
 			clientsMock,
 			verifierMock,
-			usersMock,
+			userMock,
 		)
 
 		controller.HandleListen(ctx)
 
-		mock.Verify(verifierMock, mock.Once()).VerifyOverlayID(channelID, overlayID)
+		mock.Verify(verifierMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
 		mock.Verify(clientsMock, mock.Never()).AddClient(channelName)
 
 		response := recorder.Body.String()

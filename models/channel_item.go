@@ -5,6 +5,6 @@ import (
 )
 
 type ChannelItem struct {
-	ChannelID TwitchID  `gorm:"primaryKey"`
-	ItemID    uuid.UUID `gorm:"primaryKey;type:uuid"`
+	ChannelId TwitchId  `gorm:"primaryKey"`
+	ItemId    uuid.UUID `gorm:"primaryKey;type:uuid"`
 }

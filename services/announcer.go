@@ -23,11 +23,11 @@ type Client struct {
 	Stream      EventStream
 }
 
-type ViewerCache interface {
-	AddViewer(channelName string, viewer Viewer)
-	RemoveViewer(channelName string, viewerID models.TwitchID)
-	UpdateViewer(channelName, image string, viewerID models.TwitchID)
-	GetViewers(channelName string) []Viewer
+type PetCache interface {
+	AddPet(channelName string, pet Pet)
+	RemovePet(channelName string, userId models.TwitchId)
+	UpdatePet(channelName, image string, userId models.TwitchId)
+	GetPets(channelName string) []Pet
 }
 
 type AnnouncerService struct {
@@ -35,10 +35,10 @@ type AnnouncerService struct {
 	newClients    chan Client
 	closedClients chan Client
 	totalClients  map[string](map[EventStream]bool)
-	cache         ViewerCache
+	cache         PetCache
 }
 
-func NewAnnouncerService(cache ViewerCache) *AnnouncerService {
+func NewAnnouncerService(cache PetCache) *AnnouncerService {
 	service := &AnnouncerService{
 		announce:      make(chan wrappedEvent),
 		newClients:    make(chan Client),
@@ -62,47 +62,47 @@ func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Viewer) {
+func (s *AnnouncerService) AnnounceJoin(channelName string, pet Pet) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
 			Event:   "JOIN",
-			Message: viewer,
+			Message: pet,
 		},
 	}
-	s.cache.AddViewer(channelName, viewer)
+	s.cache.AddPet(channelName, pet)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelName string, viewerID models.TwitchID) {
+func (s *AnnouncerService) AnnouncePart(channelName string, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
 			Event:   "PART",
-			Message: viewerID,
+			Message: userId,
 		},
 	}
-	s.cache.RemoveViewer(channelName, viewerID)
+	s.cache.RemovePet(channelName, userId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerID models.TwitchID) {
+func (s *AnnouncerService) AnnounceAction(channelName, action string, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("%s-%s", action, viewerID),
-			Message: viewerID,
+			Event:   fmt.Sprintf("%s-%s", action, userId),
+			Message: userId,
 		},
 	}
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerID models.TwitchID) {
+func (s *AnnouncerService) AnnounceUpdate(channelName, image string, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("COLOR-%s", viewerID),
+			Event:   fmt.Sprintf("COLOR-%s", userId),
 			Message: image,
 		},
 	}
-	s.cache.UpdateViewer(channelName, image, viewerID)
+	s.cache.UpdatePet(channelName, image, userId)
 }
 
 func (s *AnnouncerService) listen() {
@@ -117,8 +117,8 @@ func (s *AnnouncerService) listen() {
 			s.totalClients[client.ChannelName][client.Stream] = true
 
 			go func() {
-				for _, viewer := range s.cache.GetViewers(client.ChannelName) {
-					client.Stream <- Event{Event: "JOIN", Message: viewer}
+				for _, pet := range s.cache.GetPets(client.ChannelName) {
+					client.Stream <- Event{Event: "JOIN", Message: pet}
 				}
 			}()
 

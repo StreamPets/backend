@@ -9,10 +9,10 @@ import (
 const XExtensionJwt string = "x-extension-jwt"
 const Action string = "action"
 
-const ChannelID string = "channelID"
+const ChannelId string = "channelId"
 const ChannelName string = "channelName"
-const OverlayID string = "overlayID"
-const UserID string = "userID"
+const OverlayId string = "overlayId"
+const UserId string = "userId"
 
 func addErrorToCtx(err error, ctx *gin.Context) {
 	ctx.JSON(http.StatusBadRequest, gin.H{
