@@ -15,7 +15,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		channelName := "channel name"
 		viewer := Pet{}
 
-		cacheMock := mock.Mock[ViewerCache]()
+		cacheMock := mock.Mock[PetCache]()
 		announcer := NewAnnouncerService(cacheMock)
 
 		client := announcer.AddClient(channelName)
@@ -45,14 +45,14 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			t.Errorf("expected %s got %s", expected, events[0])
 		}
 
-		mock.Verify(cacheMock, mock.Once()).AddViewer(channelName, viewer)
+		mock.Verify(cacheMock, mock.Once()).AddPet(channelName, viewer)
 	})
 
 	t.Run("add client and announce part", func(t *testing.T) {
 		channelName := "channel name"
 		viewerId := models.UserId("viewer id")
 
-		cacheMock := mock.Mock[ViewerCache]()
+		cacheMock := mock.Mock[PetCache]()
 		announcer := NewAnnouncerService(cacheMock)
 
 		client := announcer.AddClient(channelName)
@@ -82,7 +82,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			t.Errorf("expected %s got %s", expected, events[0])
 		}
 
-		mock.Verify(cacheMock, mock.Once()).RemoveViewer(channelName, viewerId)
+		mock.Verify(cacheMock, mock.Once()).RemovePet(channelName, viewerId)
 	})
 
 	t.Run("add client and announce action", func(t *testing.T) {
@@ -90,7 +90,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		viewerId := models.UserId("viewer id")
 		action := "action"
 
-		cacheMock := mock.Mock[ViewerCache]()
+		cacheMock := mock.Mock[PetCache]()
 		announcer := NewAnnouncerService(cacheMock)
 
 		client := announcer.AddClient(channelName)
@@ -130,7 +130,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		viewerId := models.UserId("viewer id")
 		image := "image"
 
-		cacheMock := mock.Mock[ViewerCache]()
+		cacheMock := mock.Mock[PetCache]()
 		announcer := NewAnnouncerService(cacheMock)
 
 		client := announcer.AddClient(channelName)
@@ -161,7 +161,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 			t.Errorf("expected %s got %s", expected, events[0].Event)
 		}
 
-		mock.Verify(cacheMock, mock.Once()).UpdateViewer(channelName, image, viewerId)
+		mock.Verify(cacheMock, mock.Once()).UpdatePet(channelName, image, viewerId)
 	})
 }
 
@@ -169,7 +169,7 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 	channelName := "channel name"
 	viewer := Pet{}
 
-	cacheMock := mock.Mock[ViewerCache]()
+	cacheMock := mock.Mock[PetCache]()
 	announcer := NewAnnouncerService(cacheMock)
 
 	client := announcer.AddClient(channelName)
@@ -203,7 +203,7 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	channelTwoName := "channel two name"
 	viewer := Pet{}
 
-	cacheMock := mock.Mock[ViewerCache]()
+	cacheMock := mock.Mock[PetCache]()
 	announcer := NewAnnouncerService(cacheMock)
 
 	clientOne := announcer.AddClient(channelOneName)
@@ -254,8 +254,8 @@ func TestAddClient(t *testing.T) {
 	channelName := "channel name"
 	viewers := []Pet{{}, {}}
 
-	cacheMock := mock.Mock[ViewerCache]()
-	mock.When(cacheMock.GetViewers(channelName)).ThenReturn(viewers)
+	cacheMock := mock.Mock[PetCache]()
+	mock.When(cacheMock.GetPets(channelName)).ThenReturn(viewers)
 
 	announcer := NewAnnouncerService(cacheMock)
 	client := announcer.AddClient(channelName)

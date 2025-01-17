@@ -7,12 +7,12 @@ import (
 	"github.com/streampets/backend/models"
 )
 
-func TestGetViewers(t *testing.T) {
+func TestGetPets(t *testing.T) {
 	channelName := "channel name"
 
-	cache := NewViewerCacheService()
+	cache := NewPetCacheService()
 
-	got := cache.GetViewers(channelName)
+	got := cache.GetPets(channelName)
 	want := []Pet{}
 
 	if !slices.Equal(got, want) {
@@ -20,20 +20,20 @@ func TestGetViewers(t *testing.T) {
 	}
 }
 
-func TestAddViewer(t *testing.T) {
+func TestAddPet(t *testing.T) {
 	channelNameOne := "channel name one"
 	channelNameTwo := "channel name two"
 
 	viewerOne := Pet{ViewerId: models.UserId("viewer id one")}
 	viewerTwo := Pet{ViewerId: models.UserId("viewer id two")}
 
-	cache := NewViewerCacheService()
+	cache := NewPetCacheService()
 
-	cache.AddViewer(channelNameOne, viewerOne)
-	cache.AddViewer(channelNameTwo, viewerTwo)
+	cache.AddPet(channelNameOne, viewerOne)
+	cache.AddPet(channelNameTwo, viewerTwo)
 
-	viewersOne := cache.GetViewers(channelNameOne)
-	viewersTwo := cache.GetViewers(channelNameTwo)
+	viewersOne := cache.GetPets(channelNameOne)
+	viewersTwo := cache.GetPets(channelNameTwo)
 
 	wantOne := []Pet{viewerOne}
 	wantTwo := []Pet{viewerTwo}
@@ -46,17 +46,17 @@ func TestAddViewer(t *testing.T) {
 	}
 }
 
-func TestRemoveViewer(t *testing.T) {
+func TestRemovePet(t *testing.T) {
 	channelName := "channel name"
 	viewerId := models.UserId("viewer id")
 	viewer := Pet{ViewerId: viewerId}
 
-	cache := NewViewerCacheService()
+	cache := NewPetCacheService()
 
-	cache.AddViewer(channelName, viewer)
-	cache.RemoveViewer(channelName, viewer.ViewerId)
+	cache.AddPet(channelName, viewer)
+	cache.RemovePet(channelName, viewer.ViewerId)
 
-	got := cache.GetViewers(channelName)
+	got := cache.GetPets(channelName)
 	want := []Pet{}
 
 	if !slices.Equal(got, want) {
@@ -64,18 +64,18 @@ func TestRemoveViewer(t *testing.T) {
 	}
 }
 
-func TestUpdateViewer(t *testing.T) {
+func TestUpdatePet(t *testing.T) {
 	channelName := "channel name"
 	viewerId := models.UserId("viewer id")
 	viewer := Pet{ViewerId: viewerId}
 	image := "image"
 
-	cache := NewViewerCacheService()
+	cache := NewPetCacheService()
 
-	cache.AddViewer(channelName, viewer)
-	cache.UpdateViewer(channelName, image, viewerId)
+	cache.AddPet(channelName, viewer)
+	cache.UpdatePet(channelName, image, viewerId)
 
-	viewers := cache.GetViewers(channelName)
+	viewers := cache.GetPets(channelName)
 
 	if len(viewers) != 1 {
 		t.Errorf("expected a singleton list but was of length %d", len(viewers))

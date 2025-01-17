@@ -2,25 +2,25 @@ package services
 
 import "github.com/streampets/backend/models"
 
-type ViewerCacheService struct {
+type PetCacheService struct {
 	viewers map[string]map[models.UserId]Pet
 }
 
-func NewViewerCacheService() *ViewerCacheService {
-	return &ViewerCacheService{make(map[string]map[models.UserId]Pet)}
+func NewPetCacheService() *PetCacheService {
+	return &PetCacheService{make(map[string]map[models.UserId]Pet)}
 }
 
-func (s *ViewerCacheService) AddViewer(channelName string, viewer Pet) {
+func (s *PetCacheService) AddPet(channelName string, pet Pet) {
 	viewers, ok := s.viewers[channelName]
 	if !ok {
 		viewers = make(map[models.UserId]Pet)
 		s.viewers[channelName] = viewers
 	}
 
-	viewers[viewer.ViewerId] = viewer
+	viewers[pet.ViewerId] = pet
 }
 
-func (s *ViewerCacheService) RemoveViewer(channelName string, viewerId models.UserId) {
+func (s *PetCacheService) RemovePet(channelName string, viewerId models.UserId) {
 	viewers, ok := s.viewers[channelName]
 	if !ok {
 		return
@@ -29,7 +29,7 @@ func (s *ViewerCacheService) RemoveViewer(channelName string, viewerId models.Us
 	delete(viewers, viewerId)
 }
 
-func (s *ViewerCacheService) UpdateViewer(channelName, image string, viewerId models.UserId) {
+func (s *PetCacheService) UpdatePet(channelName, image string, viewerId models.UserId) {
 	viewers, ok := s.viewers[channelName]
 	if !ok {
 		return
@@ -44,7 +44,7 @@ func (s *ViewerCacheService) UpdateViewer(channelName, image string, viewerId mo
 	s.viewers[channelName][viewerId] = viewer
 }
 
-func (s *ViewerCacheService) GetViewers(channelName string) []Pet {
+func (s *PetCacheService) GetPets(channelName string) []Pet {
 	viewers, ok := s.viewers[channelName]
 	if !ok {
 		return []Pet{}

@@ -16,7 +16,7 @@ func RegisterRoutes(
 ) {
 	itemRepo := repositories.NewItemRepository(db)
 
-	cache := services.NewViewerCacheService()
+	cache := services.NewPetCacheService()
 	announcer := services.NewAnnouncerService(cache)
 	items := services.NewItemService(itemRepo)
 	petService := services.NewPetService(itemRepo)

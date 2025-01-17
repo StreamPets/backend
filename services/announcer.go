@@ -23,11 +23,11 @@ type Client struct {
 	Stream      EventStream
 }
 
-type ViewerCache interface {
-	AddViewer(channelName string, viewer Pet)
-	RemoveViewer(channelName string, viewerId models.UserId)
-	UpdateViewer(channelName, image string, viewerId models.UserId)
-	GetViewers(channelName string) []Pet
+type PetCache interface {
+	AddPet(channelName string, pet Pet)
+	RemovePet(channelName string, viewerId models.UserId)
+	UpdatePet(channelName, image string, viewerId models.UserId)
+	GetPets(channelName string) []Pet
 }
 
 type AnnouncerService struct {
@@ -35,10 +35,10 @@ type AnnouncerService struct {
 	newClients    chan Client
 	closedClients chan Client
 	totalClients  map[string](map[EventStream]bool)
-	cache         ViewerCache
+	cache         PetCache
 }
 
-func NewAnnouncerService(cache ViewerCache) *AnnouncerService {
+func NewAnnouncerService(cache PetCache) *AnnouncerService {
 	service := &AnnouncerService{
 		announce:      make(chan wrappedEvent),
 		newClients:    make(chan Client),
@@ -70,7 +70,7 @@ func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Pet) {
 			Message: viewer,
 		},
 	}
-	s.cache.AddViewer(channelName, viewer)
+	s.cache.AddPet(channelName, viewer)
 }
 
 func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.UserId) {
@@ -81,7 +81,7 @@ func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.User
 			Message: viewerId,
 		},
 	}
-	s.cache.RemoveViewer(channelName, viewerId)
+	s.cache.RemovePet(channelName, viewerId)
 }
 
 func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerId models.UserId) {
@@ -102,7 +102,7 @@ func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerId mo
 			Message: image,
 		},
 	}
-	s.cache.UpdateViewer(channelName, image, viewerId)
+	s.cache.UpdatePet(channelName, image, viewerId)
 }
 
 func (s *AnnouncerService) listen() {
@@ -117,7 +117,7 @@ func (s *AnnouncerService) listen() {
 			s.totalClients[client.ChannelName][client.Stream] = true
 
 			go func() {
-				for _, viewer := range s.cache.GetViewers(client.ChannelName) {
+				for _, viewer := range s.cache.GetPets(client.ChannelName) {
 					client.Stream <- Event{Event: "JOIN", Message: viewer}
 				}
 			}()
