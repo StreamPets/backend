@@ -140,9 +140,7 @@ func TestGetUserData(t *testing.T) {
 }
 
 func TestBuyStoreItem(t *testing.T) {
-	mock.SetUp(t)
-
-	setUpContext := func(token, receipt, itemId string) *gin.Context {
+	setUpContext := func(token, receipt string, itemId uuid.UUID) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -160,38 +158,100 @@ func TestBuyStoreItem(t *testing.T) {
 		return ctx
 	}
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
-	itemId := uuid.New()
-	transactionId := uuid.New()
+	t.Run("item not added when receipt and item rarity do not match", func(t *testing.T) {
+		mock.SetUp(t)
 
-	tokenString := "token string"
-	receiptString := "receipt string"
+		tokenString := "token string"
+		receiptString := "receipt string"
 
-	token := services.ExtToken{ChannelId: channelId, UserId: userId}
-	receipt := services.Receipt{TransactionId: transactionId}
+		userId := models.TwitchId("user id")
 
-	announcerMock := mock.Mock[UpdateAnnouncer]()
-	verifierMock := mock.Mock[TokenVerifier]()
-	storeMock := mock.Mock[StoreService]()
-	usernameMock := mock.Mock[UsernameGetter]()
+		itemId := uuid.New()
+		transactionId := uuid.New()
 
-	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(&receipt, nil)
-	mock.When(storeMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(nil)
+		item := models.Item{
+			ItemId: itemId,
+			Rarity: models.Common,
+		}
 
-	controller := NewExtensionController(
-		announcerMock,
-		verifierMock,
-		storeMock,
-		usernameMock,
-	)
+		receipt := &services.Receipt{
+			Data: services.Data{
+				TransactionId: transactionId,
+				Product: services.Product{
+					Rarity: models.Uncommon,
+				},
+			},
+		}
 
-	controller.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
 
-	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(verifierMock, mock.Once()).VerifyReceipt(receiptString)
-	mock.Verify(storeMock, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+
+		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
+	})
+
+	t.Run("test item is added when all pre-requisites are met", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		userId := models.TwitchId("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		token := &services.ExtToken{
+			UserId: userId,
+		}
+
+		receipt := &services.Receipt{
+			Data: services.Data{
+				TransactionId: transactionId,
+				Product: services.Product{
+					Rarity: models.Common,
+				},
+			},
+		}
+
+		item := models.Item{
+			ItemId: itemId,
+			Rarity: models.Common,
+		}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+
+		mock.Verify(storeMock, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+	})
 }
 
 func TestSetSelectedItem(t *testing.T) {

@@ -18,8 +18,17 @@ type ExtToken struct {
 	jwt.RegisteredClaims
 }
 
+type Product struct {
+	Rarity models.Rarity `json:"sku"`
+}
+
+type Data struct {
+	TransactionId uuid.UUID `json:"transactionId"`
+	Product       Product   `json:"product"`
+}
+
 type Receipt struct {
-	TransactionId uuid.UUID `json:"transaction_id"`
+	Data Data `json:"data"`
 	jwt.RegisteredClaims
 }
 

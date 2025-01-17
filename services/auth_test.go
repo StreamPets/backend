@@ -116,7 +116,12 @@ func TestVerifyReceipt(t *testing.T) {
 		transactionId := uuid.New()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"transaction_id": transactionId,
+			"data": map[string]interface{}{
+				"transactionId": transactionId,
+				"product": map[string]interface{}{
+					"sku": "common",
+				},
+			},
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))
@@ -132,8 +137,8 @@ func TestVerifyReceipt(t *testing.T) {
 			t.Errorf("did not expect an error but received %s", err.Error())
 		}
 
-		if got.TransactionId != transactionId {
-			t.Errorf("expected %s got %s", transactionId, got.TransactionId)
+		if got.Data.TransactionId != transactionId {
+			t.Errorf("expected %s got %s", transactionId, got.Data.TransactionId)
 		}
 	})
 
