@@ -44,18 +44,18 @@ func TestGetUsername(t *testing.T) {
 	}
 }
 
-func TestGetViewerId(t *testing.T) {
+func TestGetUserId(t *testing.T) {
 	channelName := "ljrexcodes"
 	expected := models.TwitchId("83125762")
 
 	twitchRepo := setupTwitchRepository()
 
-	viewerId, err := twitchRepo.GetViewerId(channelName)
+	userId, err := twitchRepo.GetGetId(channelName)
 	if err != nil {
 		t.Errorf("did not expect an error but received: %s", err.Error())
 	}
 
-	if viewerId != expected {
-		t.Errorf("expected %s got %s", expected, viewerId)
+	if userId != expected {
+		t.Errorf("expected %s got %s", expected, userId)
 	}
 }

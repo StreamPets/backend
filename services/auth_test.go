@@ -13,7 +13,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.UserId("channel id")
+		channelId := models.TwitchId("channel id")
 		overlayId := uuid.New()
 
 		repoMock := mock.Mock[OverlayIdGetter]()
@@ -31,7 +31,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.UserId("channel id")
+		channelId := models.TwitchId("channel id")
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
@@ -53,12 +53,12 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelId := models.UserId("channel id")
-		viewerId := models.UserId("viewer id")
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,
-			"viewer_id":  viewerId,
+			"user_id":    userId,
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))
@@ -77,8 +77,8 @@ func TestVerifyExtToken(t *testing.T) {
 		if got.ChannelId != channelId {
 			t.Errorf("expected %s got %s", channelId, got.ChannelId)
 		}
-		if got.ViewerId != viewerId {
-			t.Errorf("expected %s got %s", viewerId, got.ViewerId)
+		if got.UserId != userId {
+			t.Errorf("expected %s got %s", userId, got.UserId)
 		}
 	})
 
@@ -86,12 +86,12 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelId := models.UserId("channel id")
-		viewerId := models.UserId("viewer id")
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,
-			"viewer_id":  viewerId,
+			"user_id":    userId,
 		})
 
 		tokenString, err := token.SignedString([]byte("fake secret"))

@@ -39,7 +39,7 @@ func TestHandleListen(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelId := models.UserId("channel id")
+	channelId := models.TwitchId("channel id")
 	overlayId := uuid.New()
 	channelName := "channel name"
 
@@ -56,15 +56,15 @@ func TestHandleListen(t *testing.T) {
 
 		clientsMock := mock.Mock[ClientAddRemover]()
 		verifierMock := mock.Mock[OverlayIdVerifier]()
-		viewerMock := mock.Mock[UsernameGetter]()
+		userMock := mock.Mock[UsernameGetter]()
 
 		mock.When(clientsMock.AddClient(channelName)).ThenReturn(client)
-		mock.When(viewerMock.GetUsername(channelId)).ThenReturn(channelName, nil)
+		mock.When(userMock.GetUsername(channelId)).ThenReturn(channelName, nil)
 
 		controller := NewOverlayController(
 			clientsMock,
 			verifierMock,
-			viewerMock,
+			userMock,
 		)
 
 		var wg sync.WaitGroup
@@ -100,14 +100,14 @@ func TestHandleListen(t *testing.T) {
 
 		clientsMock := mock.Mock[ClientAddRemover]()
 		verifierMock := mock.Mock[OverlayIdVerifier]()
-		viewerMock := mock.Mock[UsernameGetter]()
+		userMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
 
 		controller := NewOverlayController(
 			clientsMock,
 			verifierMock,
-			viewerMock,
+			userMock,
 		)
 
 		controller.HandleListen(ctx)

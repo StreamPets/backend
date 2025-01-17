@@ -13,8 +13,8 @@ var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
 var ErrInvalidToken = errors.New("token is not valid")
 
 type ExtToken struct {
-	ChannelId models.UserId `json:"channel_id"`
-	ViewerId  models.UserId `json:"viewer_id"`
+	ChannelId models.TwitchId `json:"channel_id"`
+	UserId    models.TwitchId `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -29,7 +29,7 @@ type AuthService struct {
 }
 
 type OverlayIdGetter interface {
-	GetOverlayId(channelId models.UserId) (uuid.UUID, error)
+	GetOverlayId(channelId models.TwitchId) (uuid.UUID, error)
 }
 
 func NewAuthService(
@@ -42,7 +42,7 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) VerifyOverlayId(channelId models.UserId, overlayId uuid.UUID) error {
+func (s *AuthService) VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error {
 	expectedId, err := s.channelRepo.GetOverlayId(channelId)
 	if err != nil {
 		return err

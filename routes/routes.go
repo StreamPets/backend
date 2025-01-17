@@ -33,7 +33,7 @@ func RegisterRoutes(
 
 	extRouter := r.Group("/extension")
 	{
-		extRouter.GET("/viewer", extension.GetViewerData)
+		extRouter.GET("/user", extension.GetUserData)
 		extRouter.GET("/items", extension.GetStoreData)
 		extRouter.POST("/items", extension.BuyStoreItem)
 		extRouter.PUT("/items", extension.SetSelectedItem)
@@ -41,9 +41,9 @@ func RegisterRoutes(
 
 	api := r.Group("/channels")
 	{
-		api.POST("/:channelName/viewers", twitchBot.AddViewerToChannel)
-		api.DELETE("/:channelName/viewers/:viewerId", twitchBot.RemoveViewerFromChannel)
-		api.POST("/:channelName/viewers/:viewerId/:action", twitchBot.Action)
-		api.PUT("/:channelName/viewers/:viewerId", twitchBot.UpdateViewer)
+		api.POST("/:channelName/users", twitchBot.AddPetToChannel)
+		api.DELETE("/:channelName/users/:userId", twitchBot.RemoveUserFromChannel)
+		api.POST("/:channelName/users/:userId/:action", twitchBot.Action)
+		api.PUT("/:channelName/users/:userId", twitchBot.UpdateUser)
 	}
 }

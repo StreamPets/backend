@@ -7,33 +7,33 @@ import (
 	"github.com/streampets/backend/models"
 )
 
-func TestGetViewer(t *testing.T) {
+func TestGetUser(t *testing.T) {
 	mock.SetUp(t)
 
-	viewerId := models.UserId("viewer id")
-	channelId := models.UserId("channel id")
+	userId := models.TwitchId("user id")
+	channelId := models.TwitchId("channel id")
 	username := "username"
 	image := "image"
 	item := models.Item{Image: image}
 
 	itemMock := mock.Mock[ItemRepo]()
-	mock.When(itemMock.GetSelectedItem(viewerId, channelId)).ThenReturn(item, nil)
+	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(item, nil)
 
-	viewerService := NewPetService(itemMock)
+	petService := NewPetService(itemMock)
 
-	viewer, err := viewerService.GetPet(viewerId, channelId, username)
+	pet, err := petService.GetPet(userId, channelId, username)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
 
 	expected := Pet{
-		ViewerId: viewerId,
+		UserId:   userId,
 		Username: username,
 		Image:    image,
 	}
 
-	mock.Verify(itemMock, mock.Once()).GetSelectedItem(viewerId, channelId)
-	if viewer != expected {
-		t.Errorf("expected %s got %s", expected, viewer)
+	mock.Verify(itemMock, mock.Once()).GetSelectedItem(userId, channelId)
+	if pet != expected {
+		t.Errorf("expected %s got %s", expected, pet)
 	}
 }

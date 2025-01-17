@@ -12,7 +12,7 @@ const Action string = "action"
 const ChannelId string = "channelId"
 const ChannelName string = "channelName"
 const OverlayId string = "overlayId"
-const ViewerId string = "viewerId"
+const UserId string = "userId"
 
 func addErrorToCtx(err error, ctx *gin.Context) {
 	ctx.JSON(http.StatusBadRequest, gin.H{

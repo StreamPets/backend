@@ -12,7 +12,7 @@ import (
 func TestGetItemByName(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.UserId("channel id")
+	channelId := models.TwitchId("channel id")
 	itemName := "item name"
 
 	item := models.Item{Name: itemName}
@@ -62,16 +62,16 @@ func TestGetItemById(t *testing.T) {
 func TestGetSelectedItem(t *testing.T) {
 	mock.SetUp(t)
 
-	viewerId := models.UserId("viewer id")
-	channelId := models.UserId("channel id")
+	userId := models.TwitchId("user id")
+	channelId := models.TwitchId("channel id")
 	want := models.Item{ItemId: uuid.New()}
 
 	itemMock := mock.Mock[ItemRepository]()
-	mock.When(itemMock.GetSelectedItem(viewerId, channelId)).ThenReturn(want, nil)
+	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(want, nil)
 
 	itemService := NewItemService(itemMock)
 
-	got, err := itemService.GetSelectedItem(viewerId, channelId)
+	got, err := itemService.GetSelectedItem(userId, channelId)
 	if err != nil {
 		t.Errorf("did not expect an error but got %s", err.Error())
 	}
@@ -85,36 +85,36 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("item is set as selected when owned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		viewerId := models.UserId("viewer id")
-		channelId := models.UserId("channel id")
+		userId := models.TwitchId("user id")
+		channelId := models.TwitchId("channel id")
 		itemId := uuid.New()
 
 		itemMock := mock.Mock[ItemRepository]()
-		mock.When(itemMock.CheckOwnedItem(viewerId, itemId)).ThenReturn(true, nil)
+		mock.When(itemMock.CheckOwnedItem(userId, itemId)).ThenReturn(true, nil)
 
 		itemService := NewItemService(itemMock)
 
-		err := itemService.SetSelectedItem(viewerId, channelId, itemId)
+		err := itemService.SetSelectedItem(userId, channelId, itemId)
 		if err != nil {
 			t.Errorf("did not expect an error but got %s", err.Error())
 		}
 
-		mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelId, viewerId, itemId)
+		mock.Verify(itemMock, mock.Once()).SetSelectedItem(channelId, userId, itemId)
 	})
 
 	t.Run("item is not set as selected when unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		viewerId := models.UserId("viewer id")
-		channelId := models.UserId("channel id")
+		userId := models.TwitchId("user id")
+		channelId := models.TwitchId("channel id")
 		itemId := uuid.New()
 
 		itemMock := mock.Mock[ItemRepository]()
-		mock.When(itemMock.CheckOwnedItem(viewerId, itemId)).ThenReturn(false, nil)
+		mock.When(itemMock.CheckOwnedItem(userId, itemId)).ThenReturn(false, nil)
 
 		itemService := NewItemService(itemMock)
 
-		err := itemService.SetSelectedItem(viewerId, channelId, itemId)
+		err := itemService.SetSelectedItem(userId, channelId, itemId)
 		if err == nil {
 			t.Errorf("expected an error but did not receive one")
 		}
@@ -122,14 +122,14 @@ func TestSetSelectedItem(t *testing.T) {
 			t.Errorf("expected %s got %s", ErrSelectUnknownItem.Error(), err.Error())
 		}
 
-		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelId, viewerId, itemId)
+		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelId, userId, itemId)
 	})
 }
 
 func TestGetChannelsItems(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.UserId("channel id")
+	channelId := models.TwitchId("channel id")
 	expected := []models.Item{{}}
 
 	itemMock := mock.Mock[ItemRepository]()
@@ -152,17 +152,17 @@ func TestGetChannelsItems(t *testing.T) {
 func TestGetOwnedItems(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.UserId("channel id")
-	viewerId := models.UserId("viewer id")
+	channelId := models.TwitchId("channel id")
+	userId := models.TwitchId("user id")
 	expected := []models.Item{{}}
 
 	itemMock := mock.Mock[ItemRepository]()
 
-	mock.When(itemMock.GetOwnedItems(channelId, viewerId)).ThenReturn(expected, nil)
+	mock.When(itemMock.GetOwnedItems(channelId, userId)).ThenReturn(expected, nil)
 
 	itemService := NewItemService(itemMock)
 
-	items, err := itemService.GetOwnedItems(channelId, viewerId)
+	items, err := itemService.GetOwnedItems(channelId, userId)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}
@@ -175,17 +175,17 @@ func TestGetOwnedItems(t *testing.T) {
 func TestAddOwnedItem(t *testing.T) {
 	mock.SetUp(t)
 
-	viewerId := models.UserId("viewer id")
+	userId := models.TwitchId("user id")
 	itemId := uuid.New()
 	transactionId := uuid.New()
 
 	itemMock := mock.Mock[ItemRepository]()
 
-	mock.When(itemMock.AddOwnedItem(viewerId, itemId, transactionId)).ThenReturn(nil)
+	mock.When(itemMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(nil)
 
 	itemService := NewItemService(itemMock)
 
-	err := itemService.AddOwnedItem(viewerId, itemId, transactionId)
+	err := itemService.AddOwnedItem(userId, itemId, transactionId)
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
 	}

@@ -24,37 +24,37 @@ func TestAddPet(t *testing.T) {
 	channelNameOne := "channel name one"
 	channelNameTwo := "channel name two"
 
-	viewerOne := Pet{ViewerId: models.UserId("viewer id one")}
-	viewerTwo := Pet{ViewerId: models.UserId("viewer id two")}
+	petOne := Pet{UserId: models.TwitchId("user id one")}
+	petTwo := Pet{UserId: models.TwitchId("user id two")}
 
 	cache := NewPetCacheService()
 
-	cache.AddPet(channelNameOne, viewerOne)
-	cache.AddPet(channelNameTwo, viewerTwo)
+	cache.AddPet(channelNameOne, petOne)
+	cache.AddPet(channelNameTwo, petTwo)
 
-	viewersOne := cache.GetPets(channelNameOne)
-	viewersTwo := cache.GetPets(channelNameTwo)
+	petsOne := cache.GetPets(channelNameOne)
+	petsTwo := cache.GetPets(channelNameTwo)
 
-	wantOne := []Pet{viewerOne}
-	wantTwo := []Pet{viewerTwo}
+	wantOne := []Pet{petOne}
+	wantTwo := []Pet{petTwo}
 
-	if !slices.Equal(viewersOne, wantOne) {
-		t.Errorf("got %s want %s", viewersOne, wantOne)
+	if !slices.Equal(petsOne, wantOne) {
+		t.Errorf("got %s want %s", petsOne, wantOne)
 	}
-	if !slices.Equal(viewersTwo, wantTwo) {
-		t.Errorf("got %s want %s", viewersTwo, wantTwo)
+	if !slices.Equal(petsTwo, wantTwo) {
+		t.Errorf("got %s want %s", petsTwo, wantTwo)
 	}
 }
 
 func TestRemovePet(t *testing.T) {
 	channelName := "channel name"
-	viewerId := models.UserId("viewer id")
-	viewer := Pet{ViewerId: viewerId}
+	userId := models.TwitchId("user id")
+	pet := Pet{UserId: userId}
 
 	cache := NewPetCacheService()
 
-	cache.AddPet(channelName, viewer)
-	cache.RemovePet(channelName, viewer.ViewerId)
+	cache.AddPet(channelName, pet)
+	cache.RemovePet(channelName, pet.UserId)
 
 	got := cache.GetPets(channelName)
 	want := []Pet{}
@@ -66,21 +66,21 @@ func TestRemovePet(t *testing.T) {
 
 func TestUpdatePet(t *testing.T) {
 	channelName := "channel name"
-	viewerId := models.UserId("viewer id")
-	viewer := Pet{ViewerId: viewerId}
+	userId := models.TwitchId("user id")
+	pet := Pet{UserId: userId}
 	image := "image"
 
 	cache := NewPetCacheService()
 
-	cache.AddPet(channelName, viewer)
-	cache.UpdatePet(channelName, image, viewerId)
+	cache.AddPet(channelName, pet)
+	cache.UpdatePet(channelName, image, userId)
 
-	viewers := cache.GetPets(channelName)
+	pets := cache.GetPets(channelName)
 
-	if len(viewers) != 1 {
-		t.Errorf("expected a singleton list but was of length %d", len(viewers))
+	if len(pets) != 1 {
+		t.Errorf("expected a singleton list but was of length %d", len(pets))
 	}
-	if viewers[0].Image != image {
-		t.Errorf("got %s want %s", viewers[0].Image, image)
+	if pets[0].Image != image {
+		t.Errorf("got %s want %s", pets[0].Image, image)
 	}
 }

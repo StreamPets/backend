@@ -10,7 +10,7 @@ import (
 )
 
 type UpdateAnnouncer interface {
-	AnnounceUpdate(channelName, image string, viewerId models.UserId)
+	AnnounceUpdate(channelName, image string, userId models.TwitchId)
 }
 
 type TokenVerifier interface {
@@ -20,11 +20,11 @@ type TokenVerifier interface {
 
 type StoreService interface {
 	GetItemById(itemId uuid.UUID) (models.Item, error)
-	GetSelectedItem(viewerId, channelId models.UserId) (models.Item, error)
-	SetSelectedItem(viewerId, channelId models.UserId, itemId uuid.UUID) error
-	GetChannelsItems(channelId models.UserId) ([]models.Item, error)
-	GetOwnedItems(channelId, viewerId models.UserId) ([]models.Item, error)
-	AddOwnedItem(viewerId models.UserId, itemId, transactionId uuid.UUID) error
+	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
+	SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error
+	GetChannelsItems(channelId models.TwitchId) ([]models.Item, error)
+	GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error)
+	AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error
 }
 
 type ExtensionController struct {
@@ -66,7 +66,7 @@ func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, storeItems)
 }
 
-func (c *ExtensionController) GetViewerData(ctx *gin.Context) {
+func (c *ExtensionController) GetUserData(ctx *gin.Context) {
 	tokenString := ctx.GetHeader(XExtensionJwt)
 
 	token, err := c.Verifier.VerifyExtToken(tokenString)
@@ -75,13 +75,13 @@ func (c *ExtensionController) GetViewerData(ctx *gin.Context) {
 		return
 	}
 
-	ownedItems, err := c.Store.GetOwnedItems(token.ChannelId, token.ViewerId)
+	ownedItems, err := c.Store.GetOwnedItems(token.ChannelId, token.UserId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
 
-	selectedItem, err := c.Store.GetSelectedItem(token.ViewerId, token.ChannelId)
+	selectedItem, err := c.Store.GetSelectedItem(token.UserId, token.ChannelId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
@@ -124,7 +124,7 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
-	if err := c.Store.AddOwnedItem(token.ViewerId, itemId, receipt.TransactionId); err != nil {
+	if err := c.Store.AddOwnedItem(token.UserId, itemId, receipt.TransactionId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
@@ -160,7 +160,7 @@ func (c *ExtensionController) SetSelectedItem(ctx *gin.Context) {
 		return
 	}
 
-	if err = c.Store.SetSelectedItem(token.ViewerId, token.ChannelId, itemId); err != nil {
+	if err = c.Store.SetSelectedItem(token.UserId, token.ChannelId, itemId); err != nil {
 		addErrorToCtx(err, ctx)
 		return
 	}
@@ -171,5 +171,5 @@ func (c *ExtensionController) SetSelectedItem(ctx *gin.Context) {
 		return
 	}
 
-	c.Announcer.AnnounceUpdate(channelName, item.Image, token.ViewerId)
+	c.Announcer.AnnounceUpdate(channelName, item.Image, token.UserId)
 }

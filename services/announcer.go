@@ -25,8 +25,8 @@ type Client struct {
 
 type PetCache interface {
 	AddPet(channelName string, pet Pet)
-	RemovePet(channelName string, viewerId models.UserId)
-	UpdatePet(channelName, image string, viewerId models.UserId)
+	RemovePet(channelName string, userId models.TwitchId)
+	UpdatePet(channelName, image string, userId models.TwitchId)
 	GetPets(channelName string) []Pet
 }
 
@@ -62,47 +62,47 @@ func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelName string, viewer Pet) {
+func (s *AnnouncerService) AnnounceJoin(channelName string, pet Pet) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
 			Event:   "JOIN",
-			Message: viewer,
+			Message: pet,
 		},
 	}
-	s.cache.AddPet(channelName, viewer)
+	s.cache.AddPet(channelName, pet)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelName string, viewerId models.UserId) {
+func (s *AnnouncerService) AnnouncePart(channelName string, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
 			Event:   "PART",
-			Message: viewerId,
+			Message: userId,
 		},
 	}
-	s.cache.RemovePet(channelName, viewerId)
+	s.cache.RemovePet(channelName, userId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelName, action string, viewerId models.UserId) {
+func (s *AnnouncerService) AnnounceAction(channelName, action string, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("%s-%s", action, viewerId),
-			Message: viewerId,
+			Event:   fmt.Sprintf("%s-%s", action, userId),
+			Message: userId,
 		},
 	}
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelName, image string, viewerId models.UserId) {
+func (s *AnnouncerService) AnnounceUpdate(channelName, image string, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
 		ChannelName: channelName,
 		Event: Event{
-			Event:   fmt.Sprintf("COLOR-%s", viewerId),
+			Event:   fmt.Sprintf("COLOR-%s", userId),
 			Message: image,
 		},
 	}
-	s.cache.UpdatePet(channelName, image, viewerId)
+	s.cache.UpdatePet(channelName, image, userId)
 }
 
 func (s *AnnouncerService) listen() {
@@ -117,8 +117,8 @@ func (s *AnnouncerService) listen() {
 			s.totalClients[client.ChannelName][client.Stream] = true
 
 			go func() {
-				for _, viewer := range s.cache.GetPets(client.ChannelName) {
-					client.Stream <- Event{Event: "JOIN", Message: viewer}
+				for _, pet := range s.cache.GetPets(client.ChannelName) {
+					client.Stream <- Event{Event: "JOIN", Message: pet}
 				}
 			}()
 
