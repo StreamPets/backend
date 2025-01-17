@@ -203,7 +203,7 @@ func TestBuyStoreItem(t *testing.T) {
 		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
 	})
 
-	t.Run("test item is added when all pre-requisites are met", func(t *testing.T) {
+	t.Run("item added when all pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
 		tokenString := "token string"
