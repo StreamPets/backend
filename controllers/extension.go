@@ -16,7 +16,7 @@ type UpdateAnnouncer interface {
 
 type TokenVerifier interface {
 	VerifyExtToken(tokenString string) (*services.ExtToken, error)
-	VerifyReceipt(tokenString string) (*services.Receipt, error)
+	VerifyReceipt(receiptString string) (*services.Receipt, error)
 }
 
 type StoreService interface {
