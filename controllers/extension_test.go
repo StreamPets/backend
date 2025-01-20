@@ -549,7 +549,7 @@ func TestSetSelectedItem(t *testing.T) {
 		return ctx
 	}
 
-	t.Run("pet is not updated when extension token is invalid", func(t *testing.T) {
+	t.Run("pet not updated when extension token is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
 		channelName := "channel name"
@@ -573,9 +573,63 @@ func TestSetSelectedItem(t *testing.T) {
 			usernameMock,
 		)
 
-		ctx := setUpContext(tokenString, itemId.String())
+		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
-		controller.SetSelectedItem(ctx)
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+	})
+
+	t.Run("pet not updated when item id is not a valid uuid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelName := "channel name"
+		tokenString := "token string"
+		image := "image"
+
+		userId := models.TwitchId("user id")
+		itemId := "invalid id"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		controller.SetSelectedItem(setUpContext(tokenString, itemId))
+
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+	})
+
+	t.Run("pet not updated when item id does not exist", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelName := "channel name"
+		tokenString := "token string"
+		image := "image"
+
+		userId := models.TwitchId("user id")
+		itemId := uuid.New()
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, ErrTestError)
+
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
 		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
 	})
@@ -615,9 +669,7 @@ func TestSetSelectedItem(t *testing.T) {
 			usernameMock,
 		)
 
-		ctx := setUpContext(tokenString, itemId.String())
-
-		controller.SetSelectedItem(ctx)
+		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
 		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(storeMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
