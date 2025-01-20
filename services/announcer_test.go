@@ -12,6 +12,8 @@ import (
 
 func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce join", func(t *testing.T) {
+		mock.SetUp(t)
+
 		channelName := "channel name"
 		pet := Pet{}
 
@@ -49,6 +51,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	})
 
 	t.Run("add client and announce part", func(t *testing.T) {
+		mock.SetUp(t)
+
 		channelName := "channel name"
 		userId := models.TwitchId("user id")
 
@@ -86,6 +90,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	})
 
 	t.Run("add client and announce action", func(t *testing.T) {
+		mock.SetUp(t)
+
 		channelName := "channel name"
 		userId := models.TwitchId("user id")
 		action := "action"
@@ -126,6 +132,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	})
 
 	t.Run("add client and announce update", func(t *testing.T) {
+		mock.SetUp(t)
+
 		channelName := "channel name"
 		userId := models.TwitchId("user id")
 		image := "image"
@@ -166,6 +174,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 }
 
 func TestRemoveClientWithAnnouncements(t *testing.T) {
+	mock.SetUp(t)
+
 	channelName := "channel name"
 	pet := Pet{}
 
@@ -199,6 +209,8 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 }
 
 func TestAnnouncerOnMultipleChannels(t *testing.T) {
+	mock.SetUp(t)
+
 	channelOneName := "channel one name"
 	channelTwoName := "channel two name"
 	pet := Pet{}
@@ -251,6 +263,8 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 }
 
 func TestAddClient(t *testing.T) {
+	mock.SetUp(t)
+
 	channelName := "channel name"
 	pets := []Pet{{}, {}}
 
