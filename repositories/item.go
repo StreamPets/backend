@@ -1,8 +1,6 @@
 package repositories
 
 import (
-	"os"
-
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"gorm.io/gorm"
@@ -82,10 +80,6 @@ func (repo *itemRepository) AddOwnedItem(userId models.TwitchId, itemId, transac
 	result := repo.db.Where("item_id = ?", itemId).Find(&channelItem)
 	if result.Error != nil {
 		return result.Error
-	}
-
-	if os.Getenv("ENVIRONMENT") == "DEVELOPMENT" {
-		transactionId = uuid.New()
 	}
 
 	result = repo.db.Create(&models.OwnedItem{

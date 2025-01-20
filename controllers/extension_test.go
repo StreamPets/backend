@@ -3,6 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -14,8 +15,9 @@ import (
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
-	"gorm.io/gorm"
 )
+
+var ErrTestError error = errors.New("this is a test error")
 
 func TestGetStoreData(t *testing.T) {
 	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
@@ -74,7 +76,7 @@ func TestGetStoreData(t *testing.T) {
 		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(nil, gorm.ErrRecordNotFound)
+		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(nil, ErrTestError)
 
 		controller := NewExtensionController(
 			announcerMock,
@@ -177,71 +179,128 @@ func TestGetUserData(t *testing.T) {
 			t.Error("expected an error but received status ok")
 		}
 	})
-}
 
-func TestGetUserData2(t *testing.T) {
-	mock.SetUp(t)
+	t.Run("fail when get owned items fails", func(t *testing.T) {
+		mock.SetUp(t)
 
-	type Response struct {
-		OwnedItems   []models.Item `json:"owned"`
-		SelectedItem models.Item   `json:"selected"`
-	}
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
 
-	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
-		gin.SetMode(gin.TestMode)
+		tokenString := "token string"
+		token := &services.ExtToken{
+			ChannelId: channelId,
+			UserId:    userId,
+		}
 
-		recorder := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(recorder)
-		req, _ := http.NewRequest("GET", "/items", nil)
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
 
-		req.Header.Add("x-extension-jwt", tokenString)
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(nil, ErrTestError)
 
-		ctx.Request = req
-		return ctx, recorder
-	}
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+		ctx, recorder := setUpContext(tokenString)
+		extController.GetUserData(ctx)
 
-	tokenString := "token string"
-	token := &services.ExtToken{
-		UserId:    userId,
-		ChannelId: channelId,
-	}
+		if recorder.Code == http.StatusOK {
+			t.Error("expected an error but received status ok")
+		}
+	})
 
-	selectedItem := models.Item{ItemId: uuid.New()}
-	ownedItems := []models.Item{selectedItem}
+	t.Run("fail when get selected items fails", func(t *testing.T) {
+		mock.SetUp(t)
 
-	announcerMock := mock.Mock[UpdateAnnouncer]()
-	verifierMock := mock.Mock[TokenVerifier]()
-	storeMock := mock.Mock[StoreService]()
-	usernameMock := mock.Mock[UsernameGetter]()
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
 
-	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-	mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
-	mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(selectedItem, nil)
+		tokenString := "token string"
+		token := &services.ExtToken{
+			ChannelId: channelId,
+			UserId:    userId,
+		}
 
-	extController := NewExtensionController(
-		announcerMock,
-		verifierMock,
-		storeMock,
-		usernameMock,
-	)
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
 
-	ctx, recorder := setUpContext(tokenString)
-	extController.GetUserData(ctx)
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(nil, ErrTestError)
 
-	var response Response
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Errorf("could not parse json response")
-	}
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
 
-	if !slices.Equal(response.OwnedItems, ownedItems) {
-		t.Errorf("got %s want %s", response.OwnedItems, ownedItems)
-	}
-	if response.SelectedItem != selectedItem {
-		t.Errorf("got %s want %s", response.SelectedItem, selectedItem)
-	}
+		ctx, recorder := setUpContext(tokenString)
+		extController.GetUserData(ctx)
+
+		if recorder.Code == http.StatusOK {
+			t.Error("expected an error but received status ok")
+		}
+	})
+
+	t.Run("status ok when all pre-requisites are met", func(t *testing.T) {
+		mock.SetUp(t)
+
+		type Response struct {
+			OwnedItems   []models.Item `json:"owned"`
+			SelectedItem models.Item   `json:"selected"`
+		}
+
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
+
+		tokenString := "token string"
+		token := &services.ExtToken{
+			UserId:    userId,
+			ChannelId: channelId,
+		}
+
+		selectedItem := models.Item{ItemId: uuid.New()}
+		ownedItems := []models.Item{selectedItem}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
+		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(selectedItem, nil)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		ctx, recorder := setUpContext(tokenString)
+		extController.GetUserData(ctx)
+
+		var response Response
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Errorf("could not parse json response")
+		}
+
+		if !slices.Equal(response.OwnedItems, ownedItems) {
+			t.Errorf("got %s want %s", response.OwnedItems, ownedItems)
+		}
+		if response.SelectedItem != selectedItem {
+			t.Errorf("got %s want %s", response.SelectedItem, selectedItem)
+		}
+	})
 }
 
 func TestBuyStoreItem(t *testing.T) {
@@ -332,7 +391,7 @@ func TestBuyStoreItem(t *testing.T) {
 		storeMock := mock.Mock[StoreService]()
 		usersMock := mock.Mock[UsernameGetter]()
 
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, gorm.ErrRecordNotFound)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, ErrTestError)
 
 		extController := NewExtensionController(
 			announcerMock,
