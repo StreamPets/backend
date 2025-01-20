@@ -532,8 +532,6 @@ func TestBuyStoreItem(t *testing.T) {
 }
 
 func TestSetSelectedItem(t *testing.T) {
-	mock.SetUp(t)
-
 	setUpContext := func(token, itemId string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
@@ -551,43 +549,78 @@ func TestSetSelectedItem(t *testing.T) {
 		return ctx
 	}
 
-	channelName := "channel name"
-	tokenString := "token string"
-	image := "image"
+	t.Run("pet is not updated when extension token is invalid", func(t *testing.T) {
+		mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
-	itemId := uuid.New()
+		channelName := "channel name"
+		tokenString := "token string"
+		image := "image"
 
-	item := models.Item{ItemId: itemId, Image: image}
+		userId := models.TwitchId("user id")
+		itemId := uuid.New()
 
-	token := services.ExtToken{
-		ChannelId: channelId,
-		UserId:    userId,
-	}
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
 
-	announcerMock := mock.Mock[UpdateAnnouncer]()
-	verifierMock := mock.Mock[TokenVerifier]()
-	storeMock := mock.Mock[StoreService]()
-	usernameMock := mock.Mock[UsernameGetter]()
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, ErrTestError)
 
-	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(usernameMock.GetUsername(channelId)).ThenReturn(channelName, nil)
-	mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(nil)
-	mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
 
-	controller := NewExtensionController(
-		announcerMock,
-		verifierMock,
-		storeMock,
-		usernameMock,
-	)
+		ctx := setUpContext(tokenString, itemId.String())
 
-	ctx := setUpContext(tokenString, itemId.String())
+		controller.SetSelectedItem(ctx)
 
-	controller.SetSelectedItem(ctx)
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+	})
 
-	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(storeMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
-	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userId)
+	t.Run("pet updated when pre-requisites are met", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelName := "channel name"
+		tokenString := "token string"
+		image := "image"
+
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
+		itemId := uuid.New()
+
+		item := models.Item{ItemId: itemId, Image: image}
+
+		token := services.ExtToken{
+			ChannelId: channelId,
+			UserId:    userId,
+		}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+		mock.When(usernameMock.GetUsername(channelId)).ThenReturn(channelName, nil)
+		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(nil)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		ctx := setUpContext(tokenString, itemId.String())
+
+		controller.SetSelectedItem(ctx)
+
+		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(storeMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
+		mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userId)
+	})
 }
