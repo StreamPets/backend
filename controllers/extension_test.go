@@ -14,6 +14,7 @@ import (
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"gorm.io/gorm"
 )
 
 func TestGetStoreData(t *testing.T) {
@@ -140,7 +141,7 @@ func TestGetUserData(t *testing.T) {
 }
 
 func TestBuyStoreItem(t *testing.T) {
-	setUpContext := func(token, receipt string, itemId uuid.UUID) *gin.Context {
+	setUpContext := func(token, receipt, itemId string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -157,6 +158,119 @@ func TestBuyStoreItem(t *testing.T) {
 		ctx.Request = req
 		return ctx
 	}
+
+	t.Run("item not added when extension token is invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		userId := models.TwitchId("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
+
+		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
+	})
+
+	t.Run("item not added when item id is not a valid uuid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := "invalid id"
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+	})
+
+	t.Run("item not added when item id does not exist", func(t *testing.T) {
+		mock.SetUp(t)
+
+		userId := models.TwitchId("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, gorm.ErrRecordNotFound)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
+
+		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
+	})
+
+	t.Run("item not added when receipt is invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		userId := models.TwitchId("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, services.ErrInvalidToken)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
+
+		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
+	})
 
 	t.Run("item not added when receipt and item rarity do not match", func(t *testing.T) {
 		mock.SetUp(t)
@@ -198,12 +312,12 @@ func TestBuyStoreItem(t *testing.T) {
 			usersMock,
 		)
 
-		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
 
 		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
 	})
 
-	t.Run("test item is added when all pre-requisites are met", func(t *testing.T) {
+	t.Run("item added when all pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
 		tokenString := "token string"
@@ -248,7 +362,7 @@ func TestBuyStoreItem(t *testing.T) {
 			usersMock,
 		)
 
-		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
 
 		mock.Verify(storeMock, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
 	})
