@@ -634,6 +634,42 @@ func TestSetSelectedItem(t *testing.T) {
 		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
 	})
 
+	t.Run("pet not updated when item unowned", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelName := "channel name"
+		tokenString := "token string"
+		image := "image"
+
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
+		itemId := uuid.New()
+
+		token := &services.ExtToken{
+			ChannelId: channelId,
+			UserId:    userId,
+		}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(ErrTestError)
+
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
+
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+	})
+
 	t.Run("pet updated when pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
