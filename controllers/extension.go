@@ -67,6 +67,9 @@ func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
 	ctx.JSON(http.StatusOK, storeItems)
 }
 
+// Invalid channel id or invalid user id
+// Invalid item (unowned)
+
 func (c *ExtensionController) GetUserData(ctx *gin.Context) {
 	tokenString := ctx.GetHeader(XExtensionJwt)
 
