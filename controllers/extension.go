@@ -113,6 +113,12 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 		return
 	}
 
+	receipt, err := c.Verifier.VerifyReceipt(params.Receipt)
+	if err != nil {
+		addErrorToCtx(err, ctx)
+		return
+	}
+
 	itemId, err := uuid.Parse(params.ItemId)
 	if err != nil {
 		addErrorToCtx(err, ctx)
@@ -120,12 +126,6 @@ func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
 	}
 
 	item, err := c.Store.GetItemById(itemId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	receipt, err := c.Verifier.VerifyReceipt(params.Receipt)
 	if err != nil {
 		addErrorToCtx(err, ctx)
 		return
