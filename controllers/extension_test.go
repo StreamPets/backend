@@ -138,6 +138,48 @@ func TestGetStoreData(t *testing.T) {
 }
 
 func TestGetUserData(t *testing.T) {
+	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("GET", "/items", nil)
+
+		req.Header.Add("x-extension-jwt", tokenString)
+
+		ctx.Request = req
+		return ctx, recorder
+	}
+
+	t.Run("error when extension token is invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		ctx, recorder := setUpContext(tokenString)
+		extController.GetUserData(ctx)
+
+		if recorder.Code == http.StatusOK {
+			t.Error("expected an error but received status ok")
+		}
+	})
+}
+
+func TestGetUserData2(t *testing.T) {
 	mock.SetUp(t)
 
 	type Response struct {
