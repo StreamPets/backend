@@ -18,8 +18,6 @@ import (
 )
 
 func TestGetStoreData(t *testing.T) {
-	mock.SetUp(t)
-
 	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
@@ -33,46 +31,110 @@ func TestGetStoreData(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
-	tokenString := "token string"
-	token := services.ExtToken{ChannelId: channelId, UserId: userId}
+	t.Run("access forbidden with invalid extension token", func(t *testing.T) {
+		mock.SetUp(t)
 
-	storeItems := []models.Item{{}, {}}
+		tokenString := "invalid token"
 
-	announcerMock := mock.Mock[UpdateAnnouncer]()
-	verifierMock := mock.Mock[TokenVerifier]()
-	storeMock := mock.Mock[StoreService]()
-	usernameMock := mock.Mock[UsernameGetter]()
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
 
-	mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-	mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
 
-	controller := NewExtensionController(
-		announcerMock,
-		verifierMock,
-		storeMock,
-		usernameMock,
-	)
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
 
-	ctx, recorder := setUpContext(tokenString)
-	controller.GetStoreData(ctx)
+		ctx, recorder := setUpContext(tokenString)
+		controller.GetStoreData(ctx)
 
-	mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-	mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
+		if recorder.Code == http.StatusOK {
+			t.Error("expected an error but received status ok")
+		}
+	})
 
-	if recorder.Code != http.StatusOK {
-		t.Errorf("expected %d got %d", http.StatusOK, recorder.Code)
-	}
+	t.Run("not found with invalid channel id", func(t *testing.T) {
+		mock.SetUp(t)
 
-	var response []models.Item
-	if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-		t.Errorf("could not parse json response")
-	}
+		tokenString := "extension token"
+		channelId := models.TwitchId("channel id")
 
-	if !slices.Equal(response, storeItems) {
-		t.Errorf("expected %s got %s", storeItems, response)
-	}
+		token := &services.ExtToken{
+			ChannelId: channelId,
+		}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(nil, gorm.ErrRecordNotFound)
+
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		ctx, recorder := setUpContext(tokenString)
+		controller.GetStoreData(ctx)
+
+		if recorder.Code == http.StatusOK {
+			t.Error("expected an error but received status ok")
+		}
+	})
+
+	t.Run("items returned when extension token and channel id are valid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := models.TwitchId("channel id")
+		userId := models.TwitchId("user id")
+		tokenString := "token string"
+		token := services.ExtToken{ChannelId: channelId, UserId: userId}
+
+		storeItems := []models.Item{{}, {}}
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usernameMock := mock.Mock[UsernameGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
+
+		controller := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usernameMock,
+		)
+
+		ctx, recorder := setUpContext(tokenString)
+		controller.GetStoreData(ctx)
+
+		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
+
+		if recorder.Code != http.StatusOK {
+			t.Errorf("expected %d got %d", http.StatusOK, recorder.Code)
+		}
+
+		var response []models.Item
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Errorf("could not parse json response")
+		}
+
+		if !slices.Equal(response, storeItems) {
+			t.Errorf("expected %s got %s", storeItems, response)
+		}
+	})
 }
 
 func TestGetUserData(t *testing.T) {
