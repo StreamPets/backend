@@ -14,6 +14,7 @@ import (
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"gorm.io/gorm"
 )
 
 func TestGetStoreData(t *testing.T) {
@@ -179,6 +180,36 @@ func TestBuyStoreItem(t *testing.T) {
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
+	})
+
+	t.Run("item not added when item id does not exist", func(t *testing.T) {
+		mock.SetUp(t)
+
+		userId := models.TwitchId("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		announcerMock := mock.Mock[UpdateAnnouncer]()
+		verifierMock := mock.Mock[TokenVerifier]()
+		storeMock := mock.Mock[StoreService]()
+		usersMock := mock.Mock[UsernameGetter]()
+
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, gorm.ErrRecordNotFound)
+
+		extController := NewExtensionController(
+			announcerMock,
+			verifierMock,
+			storeMock,
+			usersMock,
+		)
+
+		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
+
+		mock.Verify(storeMock, mock.Never()).AddOwnedItem(userId, itemId, transactionId)
 	})
 
 	t.Run("item not added when receipt is invalid", func(t *testing.T) {
