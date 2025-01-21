@@ -60,25 +60,19 @@ func (s *ItemService) GetSelectedItem(userId, channelId models.TwitchId) (models
 }
 
 func (s *ItemService) SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error {
-	owned, err := s.itemRepo.CheckOwnedItem(userId, itemId)
-	if err != nil {
+	if owned, err := s.itemRepo.CheckOwnedItem(userId, itemId); err != nil {
 		return err
-	}
-
-	if owned {
+	} else if owned {
 		return s.itemRepo.SetSelectedItem(channelId, userId, itemId)
 	}
 
-	defaultItem, err := s.itemRepo.GetDefaultItem(channelId)
-	if err != nil {
+	if defaultItem, err := s.itemRepo.GetDefaultItem(channelId); err != nil {
 		return err
+	} else if defaultItem.ItemId != itemId {
+		return ErrSelectUnownedItem
 	}
 
-	if defaultItem.ItemId == itemId {
-		return s.itemRepo.DeleteSelectedItem(userId, channelId)
-	}
-
-	return ErrSelectUnownedItem
+	return s.itemRepo.DeleteSelectedItem(userId, channelId)
 }
 
 func (s *ItemService) GetChannelsItems(channelId models.TwitchId) ([]models.Item, error) {
