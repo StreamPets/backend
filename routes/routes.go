@@ -19,7 +19,7 @@ func RegisterRoutes(
 	cache := services.NewPetCacheService()
 	announcer := services.NewAnnouncerService(cache)
 	items := services.NewItemService(itemRepo)
-	petService := services.NewPetService(itemRepo)
+	petService := services.NewPetService(items)
 
 	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo)
 	extension := controllers.NewExtensionController(announcer, authService, items, twitchRepo)

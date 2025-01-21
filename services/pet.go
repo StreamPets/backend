@@ -8,24 +8,24 @@ type Pet struct {
 	Image    string          `json:"color"`
 }
 
-type ItemRepo interface {
+type SelectedItemGetter interface {
 	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
 }
 
 type PetService struct {
-	Items ItemRepo
+	items SelectedItemGetter
 }
 
 func NewPetService(
-	items ItemRepo,
+	items SelectedItemGetter,
 ) *PetService {
 	return &PetService{
-		Items: items,
+		items: items,
 	}
 }
 
 func (s *PetService) GetPet(userId, channelId models.TwitchId, username string) (Pet, error) {
-	item, err := s.Items.GetSelectedItem(userId, channelId)
+	item, err := s.items.GetSelectedItem(userId, channelId)
 	if err != nil {
 		return Pet{}, err
 	}

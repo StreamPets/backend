@@ -16,7 +16,7 @@ func TestGetUser(t *testing.T) {
 	image := "image"
 	item := models.Item{Image: image}
 
-	itemMock := mock.Mock[ItemRepo]()
+	itemMock := mock.Mock[SelectedItemGetter]()
 	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(item, nil)
 
 	petService := NewPetService(itemMock)

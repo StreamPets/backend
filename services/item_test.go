@@ -118,8 +118,8 @@ func TestSetSelectedItem(t *testing.T) {
 		if err == nil {
 			t.Errorf("expected an error but did not receive one")
 		}
-		if err != ErrSelectUnknownItem {
-			t.Errorf("expected %s got %s", ErrSelectUnknownItem.Error(), err.Error())
+		if err != ErrSelectUnownedItem {
+			t.Errorf("expected %s got %s", ErrSelectUnownedItem.Error(), err.Error())
 		}
 
 		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelId, userId, itemId)
