@@ -3,7 +3,6 @@ package controllers
 import (
 	"net/http"
 	"net/http/httptest"
-	"strings"
 	"sync"
 	"testing"
 
@@ -12,6 +11,7 @@ import (
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/stretchr/testify/assert"
 )
 
 type CloseNotifierResponseWriter struct {
@@ -84,13 +84,8 @@ func TestHandleListen(t *testing.T) {
 		mock.Verify(clientsMock, mock.Once()).AddClient(channelName)
 		mock.Verify(clientsMock, mock.Once()).RemoveClient(client)
 
-		response := recorder.Body.String()
-		if !strings.Contains(response, "event:event") {
-			t.Errorf("expected event in response, got %s", response)
-		}
-		if !strings.Contains(response, "data:message") {
-			t.Errorf("expected data in response, got %s", response)
-		}
+		assert.Contains(t, recorder.Body.String(), "event:event")
+		assert.Contains(t, recorder.Body.String(), "data:message")
 	})
 
 	t.Run("client not added when overlay id and channel id do not match", func(t *testing.T) {
@@ -115,9 +110,6 @@ func TestHandleListen(t *testing.T) {
 		mock.Verify(verifierMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
 		mock.Verify(clientsMock, mock.Never()).AddClient(channelName)
 
-		response := recorder.Body.String()
-		if !strings.Contains(response, services.ErrIdMismatch.Error()) {
-			t.Errorf("expected event in response, got %s", response)
-		}
+		assert.Contains(t, recorder.Body.String(), services.ErrIdMismatch.Error())
 	})
 }
