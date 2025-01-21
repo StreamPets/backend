@@ -7,10 +7,10 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
-	"slices"
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/go-playground/assert/v2"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
@@ -55,9 +55,7 @@ func TestGetStoreData(t *testing.T) {
 		ctx, recorder := setUpContext(tokenString)
 		controller.GetStoreData(ctx)
 
-		if recorder.Code == http.StatusOK {
-			t.Error("expected an error but received status ok")
-		}
+		assert.NotEqual(t, recorder.Code, http.StatusOK)
 	})
 
 	t.Run("not found with invalid channel id", func(t *testing.T) {
@@ -88,9 +86,7 @@ func TestGetStoreData(t *testing.T) {
 		ctx, recorder := setUpContext(tokenString)
 		controller.GetStoreData(ctx)
 
-		if recorder.Code == http.StatusOK {
-			t.Error("expected an error but received status ok")
-		}
+		assert.NotEqual(t, recorder.Code, http.StatusOK)
 	})
 
 	t.Run("items returned when extension token and channel id are valid", func(t *testing.T) {
@@ -124,18 +120,14 @@ func TestGetStoreData(t *testing.T) {
 		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
 
-		if recorder.Code != http.StatusOK {
-			t.Errorf("expected %d got %d", http.StatusOK, recorder.Code)
-		}
+		assert.Equal(t, recorder.Code, http.StatusOK)
 
 		var response []models.Item
 		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 			t.Errorf("could not parse json response")
 		}
 
-		if !slices.Equal(response, storeItems) {
-			t.Errorf("expected %s got %s", storeItems, response)
-		}
+		assert.Equal(t, storeItems, response)
 	})
 }
 
@@ -175,9 +167,7 @@ func TestGetUserData(t *testing.T) {
 		ctx, recorder := setUpContext(tokenString)
 		extController.GetUserData(ctx)
 
-		if recorder.Code == http.StatusOK {
-			t.Error("expected an error but received status ok")
-		}
+		assert.NotEqual(t, recorder.Code, http.StatusOK)
 	})
 
 	t.Run("fail when get owned items fails", func(t *testing.T) {
@@ -210,9 +200,7 @@ func TestGetUserData(t *testing.T) {
 		ctx, recorder := setUpContext(tokenString)
 		extController.GetUserData(ctx)
 
-		if recorder.Code == http.StatusOK {
-			t.Error("expected an error but received status ok")
-		}
+		assert.NotEqual(t, recorder.Code, http.StatusOK)
 	})
 
 	t.Run("fail when get selected items fails", func(t *testing.T) {
@@ -245,9 +233,7 @@ func TestGetUserData(t *testing.T) {
 		ctx, recorder := setUpContext(tokenString)
 		extController.GetUserData(ctx)
 
-		if recorder.Code == http.StatusOK {
-			t.Error("expected an error but received status ok")
-		}
+		assert.NotEqual(t, recorder.Code, http.StatusOK)
 	})
 
 	t.Run("status ok when all pre-requisites are met", func(t *testing.T) {
@@ -294,12 +280,8 @@ func TestGetUserData(t *testing.T) {
 			t.Errorf("could not parse json response")
 		}
 
-		if !slices.Equal(response.OwnedItems, ownedItems) {
-			t.Errorf("got %s want %s", response.OwnedItems, ownedItems)
-		}
-		if response.SelectedItem != selectedItem {
-			t.Errorf("got %s want %s", response.SelectedItem, selectedItem)
-		}
+		assert.Equal(t, response.OwnedItems, ownedItems)
+		assert.Equal(t, response.SelectedItem, selectedItem)
 	})
 }
 
