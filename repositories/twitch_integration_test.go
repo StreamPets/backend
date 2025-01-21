@@ -8,6 +8,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func setupTwitchRepository() *TwitchRepository {
@@ -35,13 +36,9 @@ func TestGetUsername(t *testing.T) {
 	twitchRepo := setupTwitchRepository()
 
 	username, err := twitchRepo.GetUsername(channelId)
-	if err != nil {
-		t.Errorf("did not expect an error but received: %s", err.Error())
-	}
 
-	if username != expected {
-		t.Errorf("expected %s got %s", expected, username)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, expected, username)
 }
 
 func TestGetUserId(t *testing.T) {
@@ -51,11 +48,7 @@ func TestGetUserId(t *testing.T) {
 	twitchRepo := setupTwitchRepository()
 
 	userId, err := twitchRepo.GetGetId(channelName)
-	if err != nil {
-		t.Errorf("did not expect an error but received: %s", err.Error())
-	}
 
-	if userId != expected {
-		t.Errorf("expected %s got %s", expected, userId)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, expected, userId)
 }

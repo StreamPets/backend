@@ -5,6 +5,7 @@ import (
 
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUser(t *testing.T) {
@@ -22,9 +23,6 @@ func TestGetUser(t *testing.T) {
 	petService := NewPetService(itemMock)
 
 	pet, err := petService.GetPet(userId, channelId, username)
-	if err != nil {
-		t.Errorf("did not expect an error but received %s", err.Error())
-	}
 
 	expected := Pet{
 		UserId:   userId,
@@ -33,7 +31,7 @@ func TestGetUser(t *testing.T) {
 	}
 
 	mock.Verify(itemMock, mock.Once()).GetSelectedItem(userId, channelId)
-	if pet != expected {
-		t.Errorf("expected %s got %s", expected, pet)
-	}
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, pet)
 }

@@ -7,6 +7,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestVerifyOverlayId(t *testing.T) {
@@ -21,11 +22,11 @@ func TestVerifyOverlayId(t *testing.T) {
 
 		authService := NewAuthService(repoMock, "")
 
-		if err := authService.VerifyOverlayId(channelId, overlayId); err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
+		err := authService.VerifyOverlayId(channelId, overlayId)
 
 		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
+
+		assert.NoError(t, err)
 	})
 
 	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
@@ -37,14 +38,13 @@ func TestVerifyOverlayId(t *testing.T) {
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
 
 		authService := NewAuthService(repoMock, "")
-
-		if err := authService.VerifyOverlayId(channelId, uuid.New()); err == nil {
-			t.Errorf("expected an error, but did not received one")
-		} else if err != ErrIdMismatch {
-			t.Errorf("expected %s got %s", err.Error(), ErrIdMismatch.Error())
-		}
+		err := authService.VerifyOverlayId(channelId, uuid.New())
 
 		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
+
+		if assert.Error(t, err) {
+			assert.Equal(t, ErrIdMismatch, err)
+		}
 	})
 }
 
@@ -62,24 +62,16 @@ func TestVerifyExtToken(t *testing.T) {
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))
-		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
+		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyExtToken(tokenString)
-		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
+		assert.NoError(t, err)
 
-		if got.ChannelId != channelId {
-			t.Errorf("expected %s got %s", channelId, got.ChannelId)
-		}
-		if got.UserId != userId {
-			t.Errorf("expected %s got %s", userId, got.UserId)
-		}
+		assert.Equal(t, channelId, got.ChannelId)
+		assert.Equal(t, userId, got.UserId)
 	})
 
 	t.Run("invalid token is not verified", func(t *testing.T) {
@@ -95,16 +87,14 @@ func TestVerifyExtToken(t *testing.T) {
 		})
 
 		tokenString, err := token.SignedString([]byte("fake secret"))
-		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
+		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
-		if _, err = authService.VerifyExtToken(tokenString); err == nil {
-			t.Errorf("expected an error but did not received one")
-		}
+		_, err = authService.VerifyExtToken(tokenString)
+
+		assert.Error(t, err)
 	})
 }
 
@@ -125,21 +115,15 @@ func TestVerifyReceipt(t *testing.T) {
 		})
 
 		tokenString, err := token.SignedString([]byte(clientSecret))
-		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
+		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
 		got, err := authService.VerifyReceipt(tokenString)
-		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
 
-		if got.Data.TransactionId != transactionId {
-			t.Errorf("expected %s got %s", transactionId, got.Data.TransactionId)
-		}
+		assert.NoError(t, err)
+		assert.Equal(t, transactionId, got.Data.TransactionId)
 	})
 
 	t.Run("invalid token is not verified", func(t *testing.T) {
@@ -153,15 +137,12 @@ func TestVerifyReceipt(t *testing.T) {
 		})
 
 		tokenString, err := token.SignedString([]byte("fake secret"))
-		if err != nil {
-			t.Errorf("did not expect an error but received %s", err.Error())
-		}
+		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		authService := NewAuthService(repoMock, clientSecret)
 
-		if _, err = authService.VerifyReceipt(tokenString); err == nil {
-			t.Errorf("expected an error but did not received one")
-		}
+		_, err = authService.VerifyReceipt(tokenString)
+		assert.Error(t, err)
 	})
 }
