@@ -1,10 +1,10 @@
 package services
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/streampets/backend/models"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetPets(t *testing.T) {
@@ -15,9 +15,7 @@ func TestGetPets(t *testing.T) {
 	got := cache.GetPets(channelName)
 	want := []Pet{}
 
-	if !slices.Equal(got, want) {
-		t.Errorf("got %s want %s", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestAddPet(t *testing.T) {
@@ -38,12 +36,8 @@ func TestAddPet(t *testing.T) {
 	wantOne := []Pet{petOne}
 	wantTwo := []Pet{petTwo}
 
-	if !slices.Equal(petsOne, wantOne) {
-		t.Errorf("got %s want %s", petsOne, wantOne)
-	}
-	if !slices.Equal(petsTwo, wantTwo) {
-		t.Errorf("got %s want %s", petsTwo, wantTwo)
-	}
+	assert.Equal(t, wantOne, petsOne)
+	assert.Equal(t, wantTwo, petsTwo)
 }
 
 func TestRemovePet(t *testing.T) {
@@ -59,9 +53,7 @@ func TestRemovePet(t *testing.T) {
 	got := cache.GetPets(channelName)
 	want := []Pet{}
 
-	if !slices.Equal(got, want) {
-		t.Errorf("got %s want %s", got, want)
-	}
+	assert.Equal(t, want, got)
 }
 
 func TestUpdatePet(t *testing.T) {
@@ -77,10 +69,7 @@ func TestUpdatePet(t *testing.T) {
 
 	pets := cache.GetPets(channelName)
 
-	if len(pets) != 1 {
-		t.Errorf("expected a singleton list but was of length %d", len(pets))
-	}
-	if pets[0].Image != image {
-		t.Errorf("got %s want %s", pets[0].Image, image)
+	if assert.Equal(t, 1, len(pets)) {
+		assert.Equal(t, image, pets[0].Image)
 	}
 }

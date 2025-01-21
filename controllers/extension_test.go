@@ -10,11 +10,11 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
-	"github.com/go-playground/assert/v2"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/stretchr/testify/assert"
 )
 
 var ErrTestError error = errors.New("this is a test error")
