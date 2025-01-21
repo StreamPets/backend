@@ -10,60 +10,31 @@ import (
 )
 
 func TestGetSelectedItem(t *testing.T) {
-	t.Run("selected item returned when item selected", func(t *testing.T) {
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+	channelId := models.TwitchId("channel id")
+	userId := models.TwitchId("user id")
 
-		itemId := uuid.New()
-		item := models.Item{ItemId: itemId}
+	itemId := uuid.New()
+	item := models.Item{ItemId: itemId}
 
-		selectedItem := models.SelectedItem{
-			UserId:    userId,
-			ChannelId: channelId,
-			ItemId:    itemId,
-		}
+	selectedItem := models.SelectedItem{
+		UserId:    userId,
+		ChannelId: channelId,
+		ItemId:    itemId,
+	}
 
-		db := test.CreateTestDB()
-		if result := db.Create(&item); result.Error != nil {
-			panic(result.Error)
-		}
-		if result := db.Create(&selectedItem); result.Error != nil {
-			panic(result.Error)
-		}
+	db := test.CreateTestDB()
+	if result := db.Create(&item); result.Error != nil {
+		panic(result.Error)
+	}
+	if result := db.Create(&selectedItem); result.Error != nil {
+		panic(result.Error)
+	}
 
-		itemRepo := NewItemRepository(db)
-		got, err := itemRepo.GetSelectedItem(userId, channelId)
+	itemRepo := NewItemRepository(db)
+	got, err := itemRepo.GetSelectedItem(userId, channelId)
 
-		assertNoError(err, t)
-		assertItemsEqual(got, item, t)
-	})
-
-	t.Run("default item returned when no item selected", func(t *testing.T) {
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
-
-		itemId := uuid.New()
-		item := models.Item{ItemId: itemId}
-
-		defaultItem := models.DefaultChannelItem{
-			ItemId:    itemId,
-			ChannelId: channelId,
-		}
-
-		db := test.CreateTestDB()
-		if result := db.Create(&item); result.Error != nil {
-			panic(result.Error)
-		}
-		if result := db.Create(&defaultItem); result.Error != nil {
-			panic(result.Error)
-		}
-
-		itemRepo := NewItemRepository(db)
-		got, err := itemRepo.GetSelectedItem(userId, channelId)
-
-		assertNoError(err, t)
-		assertItemsEqual(got, item, t)
-	})
+	assertNoError(err, t)
+	assertItemsEqual(got, item, t)
 }
 
 func TestSetSelectedItem(t *testing.T) {
@@ -105,6 +76,30 @@ func TestSetSelectedItem(t *testing.T) {
 	got, err = itemRepo.GetSelectedItem(userId, channelId)
 	assertNoError(err, t)
 	assertItemsEqual(got, newItem, t)
+}
+
+func TestDeleteSelectedItem(t *testing.T) {
+	userId := models.TwitchId("user id")
+	channelId := models.TwitchId("twitch id")
+
+	itemId := uuid.New()
+
+	selectedItem := models.SelectedItem{
+		ItemId: itemId,
+	}
+
+	db := test.CreateTestDB()
+	if result := db.Create(&selectedItem); result.Error != nil {
+		panic(result.Error)
+	}
+
+	itemRepo := NewItemRepository(db)
+
+	err := itemRepo.DeleteSelectedItem(userId, channelId)
+	assertNoError(err, t)
+
+	_, err = itemRepo.GetSelectedItem(userId, channelId)
+	assertError(err, t)
 }
 
 func TestGetItemByName(t *testing.T) {
@@ -290,6 +285,14 @@ func assertNoError(err error, t *testing.T) {
 
 	if err != nil {
 		t.Errorf("did not expect an error but received %s", err.Error())
+	}
+}
+
+func assertError(err error, t *testing.T) {
+	t.Helper()
+
+	if err == nil {
+		t.Error("expected an error but did not received one")
 	}
 }
 

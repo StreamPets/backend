@@ -28,27 +28,8 @@ func (repo *itemRepository) GetItemById(itemId uuid.UUID) (models.Item, error) {
 }
 
 func (repo *itemRepository) GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error) {
-	var selectedItem models.SelectedItem
-	result := repo.db.Where("user_id = ? AND channel_id = ?", userId, channelId).First(&selectedItem)
-
-	if result.Error == nil {
-		var item models.Item
-		result = repo.db.Where("item_id = ?", selectedItem.ItemId).First(&item)
-		return item, result.Error
-	}
-
-	if result.Error != gorm.ErrRecordNotFound {
-		return models.Item{}, result.Error
-	}
-
-	var defaultChannelItem models.DefaultChannelItem
-	result = repo.db.Where("channel_id = ?", channelId).First(&defaultChannelItem)
-	if result.Error != nil {
-		return models.Item{}, result.Error
-	}
-
 	var item models.Item
-	result = repo.db.Where("item_id = ?", defaultChannelItem.ItemId).First(&item)
+	result := repo.db.Joins(`JOIN selected_items ON selected_items.item_id = items.item_id AND selected_items.user_id = ? AND selected_items.channel_id = ?`, userId, channelId).First(&item)
 	return item, result.Error
 }
 
@@ -61,6 +42,11 @@ func (repo *itemRepository) SetSelectedItem(userId, channelId models.TwitchId, i
 		ChannelId: channelId,
 		ItemId:    itemId,
 	}).Error
+}
+
+func (repo *itemRepository) DeleteSelectedItem(userId, channelId models.TwitchId) error {
+	selectedItem := models.SelectedItem{UserId: userId, ChannelId: channelId}
+	return repo.db.Delete(&selectedItem).Error
 }
 
 func (repo *itemRepository) GetChannelsItems(channelId models.TwitchId) ([]models.Item, error) {
@@ -102,4 +88,10 @@ func (repo *itemRepository) CheckOwnedItem(userId models.TwitchId, itemId uuid.U
 	}
 
 	return true, nil
+}
+
+func (repo *itemRepository) GetDefaultItem(channelId models.TwitchId) (models.Item, error) {
+	var item models.Item
+	result := repo.db.Joins("JOIN default_channel_items ON default_channel_items.item_id = items.item_id AND default_channel_items.channel_id = ?", channelId).First(&item)
+	return item, result.Error
 }

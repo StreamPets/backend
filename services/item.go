@@ -5,9 +5,10 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"gorm.io/gorm"
 )
 
-var ErrSelectUnknownItem = errors.New("user tried to select an item they do not own")
+var ErrSelectUnownedItem = errors.New("user tried to select an item they do not own")
 
 type ItemRepository interface {
 	GetItemByName(channelId models.TwitchId, itemName string) (models.Item, error)
@@ -15,12 +16,15 @@ type ItemRepository interface {
 
 	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
 	SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error
+	DeleteSelectedItem(userId, channelId models.TwitchId) error
 
 	GetChannelsItems(channelId models.TwitchId) ([]models.Item, error)
 
 	GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error)
 	AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error
 	CheckOwnedItem(userId models.TwitchId, itemId uuid.UUID) (bool, error)
+
+	GetDefaultItem(channelId models.TwitchId) (models.Item, error)
 }
 
 type ItemService struct {
@@ -44,7 +48,15 @@ func (s *ItemService) GetItemById(itemId uuid.UUID) (models.Item, error) {
 }
 
 func (s *ItemService) GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error) {
-	return s.itemRepo.GetSelectedItem(userId, channelId)
+	item, err := s.itemRepo.GetSelectedItem(userId, channelId)
+	if err == gorm.ErrRecordNotFound {
+		return s.itemRepo.GetDefaultItem(channelId)
+	}
+	if err != nil {
+		return models.Item{}, err
+	}
+
+	return item, nil
 }
 
 func (s *ItemService) SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error {
@@ -52,17 +64,30 @@ func (s *ItemService) SetSelectedItem(userId, channelId models.TwitchId, itemId 
 	if err != nil {
 		return err
 	}
-	if !owned {
-		return ErrSelectUnknownItem
+
+	if owned {
+		return s.itemRepo.SetSelectedItem(channelId, userId, itemId)
 	}
 
-	return s.itemRepo.SetSelectedItem(channelId, userId, itemId)
+	defaultItem, err := s.itemRepo.GetDefaultItem(channelId)
+	if err != nil {
+		return err
+	}
+
+	if defaultItem.ItemId == itemId {
+		return s.itemRepo.DeleteSelectedItem(userId, channelId)
+	}
+
+	// TODO: This should be flagged as fatal (logging)
+	// Ideally -> I would like to receive an email notification
+	return ErrSelectUnownedItem
 }
 
 func (s *ItemService) GetChannelsItems(channelId models.TwitchId) ([]models.Item, error) {
 	return s.itemRepo.GetChannelsItems(channelId)
 }
 
+// Append default item
 func (s *ItemService) GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error) {
 	return s.itemRepo.GetOwnedItems(channelId, userId)
 }
