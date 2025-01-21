@@ -6,6 +6,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetOverlayId(t *testing.T) {
@@ -26,11 +27,7 @@ func TestGetOverlayId(t *testing.T) {
 	repo := NewChannelRepo(db)
 
 	got, err := repo.GetOverlayId(channelId)
-	if err != nil {
-		t.Errorf("did not expect an error but received: %s", err.Error())
-	}
 
-	if got != overlayId {
-		t.Errorf("expected %s got %s", overlayId, got)
-	}
+	assert.NoError(t, err)
+	assert.Equal(t, overlayId, got)
 }

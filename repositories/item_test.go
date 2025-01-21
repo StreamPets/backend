@@ -1,12 +1,12 @@
 package repositories
 
 import (
-	"slices"
 	"testing"
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/test"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestGetSelectedItem(t *testing.T) {
@@ -33,8 +33,8 @@ func TestGetSelectedItem(t *testing.T) {
 	itemRepo := NewItemRepository(db)
 	got, err := itemRepo.GetSelectedItem(userId, channelId)
 
-	assertNoError(err, t)
-	assertItemsEqual(got, item, t)
+	assert.NoError(t, err)
+	assert.Equal(t, item, got)
 }
 
 func TestSetSelectedItem(t *testing.T) {
@@ -66,16 +66,11 @@ func TestSetSelectedItem(t *testing.T) {
 
 	itemRepo := NewItemRepository(db)
 
-	got, err := itemRepo.GetSelectedItem(userId, channelId)
-	assertNoError(err, t)
-	assertItemsEqual(got, item, t)
+	err := itemRepo.SetSelectedItem(userId, channelId, newItemId)
+	got, _ := itemRepo.GetSelectedItem(userId, channelId)
 
-	err = itemRepo.SetSelectedItem(userId, channelId, newItemId)
-	assertNoError(err, t)
-
-	got, err = itemRepo.GetSelectedItem(userId, channelId)
-	assertNoError(err, t)
-	assertItemsEqual(got, newItem, t)
+	assert.NoError(t, err)
+	assert.Equal(t, newItem, got)
 }
 
 func TestDeleteSelectedItem(t *testing.T) {
@@ -96,10 +91,10 @@ func TestDeleteSelectedItem(t *testing.T) {
 	itemRepo := NewItemRepository(db)
 
 	err := itemRepo.DeleteSelectedItem(userId, channelId)
-	assertNoError(err, t)
+	assert.NoError(t, err)
 
 	_, err = itemRepo.GetSelectedItem(userId, channelId)
-	assertError(err, t)
+	assert.Error(t, err)
 }
 
 func TestGetItemByName(t *testing.T) {
@@ -128,8 +123,8 @@ func TestGetItemByName(t *testing.T) {
 	itemRepo := NewItemRepository(db)
 	got, err := itemRepo.GetItemByName(channelId, itemName)
 
-	assertNoError(err, t)
-	assertItemsEqual(got, item, t)
+	assert.NoError(t, err)
+	assert.Equal(t, item, got)
 }
 
 func TestGetItemById(t *testing.T) {
@@ -144,8 +139,8 @@ func TestGetItemById(t *testing.T) {
 	itemRepo := NewItemRepository(db)
 	got, err := itemRepo.GetItemById(itemId)
 
-	assertNoError(err, t)
-	assertItemsEqual(got, item, t)
+	assert.NoError(t, err)
+	assert.Equal(t, item, got)
 }
 
 func TestGetChannelsItems(t *testing.T) {
@@ -176,12 +171,10 @@ func TestGetChannelsItems(t *testing.T) {
 	itemRepo := NewItemRepository(db)
 
 	items, err := itemRepo.GetChannelsItems(channelId)
-	assertNoError(err, t)
-
 	expected := []models.Item{item}
-	if !slices.Equal(items, expected) {
-		t.Errorf("expected %s got %s", expected, items)
-	}
+
+	assert.NoError(t, err)
+	assert.Equal(t, expected, items)
 }
 
 func TestGetOwnedItems(t *testing.T) {
@@ -208,12 +201,10 @@ func TestGetOwnedItems(t *testing.T) {
 	itemRepo := NewItemRepository(db)
 
 	items, err := itemRepo.GetOwnedItems(channelId, userId)
-	assertNoError(err, t)
-
 	expected := []models.Item{item}
-	if !slices.Equal(items, expected) {
-		t.Errorf("expected %s got %s", expected, items)
-	}
+
+	assert.Equal(t, expected, items)
+	assert.NoError(t, err)
 }
 
 func TestAddOwnedItem(t *testing.T) {
@@ -236,7 +227,7 @@ func TestAddOwnedItem(t *testing.T) {
 
 	err := itemRepo.AddOwnedItem(userId, itemId, transactionId)
 
-	assertNoError(err, t)
+	assert.NoError(t, err)
 }
 
 func TestCheckOwnedItem(t *testing.T) {
@@ -254,8 +245,9 @@ func TestCheckOwnedItem(t *testing.T) {
 		itemRepo := NewItemRepository(db)
 
 		owned, err := itemRepo.CheckOwnedItem(userId, itemId)
-		assertNoError(err, t)
-		assertTrue(owned, t)
+
+		assert.NoError(t, err)
+		assert.True(t, owned)
 	})
 
 	t.Run("false when item is unowned", func(t *testing.T) {
@@ -267,39 +259,7 @@ func TestCheckOwnedItem(t *testing.T) {
 		itemRepo := NewItemRepository(db)
 
 		owned, err := itemRepo.CheckOwnedItem(userId, itemId)
-		assertNoError(err, t)
-		assertTrue(!owned, t)
+		assert.NoError(t, err)
+		assert.False(t, owned)
 	})
-}
-
-func assertItemsEqual(got, want models.Item, t *testing.T) {
-	t.Helper()
-
-	if got != want {
-		t.Errorf("expected %s got %s", want, got)
-	}
-}
-
-func assertNoError(err error, t *testing.T) {
-	t.Helper()
-
-	if err != nil {
-		t.Errorf("did not expect an error but received %s", err.Error())
-	}
-}
-
-func assertError(err error, t *testing.T) {
-	t.Helper()
-
-	if err == nil {
-		t.Error("expected an error but did not received one")
-	}
-}
-
-func assertTrue(b bool, t *testing.T) {
-	t.Helper()
-
-	if !b {
-		t.Errorf("expected true but received %t", b)
-	}
 }
