@@ -78,8 +78,6 @@ func (s *ItemService) SetSelectedItem(userId, channelId models.TwitchId, itemId 
 		return s.itemRepo.DeleteSelectedItem(userId, channelId)
 	}
 
-	// TODO: This should be flagged as fatal (logging)
-	// Ideally -> I would like to receive an email notification
 	return ErrSelectUnownedItem
 }
 
@@ -87,9 +85,29 @@ func (s *ItemService) GetChannelsItems(channelId models.TwitchId) ([]models.Item
 	return s.itemRepo.GetChannelsItems(channelId)
 }
 
-// Append default item
 func (s *ItemService) GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error) {
-	return s.itemRepo.GetOwnedItems(channelId, userId)
+	ownedItems, err := s.itemRepo.GetOwnedItems(channelId, userId)
+	if err != nil {
+		return []models.Item{}, err
+	}
+
+	items := map[models.Item]bool{}
+	for _, ownedItem := range ownedItems {
+		items[ownedItem] = true
+	}
+
+	defaultItem, err := s.itemRepo.GetDefaultItem(channelId)
+	if err != nil {
+		return []models.Item{}, err
+	}
+	items[defaultItem] = true
+
+	result := []models.Item{}
+	for item := range items {
+		result = append(result, item)
+	}
+
+	return result, nil
 }
 
 func (s *ItemService) AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error {
