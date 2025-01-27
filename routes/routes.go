@@ -46,4 +46,8 @@ func RegisterRoutes(
 		api.POST("/:channelName/users/:userId/:action", twitchBot.Action)
 		api.PUT("/:channelName/users/:userId", twitchBot.UpdateUser)
 	}
+
+	r.GET("/ping", func(ctx *gin.Context) {
+		ctx.JSON(200, "pong")
+	})
 }
