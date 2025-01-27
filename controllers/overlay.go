@@ -2,6 +2,7 @@ package controllers
 
 import (
 	"io"
+	"log/slog"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -75,12 +76,14 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 	ctx.Stream(func(w io.Writer) bool {
 		select {
 		case event, ok := <-client.Stream:
+			slog.Info("received event %s: %s", event.Event, event.Message)
 			if ok {
 				ctx.SSEvent(event.Event, event.Message)
 				return true
 			}
 			return false
 		case <-ticker.C:
+			slog.Info("sending heartbeat")
 			ctx.SSEvent("heartbeat", "ping")
 			return true
 		}
