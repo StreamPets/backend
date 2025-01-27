@@ -73,6 +73,10 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
+	ctx.Header("Content-Type", "text/event-stream")
+	ctx.Header("Cache-Control", "no-cache")
+	ctx.Header("Connection", "keep-alive")
+
 	ctx.Stream(func(w io.Writer) bool {
 		select {
 		case event, ok := <-client.Stream:
