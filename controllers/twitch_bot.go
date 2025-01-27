@@ -1,6 +1,8 @@
 package controllers
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
@@ -74,6 +76,7 @@ func (c *TwitchBotController) AddPetToChannel(ctx *gin.Context) {
 	}
 
 	c.Announcer.AnnounceJoin(channelName, pet)
+	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) RemoveUserFromChannel(ctx *gin.Context) {
@@ -81,6 +84,7 @@ func (c *TwitchBotController) RemoveUserFromChannel(ctx *gin.Context) {
 	userId := models.TwitchId(ctx.Param(UserId))
 
 	c.Announcer.AnnouncePart(channelName, userId)
+	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) Action(ctx *gin.Context) {
@@ -89,6 +93,7 @@ func (c *TwitchBotController) Action(ctx *gin.Context) {
 	userId := models.TwitchId(ctx.Param(UserId))
 
 	c.Announcer.AnnounceAction(channelName, action, userId)
+	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) UpdateUser(ctx *gin.Context) {
@@ -123,4 +128,5 @@ func (c *TwitchBotController) UpdateUser(ctx *gin.Context) {
 	}
 
 	c.Announcer.AnnounceUpdate(channelName, item.Image, userId)
+	ctx.JSON(http.StatusNoContent, nil)
 }
