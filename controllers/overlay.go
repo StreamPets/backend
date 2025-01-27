@@ -81,6 +81,7 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 				ctx.SSEvent(event.Event, event.Message)
 				return true
 			}
+			slog.Info("returning false...")
 			return false
 		case <-ticker.C:
 			slog.Info("sending heartbeat")
