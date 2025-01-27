@@ -28,7 +28,7 @@ func RegisterRoutes(
 
 	overlayRouter := r.Group("/overlay")
 	{
-		overlayRouter.GET("/listen", overlay.HandleListen)
+		overlayRouter.GET("/listen", HeadersMiddleware(), overlay.HandleListen)
 	}
 
 	extRouter := r.Group("/extension")
@@ -50,4 +50,14 @@ func RegisterRoutes(
 	r.GET("/ping", func(ctx *gin.Context) {
 		ctx.JSON(200, "pong")
 	})
+}
+
+func HeadersMiddleware() gin.HandlerFunc {
+	return func(c *gin.Context) {
+		c.Writer.Header().Set("Content-Type", "text/event-stream")
+		c.Writer.Header().Set("Cache-Control", "no-cache")
+		c.Writer.Header().Set("Connection", "keep-alive")
+		c.Writer.Header().Set("Transfer-Encoding", "chunked")
+		c.Next()
+	}
 }
