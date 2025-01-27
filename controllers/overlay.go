@@ -73,15 +73,7 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 	ticker := time.NewTicker(60 * time.Second)
 	defer ticker.Stop()
 
-	ctx.Header("Content-Type", "text/event-stream")
-	ctx.Header("Cache-Control", "no-cache")
-	ctx.Header("Connection", "keep-alive")
-	ctx.Header("Transfer-Encoding", "chunked")
-
 	ctx.Stream(func(w io.Writer) bool {
-		slog.Info("sending message hello")
-		ctx.SSEvent("message", "hello")
-		slog.Info("sent message hello")
 		select {
 		case event, ok := <-client.Stream:
 			slog.Info("received event %s: %s", event.Event, event.Message)
