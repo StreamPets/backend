@@ -25,11 +25,11 @@ func main() {
 
 	r := gin.Default()
 
-	// overlayUrl := os.Getenv("OVERLAY_URL")
-	// extensionUrl := os.Getenv("EXTENSION_URL")
+	overlayUrl := os.Getenv("OVERLAY_URL")
+	extensionUrl := os.Getenv("EXTENSION_URL")
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{"*"},
+		AllowOrigins:     []string{overlayUrl, extensionUrl},
 		AllowMethods:     []string{"*"},
 		AllowHeaders:     []string{"*"},
 		AllowCredentials: true,
