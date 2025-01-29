@@ -10,7 +10,6 @@ const XExtensionJwt string = "x-extension-jwt"
 const Action string = "action"
 
 const ChannelId string = "channelId"
-const ChannelName string = "channelName"
 const OverlayId string = "overlayId"
 const UserId string = "userId"
 

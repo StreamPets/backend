@@ -12,7 +12,7 @@ import (
 )
 
 type ClientAddRemover interface {
-	AddClient(channelName string) services.Client
+	AddClient(channelId models.TwitchId) services.Client
 	RemoveClient(client services.Client)
 }
 
@@ -20,25 +20,18 @@ type OverlayIdVerifier interface {
 	VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error
 }
 
-type UsernameGetter interface {
-	GetUsername(twitchId models.TwitchId) (string, error)
-}
-
 type OverlayController struct {
 	Clients ClientAddRemover
 	Overlay OverlayIdVerifier
-	Users   UsernameGetter
 }
 
 func NewOverlayController(
 	clients ClientAddRemover,
 	overlay OverlayIdVerifier,
-	users UsernameGetter,
 ) *OverlayController {
 	return &OverlayController{
 		Clients: clients,
 		Overlay: overlay,
-		Users:   users,
 	}
 }
 
@@ -55,13 +48,7 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 		return
 	}
 
-	channelName, err := c.Users.GetUsername(channelId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	client := c.Clients.AddClient(channelName)
+	client := c.Clients.AddClient(channelId)
 	defer func() {
 		go func() {
 			for range client.Stream {

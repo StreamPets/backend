@@ -14,9 +14,8 @@ func TestGetOverlayId(t *testing.T) {
 	overlayId := uuid.New()
 
 	channel := models.Channel{
-		ChannelId:   channelId,
-		ChannelName: "channel name",
-		OverlayId:   overlayId,
+		ChannelId: channelId,
+		OverlayId: overlayId,
 	}
 
 	db := test.CreateTestDB()

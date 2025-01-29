@@ -14,27 +14,27 @@ type Event struct {
 type EventStream chan Event
 
 type wrappedEvent struct {
-	ChannelName string
-	Event       Event
+	ChannelId models.TwitchId
+	Event     Event
 }
 
 type Client struct {
-	ChannelName string
-	Stream      EventStream
+	ChannelId models.TwitchId
+	Stream    EventStream
 }
 
 type PetCache interface {
-	AddPet(channelName string, pet Pet)
-	RemovePet(channelName string, userId models.TwitchId)
-	UpdatePet(channelName, image string, userId models.TwitchId)
-	GetPets(channelName string) []Pet
+	AddPet(channelId models.TwitchId, pet Pet)
+	RemovePet(channelId, userId models.TwitchId)
+	UpdatePet(channelId, userId models.TwitchId, image string)
+	GetPets(channelId models.TwitchId) []Pet
 }
 
 type AnnouncerService struct {
 	announce      chan wrappedEvent
 	newClients    chan Client
 	closedClients chan Client
-	totalClients  map[string](map[EventStream]bool)
+	totalClients  map[models.TwitchId](map[EventStream]bool)
 	cache         PetCache
 }
 
@@ -43,7 +43,7 @@ func NewAnnouncerService(cache PetCache) *AnnouncerService {
 		announce:      make(chan wrappedEvent),
 		newClients:    make(chan Client),
 		closedClients: make(chan Client),
-		totalClients:  make(map[string]map[EventStream]bool),
+		totalClients:  make(map[models.TwitchId]map[EventStream]bool),
 		cache:         cache,
 	}
 
@@ -52,8 +52,8 @@ func NewAnnouncerService(cache PetCache) *AnnouncerService {
 	return service
 }
 
-func (s *AnnouncerService) AddClient(channelName string) Client {
-	client := Client{ChannelName: channelName, Stream: make(EventStream)}
+func (s *AnnouncerService) AddClient(channelId models.TwitchId) Client {
+	client := Client{ChannelId: channelId, Stream: make(EventStream)}
 	s.newClients <- client
 	return client
 }
@@ -62,31 +62,31 @@ func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelName string, pet Pet) {
+func (s *AnnouncerService) AnnounceJoin(channelId models.TwitchId, pet Pet) {
 	s.announce <- wrappedEvent{
-		ChannelName: channelName,
+		ChannelId: channelId,
 		Event: Event{
 			Event:   "JOIN",
 			Message: pet,
 		},
 	}
-	s.cache.AddPet(channelName, pet)
+	s.cache.AddPet(channelId, pet)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelName string, userId models.TwitchId) {
+func (s *AnnouncerService) AnnouncePart(channelId, userId models.TwitchId) {
 	s.announce <- wrappedEvent{
-		ChannelName: channelName,
+		ChannelId: channelId,
 		Event: Event{
 			Event:   "PART",
 			Message: userId,
 		},
 	}
-	s.cache.RemovePet(channelName, userId)
+	s.cache.RemovePet(channelId, userId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelName, action string, userId models.TwitchId) {
+func (s *AnnouncerService) AnnounceAction(channelId, userId models.TwitchId, action string) {
 	s.announce <- wrappedEvent{
-		ChannelName: channelName,
+		ChannelId: channelId,
 		Event: Event{
 			Event:   fmt.Sprintf("%s-%s", action, userId),
 			Message: userId,
@@ -94,15 +94,15 @@ func (s *AnnouncerService) AnnounceAction(channelName, action string, userId mod
 	}
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelName, image string, userId models.TwitchId) {
+func (s *AnnouncerService) AnnounceUpdate(channelId, userId models.TwitchId, image string) {
 	s.announce <- wrappedEvent{
-		ChannelName: channelName,
+		ChannelId: channelId,
 		Event: Event{
 			Event:   fmt.Sprintf("COLOR-%s", userId),
 			Message: image,
 		},
 	}
-	s.cache.UpdatePet(channelName, image, userId)
+	s.cache.UpdatePet(channelId, userId, image)
 }
 
 func (s *AnnouncerService) listen() {
@@ -110,24 +110,24 @@ func (s *AnnouncerService) listen() {
 		select {
 
 		case client := <-s.newClients:
-			_, ok := s.totalClients[client.ChannelName]
+			_, ok := s.totalClients[client.ChannelId]
 			if !ok {
-				s.totalClients[client.ChannelName] = make(map[EventStream]bool)
+				s.totalClients[client.ChannelId] = make(map[EventStream]bool)
 			}
-			s.totalClients[client.ChannelName][client.Stream] = true
+			s.totalClients[client.ChannelId][client.Stream] = true
 
 			go func() {
-				for _, pet := range s.cache.GetPets(client.ChannelName) {
+				for _, pet := range s.cache.GetPets(client.ChannelId) {
 					client.Stream <- Event{Event: "JOIN", Message: pet}
 				}
 			}()
 
 		case client := <-s.closedClients:
-			delete(s.totalClients[client.ChannelName], client.Stream)
+			delete(s.totalClients[client.ChannelId], client.Stream)
 			close(client.Stream)
 
 		case wrappedEvent := <-s.announce:
-			for eventStream := range s.totalClients[wrappedEvent.ChannelName] {
+			for eventStream := range s.totalClients[wrappedEvent.ChannelId] {
 				eventStream <- wrappedEvent.Event
 			}
 		}
