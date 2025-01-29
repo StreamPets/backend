@@ -40,9 +40,9 @@ func RegisterRoutes(
 
 	api := r.Group("/channels")
 	{
-		api.POST("/:channelName/users", twitchBot.AddPetToChannel)
-		api.DELETE("/:channelName/users/:userId", twitchBot.RemoveUserFromChannel)
-		api.POST("/:channelName/users/:userId/:action", twitchBot.Action)
-		api.PUT("/:channelName/users/:userId", twitchBot.UpdateUser)
+		api.POST("/:channelId/users", twitchBot.AddPetToChannel)
+		api.DELETE("/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
+		api.POST("/:channelId/users/:userId/:action", twitchBot.Action)
+		api.PUT("/:channelId/users/:userId", twitchBot.UpdateUser)
 	}
 }
