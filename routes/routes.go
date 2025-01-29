@@ -11,7 +11,6 @@ import (
 func RegisterRoutes(
 	r *gin.Engine,
 	db *gorm.DB,
-	twitchRepo *repositories.TwitchRepository,
 	authService *services.AuthService,
 ) {
 	itemRepo := repositories.NewItemRepository(db)
@@ -21,14 +20,14 @@ func RegisterRoutes(
 	items := services.NewItemService(itemRepo)
 	petService := services.NewPetService(items)
 
-	overlay := controllers.NewOverlayController(announcer, authService, twitchRepo)
-	extension := controllers.NewExtensionController(announcer, authService, items, twitchRepo)
+	overlay := controllers.NewOverlayController(announcer, authService)
+	extension := controllers.NewExtensionController(announcer, authService, items)
 
-	twitchBot := controllers.NewTwitchBotController(announcer, items, petService, twitchRepo)
+	twitchBot := controllers.NewTwitchBotController(announcer, items, petService)
 
 	overlayRouter := r.Group("/overlay")
 	{
-		overlayRouter.GET("/listen", HeadersMiddleware(), overlay.HandleListen)
+		overlayRouter.GET("/listen", overlay.HandleListen)
 	}
 
 	extRouter := r.Group("/extension")
@@ -45,19 +44,5 @@ func RegisterRoutes(
 		api.DELETE("/:channelName/users/:userId", twitchBot.RemoveUserFromChannel)
 		api.POST("/:channelName/users/:userId/:action", twitchBot.Action)
 		api.PUT("/:channelName/users/:userId", twitchBot.UpdateUser)
-	}
-
-	r.GET("/ping", func(ctx *gin.Context) {
-		ctx.JSON(200, "pong")
-	})
-}
-
-func HeadersMiddleware() gin.HandlerFunc {
-	return func(c *gin.Context) {
-		c.Writer.Header().Set("Content-Type", "text/event-stream")
-		c.Writer.Header().Set("Cache-Control", "no-cache")
-		c.Writer.Header().Set("Connection", "keep-alive")
-		c.Writer.Header().Set("Transfer-Encoding", "chunked")
-		c.Next()
 	}
 }

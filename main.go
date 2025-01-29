@@ -20,7 +20,6 @@ func main() {
 	}
 
 	db := config.ConnectDB()
-	twitch := config.CreateTwitchRepo()
 	auth := config.CreateAuthService(db)
 
 	r := gin.Default()
@@ -35,6 +34,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	routes.RegisterRoutes(r, db, twitch, auth)
+	routes.RegisterRoutes(r, db, auth)
 	r.Run()
 }

@@ -41,7 +41,6 @@ func TestGetStoreData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
 
@@ -49,7 +48,6 @@ func TestGetStoreData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -71,7 +69,6 @@ func TestGetStoreData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(nil, ErrTestError)
@@ -80,7 +77,6 @@ func TestGetStoreData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -102,7 +98,6 @@ func TestGetStoreData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
 		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
@@ -111,7 +106,6 @@ func TestGetStoreData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -153,7 +147,6 @@ func TestGetUserData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
 
@@ -161,7 +154,6 @@ func TestGetUserData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -185,7 +177,6 @@ func TestGetUserData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(nil, ErrTestError)
@@ -194,7 +185,6 @@ func TestGetUserData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -218,7 +208,6 @@ func TestGetUserData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(nil, ErrTestError)
@@ -227,7 +216,6 @@ func TestGetUserData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -259,7 +247,6 @@ func TestGetUserData(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
@@ -269,7 +256,6 @@ func TestGetUserData(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		ctx, recorder := setUpContext(tokenString)
@@ -318,7 +304,6 @@ func TestBuyStoreItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usersMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
 
@@ -326,7 +311,6 @@ func TestBuyStoreItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usersMock,
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
@@ -345,13 +329,11 @@ func TestBuyStoreItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usersMock := mock.Mock[UsernameGetter]()
 
 		extController := NewExtensionController(
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usersMock,
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId))
@@ -371,7 +353,6 @@ func TestBuyStoreItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usersMock := mock.Mock[UsernameGetter]()
 
 		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, ErrTestError)
 
@@ -379,7 +360,6 @@ func TestBuyStoreItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usersMock,
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
@@ -401,7 +381,6 @@ func TestBuyStoreItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usersMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, services.ErrInvalidToken)
 
@@ -409,7 +388,6 @@ func TestBuyStoreItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usersMock,
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
@@ -445,7 +423,6 @@ func TestBuyStoreItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usersMock := mock.Mock[UsernameGetter]()
 
 		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
 		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
@@ -454,7 +431,6 @@ func TestBuyStoreItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usersMock,
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
@@ -494,7 +470,6 @@ func TestBuyStoreItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usersMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
@@ -504,7 +479,6 @@ func TestBuyStoreItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usersMock,
 		)
 
 		extController.BuyStoreItem(setUpContext(tokenString, receiptString, itemId.String()))
@@ -534,7 +508,7 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when extension token is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelName := "channel name"
+		channelId := models.TwitchId("channel id")
 		tokenString := "token string"
 		image := "image"
 
@@ -544,7 +518,6 @@ func TestSetSelectedItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, ErrTestError)
 
@@ -552,18 +525,17 @@ func TestSetSelectedItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
-		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelId, userId, image)
 	})
 
 	t.Run("pet not updated when item id is not a valid uuid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelName := "channel name"
+		channelId := models.TwitchId("channel id")
 		tokenString := "token string"
 		image := "image"
 
@@ -573,24 +545,22 @@ func TestSetSelectedItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		controller := NewExtensionController(
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		controller.SetSelectedItem(setUpContext(tokenString, itemId))
 
-		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelId, userId, image)
 	})
 
 	t.Run("pet not updated when item id does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelName := "channel name"
+		channelId := models.TwitchId("channel id")
 		tokenString := "token string"
 		image := "image"
 
@@ -600,7 +570,6 @@ func TestSetSelectedItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, ErrTestError)
 
@@ -608,18 +577,16 @@ func TestSetSelectedItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
-		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelId, userId, image)
 	})
 
 	t.Run("pet not updated when item unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelName := "channel name"
 		tokenString := "token string"
 		image := "image"
 
@@ -635,7 +602,6 @@ func TestSetSelectedItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(ErrTestError)
@@ -644,18 +610,16 @@ func TestSetSelectedItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
-		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelName, image, userId)
+		mock.Verify(announcerMock, mock.Never()).AnnounceUpdate(channelId, userId, image)
 	})
 
 	t.Run("pet updated when pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelName := "channel name"
 		tokenString := "token string"
 		image := "image"
 
@@ -673,10 +637,8 @@ func TestSetSelectedItem(t *testing.T) {
 		announcerMock := mock.Mock[UpdateAnnouncer]()
 		verifierMock := mock.Mock[TokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
-		usernameMock := mock.Mock[UsernameGetter]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-		mock.When(usernameMock.GetUsername(channelId)).ThenReturn(channelName, nil)
 		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(nil)
 		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
 
@@ -684,13 +646,12 @@ func TestSetSelectedItem(t *testing.T) {
 			announcerMock,
 			verifierMock,
 			storeMock,
-			usernameMock,
 		)
 
 		controller.SetSelectedItem(setUpContext(tokenString, itemId.String()))
 
 		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(storeMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
-		mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userId)
+		mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelId, userId, image)
 	})
 }

@@ -17,7 +17,7 @@ import (
 func TestAddUserToChannel(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(userId models.TwitchId, channelName, username string) *gin.Context {
+	setUpContext := func(channelId, userId models.TwitchId, username string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -27,86 +27,77 @@ func TestAddUserToChannel(t *testing.T) {
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 		req, _ := http.NewRequest("", "", bytes.NewBuffer(jsonData))
-		ctx.Params = gin.Params{{Key: "channelName", Value: channelName}}
+		ctx.Params = gin.Params{{Key: ChannelId, Value: string(channelId)}}
 
 		ctx.Request = req
 		return ctx
 	}
 
-	userId := models.TwitchId("user id")
 	channelId := models.TwitchId("channel id")
+	userId := models.TwitchId("user id")
 	username := "username"
-	channelName := "channel name"
 
 	pet := services.Pet{Username: username}
 
 	announcerMock := mock.Mock[Announcer]()
 	itemsMock := mock.Mock[ItemGetSetter]()
 	petsMock := mock.Mock[PetGetter]()
-	usersMock := mock.Mock[UserIdGetter]()
 
-	mock.When(usersMock.GetUserId(channelName)).ThenReturn(channelId, nil)
 	mock.When(petsMock.GetPet(userId, channelId, username)).ThenReturn(pet, nil)
 
 	controller := NewTwitchBotController(
 		announcerMock,
 		itemsMock,
 		petsMock,
-		usersMock,
 	)
 
-	controller.AddPetToChannel(setUpContext(userId, channelName, username))
+	controller.AddPetToChannel(setUpContext(channelId, userId, username))
 
-	mock.Verify(announcerMock, mock.Once()).AnnounceJoin(channelName, pet)
+	mock.Verify(announcerMock, mock.Once()).AnnounceJoin(channelId, pet)
 }
 
 func TestRemoveUserFromChannel(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(userId models.TwitchId, channelName string) *gin.Context {
+	setUpContext := func(channelId, userId models.TwitchId) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 		ctx.Params = gin.Params{
-			{Key: ChannelName, Value: channelName},
+			{Key: ChannelId, Value: string(channelId)},
 			{Key: UserId, Value: string(userId)},
 		}
 
 		return ctx
 	}
 
-	userId := models.TwitchId("user id")
 	channelId := models.TwitchId("channel id")
-	channelName := "channel name"
+	userId := models.TwitchId("user id")
 
 	announcerMock := mock.Mock[Announcer]()
 	itemsMock := mock.Mock[ItemGetSetter]()
 	petsMock := mock.Mock[PetGetter]()
-	usersMock := mock.Mock[UserIdGetter]()
-
-	mock.When(usersMock.GetUserId(channelName)).ThenReturn(channelId, nil)
 
 	controller := NewTwitchBotController(
 		announcerMock,
 		itemsMock,
 		petsMock,
-		usersMock,
 	)
 
-	controller.RemoveUserFromChannel(setUpContext(userId, channelName))
+	controller.RemoveUserFromChannel(setUpContext(channelId, userId))
 
-	mock.Verify(announcerMock, mock.Once()).AnnouncePart(channelName, userId)
+	mock.Verify(announcerMock, mock.Once()).AnnouncePart(channelId, userId)
 }
 
 func TestAction(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(userId models.TwitchId, channelName, action string) *gin.Context {
+	setUpContext := func(channelId, userId models.TwitchId, action string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 		ctx.Params = gin.Params{
-			{Key: ChannelName, Value: channelName},
+			{Key: ChannelId, Value: string(channelId)},
 			{Key: UserId, Value: string(userId)},
 			{Key: Action, Value: action},
 		}
@@ -114,31 +105,29 @@ func TestAction(t *testing.T) {
 		return ctx
 	}
 
+	channelId := models.TwitchId("channel id")
 	userId := models.TwitchId("user id")
-	channelName := "channel name"
 	action := "action"
 
 	announcerMock := mock.Mock[Announcer]()
 	itemsMock := mock.Mock[ItemGetSetter]()
 	petsMock := mock.Mock[PetGetter]()
-	usersMock := mock.Mock[UserIdGetter]()
 
 	controller := NewTwitchBotController(
 		announcerMock,
 		itemsMock,
 		petsMock,
-		usersMock,
 	)
 
-	controller.Action(setUpContext(userId, channelName, action))
+	controller.Action(setUpContext(channelId, userId, action))
 
-	mock.Verify(announcerMock, mock.Once()).AnnounceAction(channelName, action, userId)
+	mock.Verify(announcerMock, mock.Once()).AnnounceAction(channelId, userId, action)
 }
 
 func TestUpdateUser(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(userId models.TwitchId, channelName, itemName string) *gin.Context {
+	setUpContext := func(channelId, userId models.TwitchId, itemName string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -148,7 +137,7 @@ func TestUpdateUser(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
 		req, _ := http.NewRequest("", "", bytes.NewBuffer(jsonData))
 		ctx.Params = gin.Params{
-			{Key: ChannelName, Value: channelName},
+			{Key: ChannelId, Value: string(channelId)},
 			{Key: UserId, Value: string(userId)},
 		}
 		ctx.Request = req
@@ -156,9 +145,8 @@ func TestUpdateUser(t *testing.T) {
 		return ctx
 	}
 
-	userId := models.TwitchId("user id")
 	channelId := models.TwitchId("channel id")
-	channelName := "channel name"
+	userId := models.TwitchId("user id")
 	itemName := "item name"
 
 	itemId := uuid.New()
@@ -169,20 +157,17 @@ func TestUpdateUser(t *testing.T) {
 	announcerMock := mock.Mock[Announcer]()
 	itemsMock := mock.Mock[ItemGetSetter]()
 	petsMock := mock.Mock[PetGetter]()
-	usersMock := mock.Mock[UserIdGetter]()
 
-	mock.When(usersMock.GetUserId(channelName)).ThenReturn(channelId, nil)
 	mock.When(itemsMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
 
 	controller := NewTwitchBotController(
 		announcerMock,
 		itemsMock,
 		petsMock,
-		usersMock,
 	)
 
-	controller.UpdateUser(setUpContext(userId, channelName, itemName))
+	controller.UpdateUser(setUpContext(channelId, userId, itemName))
 
 	mock.Verify(itemsMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
-	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelName, image, userId)
+	mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelId, userId, image)
 }

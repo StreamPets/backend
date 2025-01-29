@@ -11,7 +11,7 @@ import (
 )
 
 type UpdateAnnouncer interface {
-	AnnounceUpdate(channelName, image string, userId models.TwitchId)
+	AnnounceUpdate(channelId, userId models.TwitchId, image string)
 }
 
 type TokenVerifier interface {
@@ -32,20 +32,17 @@ type ExtensionController struct {
 	Announcer UpdateAnnouncer
 	Verifier  TokenVerifier
 	Store     StoreService
-	Usernames UsernameGetter
 }
 
 func NewExtensionController(
 	announcer UpdateAnnouncer,
 	verifier TokenVerifier,
 	store StoreService,
-	usernames UsernameGetter,
 ) *ExtensionController {
 	return &ExtensionController{
 		Announcer: announcer,
 		Verifier:  verifier,
 		Store:     store,
-		Usernames: usernames,
 	}
 }
 
@@ -177,11 +174,5 @@ func (c *ExtensionController) SetSelectedItem(ctx *gin.Context) {
 		return
 	}
 
-	channelName, err := c.Usernames.GetUsername(token.ChannelId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	c.Announcer.AnnounceUpdate(channelName, item.Image, token.UserId)
+	c.Announcer.AnnounceUpdate(token.ChannelId, token.UserId, item.Image)
 }
