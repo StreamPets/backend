@@ -26,9 +26,10 @@ func main() {
 
 	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
+	dashboardUrl := os.Getenv("DASHBOARD_URL")
 
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{overlayUrl, extensionUrl},
+		AllowOrigins:     []string{overlayUrl, extensionUrl, dashboardUrl},
 		AllowMethods:     []string{"*"},
 		AllowHeaders:     []string{"*"},
 		AllowCredentials: true,
