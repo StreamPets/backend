@@ -38,6 +38,11 @@ func RegisterRoutes(
 		extRouter.PUT("/items", extension.SetSelectedItem)
 	}
 
+	dashRouter := r.Group("/dashboard")
+	{
+		dashRouter.GET("/login", controllers.HandleLogin)
+	}
+
 	api := r.Group("/channels")
 	{
 		api.POST("/:channelId/users", twitchBot.AddPetToChannel)
