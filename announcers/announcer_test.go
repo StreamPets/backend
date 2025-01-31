@@ -1,4 +1,4 @@
-package services
+package announcers
 
 import (
 	"fmt"
@@ -7,6 +7,7 @@ import (
 
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/services"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,18 +16,17 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		mock.SetUp(t)
 
 		channelId := models.TwitchId("channel id")
-		pet := Pet{}
+		pet := services.Pet{}
 
-		cacheMock := mock.Mock[PetCache]()
-		announcer := NewAnnouncerService(cacheMock)
+		announcer := NewAnnouncerService()
 
 		client := announcer.AddClient(channelId)
-		assert.Equal(t, channelId, client.ChannelId)
+		assert.Equal(t, channelId, client.channelId)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		events := []Event{}
+		events := []Announcement{}
 		go func() {
 			for event := range client.Stream {
 				events = append(events, event)
@@ -37,9 +37,11 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		announcer.AnnounceJoin(channelId, pet)
 		wg.Wait()
 
-		expected := Event{Event: "JOIN", Message: pet}
-
-		mock.Verify(cacheMock, mock.Once()).AddPet(channelId, pet)
+		expected := Announcement{
+			channelId: channelId,
+			Event:     "JOIN",
+			Message:   pet,
+		}
 
 		assert.Equal(t, 1, len(events))
 		assert.Equal(t, expected, events[0])
@@ -51,16 +53,15 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		channelId := models.TwitchId("channel name")
 		userId := models.TwitchId("user id")
 
-		cacheMock := mock.Mock[PetCache]()
-		announcer := NewAnnouncerService(cacheMock)
+		announcer := NewAnnouncerService()
 
 		client := announcer.AddClient(channelId)
-		assert.Equal(t, channelId, client.ChannelId)
+		assert.Equal(t, channelId, client.channelId)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		events := []Event{}
+		events := []Announcement{}
 		go func() {
 			for event := range client.Stream {
 				events = append(events, event)
@@ -71,9 +72,11 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		announcer.AnnouncePart(channelId, userId)
 		wg.Wait()
 
-		expected := Event{Event: "PART", Message: userId}
-
-		mock.Verify(cacheMock, mock.Once()).RemovePet(channelId, userId)
+		expected := Announcement{
+			channelId: channelId,
+			Event:     "PART",
+			Message:   userId,
+		}
 
 		assert.Equal(t, 1, len(events))
 		assert.Equal(t, expected, events[0])
@@ -86,16 +89,15 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		userId := models.TwitchId("user id")
 		action := "action"
 
-		cacheMock := mock.Mock[PetCache]()
-		announcer := NewAnnouncerService(cacheMock)
+		announcer := NewAnnouncerService()
 
 		client := announcer.AddClient(channelId)
-		assert.Equal(t, channelId, client.ChannelId)
+		assert.Equal(t, channelId, client.channelId)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		events := []Event{}
+		events := []Announcement{}
 		go func() {
 			for event := range client.Stream {
 				events = append(events, event)
@@ -106,9 +108,10 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		announcer.AnnounceAction(channelId, userId, action)
 		wg.Wait()
 
-		expected := Event{
-			Event:   fmt.Sprintf("%s-%s", action, userId),
-			Message: userId,
+		expected := Announcement{
+			channelId: channelId,
+			Event:     fmt.Sprintf("%s-%s", action, userId),
+			Message:   userId,
 		}
 
 		assert.Equal(t, 1, len(events))
@@ -122,16 +125,15 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		userId := models.TwitchId("user id")
 		image := "image"
 
-		cacheMock := mock.Mock[PetCache]()
-		announcer := NewAnnouncerService(cacheMock)
+		announcer := NewAnnouncerService()
 
 		client := announcer.AddClient(channelId)
-		assert.Equal(t, channelId, client.ChannelId)
+		assert.Equal(t, channelId, client.channelId)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 
-		events := []Event{}
+		events := []Announcement{}
 		go func() {
 			for event := range client.Stream {
 				events = append(events, event)
@@ -144,8 +146,6 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 
 		expected := fmt.Sprintf("%s-%s", "COLOR", userId)
 
-		mock.Verify(cacheMock, mock.Once()).UpdatePet(channelId, userId, image)
-
 		assert.Equal(t, 1, len(events))
 		assert.Equal(t, expected, events[0].Event)
 	})
@@ -155,20 +155,19 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 	mock.SetUp(t)
 
 	channelId := models.TwitchId("channel id")
-	pet := Pet{}
+	pet := services.Pet{}
 
-	cacheMock := mock.Mock[PetCache]()
-	announcer := NewAnnouncerService(cacheMock)
+	announcer := NewAnnouncerService()
 
 	client := announcer.AddClient(channelId)
-	assert.Equal(t, channelId, client.ChannelId)
+	assert.Equal(t, channelId, client.channelId)
 
 	announcer.RemoveClient(client)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	events := []Event{}
+	events := []Announcement{}
 	go func() {
 		defer wg.Done()
 		for event := range client.Stream {
@@ -189,21 +188,20 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 
 	channelOneId := models.TwitchId("channel one id")
 	channelTwoId := models.TwitchId("channel two id")
-	pet := Pet{}
+	pet := services.Pet{}
 
-	cacheMock := mock.Mock[PetCache]()
-	announcer := NewAnnouncerService(cacheMock)
+	announcer := NewAnnouncerService()
 
 	clientOne := announcer.AddClient(channelOneId)
-	assert.Equal(t, channelOneId, clientOne.ChannelId)
+	assert.Equal(t, channelOneId, clientOne.channelId)
 
 	clientTwo := announcer.AddClient(channelTwoId)
-	assert.Equal(t, channelTwoId, clientTwo.ChannelId)
+	assert.Equal(t, channelTwoId, clientTwo.channelId)
 
 	var wg sync.WaitGroup
 	wg.Add(1)
 
-	eventsOne := []Event{}
+	eventsOne := []Announcement{}
 	go func() {
 		for event := range clientOne.Stream {
 			eventsOne = append(eventsOne, event)
@@ -211,7 +209,7 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 		}
 	}()
 
-	eventsTwo := []Event{}
+	eventsTwo := []Announcement{}
 	go func() {
 		for event := range clientTwo.Stream {
 			eventsTwo = append(eventsTwo, event)
@@ -222,42 +220,13 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	announcer.AnnounceJoin(channelOneId, pet)
 	wg.Wait()
 
-	expected := Event{Event: "JOIN", Message: pet}
+	expected := Announcement{
+		channelId: channelOneId,
+		Event:     "JOIN",
+		Message:   pet,
+	}
 
 	assert.Equal(t, 1, len(eventsOne))
 	assert.Equal(t, expected, eventsOne[0])
 	assert.Equal(t, 0, len(eventsTwo))
-}
-
-func TestAddClient(t *testing.T) {
-	mock.SetUp(t)
-
-	channelId := models.TwitchId("channel id")
-	pets := []Pet{{}, {}}
-
-	cacheMock := mock.Mock[PetCache]()
-	mock.When(cacheMock.GetPets(channelId)).ThenReturn(pets)
-
-	announcer := NewAnnouncerService(cacheMock)
-	client := announcer.AddClient(channelId)
-
-	got := []Pet{}
-	var wg sync.WaitGroup
-	wg.Add(len(pets))
-
-	go func() {
-		for event := range client.Stream {
-			pet, ok := event.Message.(Pet)
-
-			assert.True(t, ok)
-
-			got = append(got, pet)
-			wg.Done()
-		}
-	}()
-
-	wg.Wait()
-	close(client.Stream)
-
-	assert.Equal(t, pets, got)
 }

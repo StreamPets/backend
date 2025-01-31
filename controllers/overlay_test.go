@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
 	"github.com/stretchr/testify/assert"
@@ -47,19 +48,16 @@ func TestHandleListen(t *testing.T) {
 
 		ctx, recorder := setUpContext(channelId, overlayId)
 
-		stream := make(services.EventStream)
-		client := services.Client{
-			ChannelId: channelId,
-			Stream:    stream,
-		}
+		stream := make(chan announcers.Announcement)
+		client := &announcers.Client{Stream: stream}
 
-		clientsMock := mock.Mock[ClientAddRemover]()
+		announcerMock := mock.Mock[clientAddRemover]()
 		verifierMock := mock.Mock[OverlayIdVerifier]()
 
-		mock.When(clientsMock.AddClient(channelId)).ThenReturn(client)
+		mock.When(announcerMock.AddClient(channelId)).ThenReturn(client)
 
 		controller := NewOverlayController(
-			clientsMock,
+			announcerMock,
 			verifierMock,
 		)
 
@@ -71,14 +69,17 @@ func TestHandleListen(t *testing.T) {
 			controller.HandleListen(ctx)
 		}()
 
-		stream <- services.Event{Event: "event", Message: "message"}
+		stream <- announcers.Announcement{
+			Event:   "event",
+			Message: "message",
+		}
 
 		close(stream)
 		wg.Wait()
 
 		mock.Verify(verifierMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
-		mock.Verify(clientsMock, mock.Once()).AddClient(channelId)
-		mock.Verify(clientsMock, mock.Once()).RemoveClient(client)
+		mock.Verify(announcerMock, mock.Once()).AddClient(channelId)
+		mock.Verify(announcerMock, mock.Once()).RemoveClient(client)
 
 		assert.Contains(t, recorder.Body.String(), "event:event")
 		assert.Contains(t, recorder.Body.String(), "data:message")
@@ -89,20 +90,20 @@ func TestHandleListen(t *testing.T) {
 
 		ctx, recorder := setUpContext(channelId, overlayId)
 
-		clientsMock := mock.Mock[ClientAddRemover]()
+		clientMock := mock.Mock[clientAddRemover]()
 		verifierMock := mock.Mock[OverlayIdVerifier]()
 
 		mock.When(verifierMock.VerifyOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
 
 		controller := NewOverlayController(
-			clientsMock,
+			clientMock,
 			verifierMock,
 		)
 
 		controller.HandleListen(ctx)
 
 		mock.Verify(verifierMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
-		mock.Verify(clientsMock, mock.Never()).AddClient(channelId)
+		mock.Verify(clientMock, mock.Never()).AddClient(channelId)
 
 		assert.Contains(t, recorder.Body.String(), services.ErrIdMismatch.Error())
 	})
