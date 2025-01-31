@@ -2,6 +2,7 @@ package routes
 
 import (
 	"github.com/gin-gonic/gin"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
@@ -15,15 +16,16 @@ func RegisterRoutes(
 ) {
 	itemRepo := repositories.NewItemRepository(db)
 
-	cache := services.NewPetCacheService()
-	announcer := services.NewAnnouncerService(cache)
+	announcer := announcers.NewAnnouncerService()
+	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
+
 	items := services.NewItemService(itemRepo)
 	petService := services.NewPetService(items)
 
-	overlay := controllers.NewOverlayController(announcer, authService)
-	extension := controllers.NewExtensionController(announcer, authService, items)
+	overlay := controllers.NewOverlayController(cachedAnnouncer, authService)
+	extension := controllers.NewExtensionController(cachedAnnouncer, authService, items)
 
-	twitchBot := controllers.NewTwitchBotController(announcer, items, petService)
+	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, petService)
 
 	overlayRouter := r.Group("/overlay")
 	{

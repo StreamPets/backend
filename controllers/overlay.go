@@ -6,13 +6,13 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/services"
 )
 
-type ClientAddRemover interface {
-	AddClient(channelId models.TwitchId) services.Client
-	RemoveClient(client services.Client)
+type clientAddRemover interface {
+	AddClient(channelId models.TwitchId) announcers.Client
+	RemoveClient(client announcers.Client)
 }
 
 type OverlayIdVerifier interface {
@@ -20,17 +20,17 @@ type OverlayIdVerifier interface {
 }
 
 type OverlayController struct {
-	Clients ClientAddRemover
-	Overlay OverlayIdVerifier
+	announcer clientAddRemover
+	Overlay   OverlayIdVerifier
 }
 
 func NewOverlayController(
-	clients ClientAddRemover,
+	announcer clientAddRemover,
 	overlay OverlayIdVerifier,
 ) *OverlayController {
 	return &OverlayController{
-		Clients: clients,
-		Overlay: overlay,
+		announcer: announcer,
+		Overlay:   overlay,
 	}
 }
 
@@ -47,13 +47,13 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 		return
 	}
 
-	client := c.Clients.AddClient(channelId)
+	client := c.announcer.AddClient(channelId)
 	defer func() {
 		go func() {
 			for range client.Stream {
 			}
 		}()
-		c.Clients.RemoveClient(client)
+		c.announcer.RemoveClient(client)
 	}()
 
 	ticker := time.NewTicker(60 * time.Second)
@@ -61,9 +61,9 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 
 	ctx.Stream(func(w io.Writer) bool {
 		select {
-		case event, ok := <-client.Stream:
+		case announcement, ok := <-client.Stream:
 			if ok {
-				ctx.SSEvent(event.Event, event.Message)
+				ctx.SSEvent(announcement.Event, announcement.Message)
 				return true
 			}
 			return false
