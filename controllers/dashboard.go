@@ -1,83 +1,67 @@
 package controllers
 
 import (
-	"encoding/json"
-	"errors"
-	"fmt"
-	"io"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
 )
 
-type validateResponse struct {
-	Login  string          `json:"login"`
-	UserId models.TwitchId `json:"user_id"`
+type userData struct {
+	OverlayId uuid.UUID       `json:"overlay_id"`
+	ChannelId models.TwitchId `json:"channel_id"`
 }
 
-var ErrUnauthorized error = errors.New("this user is not authorized")
+type DashboardController struct {
+	GetOverlayId  func(channelId models.TwitchId) (overlayId uuid.UUID, err error)
+	ValidateToken func(accessToken string) (response *twitch.ValidateTokenResponse, err error)
+}
 
-func HandleLogin(ctx *gin.Context) {
+func NewDashboardController(
+	GetOverlayId func(models.TwitchId) (uuid.UUID, error),
+	ValidateToken func(string) (*twitch.ValidateTokenResponse, error),
+) *DashboardController {
+	return &DashboardController{
+		GetOverlayId:  GetOverlayId,
+		ValidateToken: ValidateToken,
+	}
+}
+
+func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 	token, err := ctx.Cookie("Authorization")
 	if err == http.ErrNoCookie {
-		slog.Debug("no 'Authorization' cooker header present")
+		slog.Debug("no 'Authorization' cookie present")
 		ctx.JSON(http.StatusUnauthorized, nil)
 		return
-	}
-	if err != nil {
-		slog.Error("error", "err", err.Error())
+	} else if err != nil {
+		slog.Error("error when retrieving 'Authorization' cookie", "err", err.Error())
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 
-	response, err := getValidate(token)
-	if err == ErrUnauthorized {
+	response, err := c.ValidateToken(token)
+	if err == twitch.ErrInvalidAccessToken {
 		slog.Debug("invalid access token in header")
 		ctx.JSON(http.StatusUnauthorized, nil)
 		return
-	}
-	if err != nil {
-		slog.Error("error", "err", err.Error())
+	} else if err != nil {
+		slog.Error("error when validating access token", "err", err.Error())
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
 	}
 
-	ctx.JSON(http.StatusOK, response)
-}
-
-func getValidate(accessToken string) (*validateResponse, error) {
-	url := "https://id.twitch.tv/oauth2/validate"
-	req, err := http.NewRequest("GET", url, nil)
+	overlayId, err := c.GetOverlayId(response.UserId)
 	if err != nil {
-		return nil, err
+		slog.Error("error when getting overlay url", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return
 	}
 
-	req.Header.Add("Authorization", fmt.Sprintf("OAuth %s", accessToken))
-
-	response, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return nil, err
-	}
-
-	if response.StatusCode == 401 {
-		return nil, ErrUnauthorized
-	}
-
-	var data validateResponse
-	if err = parseResponse(&data, response); err != nil {
-		return nil, err
-	}
-
-	return &data, nil
-}
-
-func parseResponse(data interface{}, resp *http.Response) error {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(body, &data)
+	ctx.JSON(http.StatusOK, userData{
+		OverlayId: overlayId,
+		ChannelId: response.UserId,
+	})
 }
