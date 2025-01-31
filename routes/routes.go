@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/config"
 	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/repositories"
@@ -21,16 +22,18 @@ func RegisterRoutes(
 	channels := repositories.NewChannelRepo(db)
 
 	auth := config.CreateAuthService(channels)
-	cache := services.NewPetCacheService()
-	announcer := services.NewAnnouncerService(cache)
+
+	announcer := announcers.NewAnnouncerService()
+	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
+
 	items := services.NewItemService(itemRepo)
 	pets := services.NewPetService(items)
 
-	overlay := controllers.NewOverlayController(announcer, auth)
-	extension := controllers.NewExtensionController(announcer, auth, items)
+	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
+	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
 	dashboard := controllers.NewDashboardController(channels.GetOverlayId, twitchApi.ValidateToken)
 
-	twitchBot := controllers.NewTwitchBotController(announcer, items, pets)
+	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
 
 	overlayRouter := r.Group("/overlay")
 	{
