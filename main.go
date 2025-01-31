@@ -20,8 +20,6 @@ func main() {
 	}
 
 	db := config.ConnectDB()
-	auth := config.CreateAuthService(db)
-
 	r := gin.Default()
 
 	overlayUrl := os.Getenv("OVERLAY_URL")
@@ -35,6 +33,6 @@ func main() {
 		AllowCredentials: true,
 	}))
 
-	routes.RegisterRoutes(r, db, auth)
+	routes.RegisterRoutes(r, db)
 	r.Run()
 }

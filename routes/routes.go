@@ -1,31 +1,39 @@
 package routes
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/streampets/backend/announcers"
+	"github.com/streampets/backend/config"
 	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 	"gorm.io/gorm"
 )
 
 func RegisterRoutes(
 	r *gin.Engine,
 	db *gorm.DB,
-	authService *services.AuthService,
 ) {
+	twitchApi := twitch.NewTwitchApi(http.DefaultClient)
 	itemRepo := repositories.NewItemRepository(db)
+	channels := repositories.NewChannelRepo(db)
+
+	auth := config.CreateAuthService(channels)
 
 	announcer := announcers.NewAnnouncerService()
 	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
 
 	items := services.NewItemService(itemRepo)
-	petService := services.NewPetService(items)
+	pets := services.NewPetService(items)
 
-	overlay := controllers.NewOverlayController(cachedAnnouncer, authService)
-	extension := controllers.NewExtensionController(cachedAnnouncer, authService, items)
+	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
+	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
+	dashboard := controllers.NewDashboardController(channels.GetOverlayId, twitchApi.ValidateToken)
 
-	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, petService)
+	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
 
 	overlayRouter := r.Group("/overlay")
 	{
@@ -42,7 +50,7 @@ func RegisterRoutes(
 
 	dashRouter := r.Group("/dashboard")
 	{
-		dashRouter.GET("/login", controllers.HandleLogin)
+		dashRouter.GET("/login", dashboard.HandleLogin)
 	}
 
 	api := r.Group("/channels")
