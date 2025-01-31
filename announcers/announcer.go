@@ -7,16 +7,16 @@ import (
 
 type AnnouncerService struct {
 	announce      chan Announcement
-	newClients    chan *Client
-	closedClients chan *Client
+	newClients    chan Client
+	closedClients chan Client
 	totalClients  map[models.TwitchId](map[chan Announcement]bool)
 }
 
 func NewAnnouncerService() *AnnouncerService {
 	service := &AnnouncerService{
 		announce:      make(chan Announcement),
-		newClients:    make(chan *Client),
-		closedClients: make(chan *Client),
+		newClients:    make(chan Client),
+		closedClients: make(chan Client),
 		totalClients:  make(map[models.TwitchId]map[chan Announcement]bool),
 	}
 
@@ -25,13 +25,13 @@ func NewAnnouncerService() *AnnouncerService {
 	return service
 }
 
-func (s *AnnouncerService) AddClient(channelId models.TwitchId) *Client {
+func (s *AnnouncerService) AddClient(channelId models.TwitchId) Client {
 	client := newClient(channelId)
 	s.newClients <- client
 	return client
 }
 
-func (s *AnnouncerService) RemoveClient(client *Client) {
+func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
@@ -51,7 +51,7 @@ func (s *AnnouncerService) AnnounceUpdate(channelId, userId models.TwitchId, ima
 	s.announce <- updateAnnouncement(channelId, userId, image)
 }
 
-func (s *AnnouncerService) handleNewClient(c *Client) {
+func (s *AnnouncerService) handleNewClient(c Client) {
 	_, ok := s.totalClients[c.channelId]
 	if !ok {
 		s.totalClients[c.channelId] = make(map[chan Announcement]bool)
@@ -59,7 +59,7 @@ func (s *AnnouncerService) handleNewClient(c *Client) {
 	s.totalClients[c.channelId][c.Stream] = true
 }
 
-func (s *AnnouncerService) handleClosedClient(c *Client) {
+func (s *AnnouncerService) handleClosedClient(c Client) {
 	delete(s.totalClients[c.channelId], c.Stream)
 	close(c.Stream)
 }

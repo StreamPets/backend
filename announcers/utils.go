@@ -18,8 +18,8 @@ type Client struct {
 	channelId models.TwitchId
 }
 
-func newClient(channelId models.TwitchId) *Client {
-	return &Client{channelId: channelId, Stream: make(chan Announcement)}
+func newClient(channelId models.TwitchId) Client {
+	return Client{channelId: channelId, Stream: make(chan Announcement)}
 }
 
 type petMap = map[models.TwitchId]services.Pet

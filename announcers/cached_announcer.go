@@ -6,8 +6,8 @@ import (
 )
 
 type announcer interface {
-	AddClient(channelId models.TwitchId) *Client
-	RemoveClient(client *Client)
+	AddClient(channelId models.TwitchId) Client
+	RemoveClient(client Client)
 	AnnounceJoin(channelId models.TwitchId, pet services.Pet)
 	AnnouncePart(channelId, userId models.TwitchId)
 	AnnounceAction(channelId, userId models.TwitchId, action string)
@@ -28,7 +28,7 @@ func NewCachedAnnouncerService(
 	}
 }
 
-func (s *CachedAnnouncerService) AddClient(channelId models.TwitchId) *Client {
+func (s *CachedAnnouncerService) AddClient(channelId models.TwitchId) Client {
 	client := s.announcer.AddClient(channelId)
 
 	go func() {
@@ -43,7 +43,7 @@ func (s *CachedAnnouncerService) AddClient(channelId models.TwitchId) *Client {
 	return client
 }
 
-func (s *CachedAnnouncerService) RemoveClient(client *Client) {
+func (s *CachedAnnouncerService) RemoveClient(client Client) {
 	s.announcer.RemoveClient(client)
 }
 

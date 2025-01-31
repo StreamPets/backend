@@ -49,7 +49,7 @@ func TestHandleListen(t *testing.T) {
 		ctx, recorder := setUpContext(channelId, overlayId)
 
 		stream := make(chan announcers.Announcement)
-		client := &announcers.Client{Stream: stream}
+		client := announcers.Client{Stream: stream}
 
 		announcerMock := mock.Mock[clientAddRemover]()
 		verifierMock := mock.Mock[OverlayIdVerifier]()

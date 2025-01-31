@@ -11,8 +11,8 @@ import (
 )
 
 type clientAddRemover interface {
-	AddClient(channelId models.TwitchId) *announcers.Client
-	RemoveClient(client *announcers.Client)
+	AddClient(channelId models.TwitchId) announcers.Client
+	RemoveClient(client announcers.Client)
 }
 
 type OverlayIdVerifier interface {
