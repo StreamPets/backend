@@ -20,7 +20,7 @@ type OverlayIdVerifier interface {
 }
 
 type OverlayController struct {
-	Announcer clientAddRemover
+	announcer clientAddRemover
 	Overlay   OverlayIdVerifier
 }
 
@@ -29,7 +29,7 @@ func NewOverlayController(
 	overlay OverlayIdVerifier,
 ) *OverlayController {
 	return &OverlayController{
-		Announcer: announcer,
+		announcer: announcer,
 		Overlay:   overlay,
 	}
 }
@@ -47,13 +47,13 @@ func (c *OverlayController) HandleListen(ctx *gin.Context) {
 		return
 	}
 
-	client := c.Announcer.AddClient(channelId)
+	client := c.announcer.AddClient(channelId)
 	defer func() {
 		go func() {
 			for range client.Stream {
 			}
 		}()
-		c.Announcer.RemoveClient(client)
+		c.announcer.RemoveClient(client)
 	}()
 
 	ticker := time.NewTicker(60 * time.Second)
