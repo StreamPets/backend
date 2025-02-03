@@ -31,7 +31,7 @@ func RegisterRoutes(
 
 	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
 	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
-	dashboard := controllers.NewDashboardController(channels.GetOverlayId, twitchApi.ValidateToken)
+	dashboard := controllers.NewDashboardController(channels, twitchApi)
 
 	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
 

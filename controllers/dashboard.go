@@ -1,12 +1,14 @@
 package controllers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -15,18 +17,26 @@ type userData struct {
 	ChannelId models.TwitchId `json:"channel_id"`
 }
 
+type OverlayIdGetter interface {
+	GetOverlayId(channelId models.TwitchId) (overlayId uuid.UUID, err error)
+}
+
+type TokenValidator interface {
+	ValidateToken(accessToken string) (response *twitch.ValidateTokenResponse, err error)
+}
+
 type DashboardController struct {
-	GetOverlayId  func(channelId models.TwitchId) (overlayId uuid.UUID, err error)
-	ValidateToken func(accessToken string) (response *twitch.ValidateTokenResponse, err error)
+	OverlayIdGetter
+	TokenValidator
 }
 
 func NewDashboardController(
-	GetOverlayId func(models.TwitchId) (uuid.UUID, error),
-	ValidateToken func(string) (*twitch.ValidateTokenResponse, error),
+	overlayIdGetter OverlayIdGetter,
+	tokenValidator TokenValidator,
 ) *DashboardController {
 	return &DashboardController{
-		GetOverlayId:  GetOverlayId,
-		ValidateToken: ValidateToken,
+		OverlayIdGetter: overlayIdGetter,
+		TokenValidator:  tokenValidator,
 	}
 }
 
@@ -37,6 +47,8 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 		ctx.JSON(http.StatusUnauthorized, nil)
 		return
 	} else if err != nil {
+		// This should never happen since ctx.Cookie() only returns nil or http.ErrNoCookie.
+		// If this does occur, it might indicate a bug.
 		slog.Error("error when retrieving 'Authorization' cookie", "err", err.Error())
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
@@ -54,7 +66,12 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 	}
 
 	overlayId, err := c.GetOverlayId(response.UserId)
-	if err != nil {
+	var e *repositories.ErrNoOverlayId
+	if errors.As(err, &e) {
+		slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
+		ctx.JSON(http.StatusBadRequest, nil)
+		return
+	} else if err != nil {
 		slog.Error("error when getting overlay url", "err", err.Error())
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return
