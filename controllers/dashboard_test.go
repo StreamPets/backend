@@ -95,7 +95,7 @@ func TestHandleLogin(t *testing.T) {
 		validator := mock.Mock[TokenValidator]()
 
 		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
-		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
+		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.ErrNoOverlayId)
 
 		controller := NewDashboardController(overlays, validator)
 

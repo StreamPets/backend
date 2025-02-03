@@ -1,7 +1,6 @@
 package controllers
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 
@@ -66,9 +65,8 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 	}
 
 	overlayId, err := c.GetOverlayId(response.UserId)
-	var e *repositories.ErrNoOverlayId
-	if errors.As(err, &e) {
-		slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
+	if err == repositories.ErrNoOverlayId {
+		slog.Error("no overlay id associated with channel id", "channel_id", response.UserId)
 		ctx.JSON(http.StatusBadRequest, nil)
 		return
 	} else if err != nil {
