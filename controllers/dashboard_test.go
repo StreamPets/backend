@@ -89,7 +89,7 @@ func TestHandleLogin(t *testing.T) {
 
 		token := "token"
 		channelId := models.TwitchId("channel id")
-		tokenResponse := &twitch.ValidateTokenResponse{UserId: channelId}
+		tokenResponse := twitch.ValidateTokenResponse{UserId: channelId}
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
@@ -110,7 +110,7 @@ func TestHandleLogin(t *testing.T) {
 
 		token := "token"
 		channelId := models.TwitchId("channel id")
-		tokenResponse := &twitch.ValidateTokenResponse{UserId: channelId}
+		tokenResponse := twitch.ValidateTokenResponse{UserId: channelId}
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
@@ -137,7 +137,7 @@ func TestHandleLogin(t *testing.T) {
 		token := "token"
 		channelId := models.TwitchId("channel id")
 		overlayId := uuid.New()
-		tokenResponse := &twitch.ValidateTokenResponse{UserId: channelId}
+		tokenResponse := twitch.ValidateTokenResponse{UserId: channelId}
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()

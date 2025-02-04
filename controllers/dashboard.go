@@ -22,7 +22,7 @@ type OverlayIdGetter interface {
 }
 
 type TokenValidator interface {
-	ValidateToken(accessToken string) (response *twitch.ValidateTokenResponse, err error)
+	ValidateToken(accessToken string) (response twitch.ValidateTokenResponse, err error)
 }
 
 type DashboardController struct {
