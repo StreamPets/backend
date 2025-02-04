@@ -56,7 +56,7 @@ func TestHandleLogin(t *testing.T) {
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(invalidToken)).ThenReturn(nil, twitch.ErrInvalidAccessToken)
+		mock.When(validator.ValidateToken(invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
 
 		controller := NewDashboardController(overlays, validator)
 

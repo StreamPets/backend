@@ -17,7 +17,7 @@ func RegisterRoutes(
 	r *gin.Engine,
 	db *gorm.DB,
 ) {
-	twitchApi := twitch.NewTwitchApi(http.DefaultClient)
+	twitchApi := twitch.New(http.DefaultClient)
 	itemRepo := repositories.NewItemRepository(db)
 	channels := repositories.NewChannelRepo(db)
 

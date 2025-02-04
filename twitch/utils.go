@@ -7,7 +7,8 @@ import (
 	"net/http"
 )
 
-var ErrInvalidAccessToken error = errors.New("invalid access token")
+// Indicates an invalid Twitch user access token.
+var ErrInvalidUserToken error = errors.New("invalid access token")
 
 func parseResponse(data interface{}, resp *http.Response) error {
 	body, err := io.ReadAll(resp.Body)

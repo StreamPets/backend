@@ -7,14 +7,19 @@ import (
 	"github.com/streampets/backend/models"
 )
 
+// A struct used to communicate with the Twitch Api.
 type TwitchApi struct {
 	client *http.Client
 }
 
-func NewTwitchApi(client *http.Client) *TwitchApi {
+// Creates a new TwitchApi client.
+func New(client *http.Client) *TwitchApi {
 	return &TwitchApi{client: client}
 }
 
+// Validates a Twitch user access token.
+// Returns ErrInvalidAccessToken if the access token is not valid.
+// Otherwise it returns the user id associated with the token.
 func (t *TwitchApi) ValidateToken(accessToken string) (models.TwitchId, error) {
 	type validateResponse struct {
 		UserId models.TwitchId `json:"user_id"`
@@ -34,7 +39,7 @@ func (t *TwitchApi) ValidateToken(accessToken string) (models.TwitchId, error) {
 	}
 
 	if response.StatusCode == 401 {
-		return "", ErrInvalidAccessToken
+		return "", ErrInvalidUserToken
 	}
 
 	var data validateResponse

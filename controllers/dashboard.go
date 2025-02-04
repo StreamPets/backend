@@ -55,7 +55,7 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 	}
 
 	userId, err := c.ValidateToken(token)
-	if err == twitch.ErrInvalidAccessToken {
+	if err == twitch.ErrInvalidUserToken {
 		slog.Debug("invalid access token in header")
 		ctx.JSON(http.StatusUnauthorized, nil)
 		return
