@@ -89,12 +89,11 @@ func TestHandleLogin(t *testing.T) {
 
 		token := "token"
 		channelId := models.TwitchId("channel id")
-		tokenResponse := twitch.ValidateTokenResponse{UserId: channelId}
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
+		mock.When(validator.ValidateToken(token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
 
 		controller := NewDashboardController(overlays, validator)
@@ -110,12 +109,11 @@ func TestHandleLogin(t *testing.T) {
 
 		token := "token"
 		channelId := models.TwitchId("channel id")
-		tokenResponse := twitch.ValidateTokenResponse{UserId: channelId}
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
+		mock.When(validator.ValidateToken(token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
 
 		controller := NewDashboardController(overlays, validator)
@@ -137,12 +135,11 @@ func TestHandleLogin(t *testing.T) {
 		token := "token"
 		channelId := models.TwitchId("channel id")
 		overlayId := uuid.New()
-		tokenResponse := twitch.ValidateTokenResponse{UserId: channelId}
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
+		mock.When(validator.ValidateToken(token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
 		controller := NewDashboardController(overlays, validator)

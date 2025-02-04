@@ -22,7 +22,7 @@ type OverlayIdGetter interface {
 }
 
 type TokenValidator interface {
-	ValidateToken(accessToken string) (response twitch.ValidateTokenResponse, err error)
+	ValidateToken(accessToken string) (response models.TwitchId, err error)
 }
 
 type DashboardController struct {
@@ -54,7 +54,7 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	response, err := c.ValidateToken(token)
+	userId, err := c.ValidateToken(token)
 	if err == twitch.ErrInvalidAccessToken {
 		slog.Debug("invalid access token in header")
 		ctx.JSON(http.StatusUnauthorized, nil)
@@ -65,7 +65,7 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	overlayId, err := c.GetOverlayId(response.UserId)
+	overlayId, err := c.GetOverlayId(userId)
 	var e *repositories.ErrNoOverlayId
 	if errors.As(err, &e) {
 		slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
@@ -79,6 +79,6 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 
 	ctx.JSON(http.StatusOK, userData{
 		OverlayId: overlayId,
-		ChannelId: response.UserId,
+		ChannelId: userId,
 	})
 }
