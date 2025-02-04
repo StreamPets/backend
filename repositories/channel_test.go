@@ -30,3 +30,19 @@ func TestGetOverlayId(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, overlayId, got)
 }
+
+func TestCreateChannel(t *testing.T) {
+	channelId := models.TwitchId("channel id")
+	channelName := "channel name"
+
+	db := test.CreateTestDB()
+	repo := NewChannelRepo(db)
+
+	expected, err := repo.CreateChannel(channelId, channelName)
+	assert.NoError(t, err)
+
+	actual, err := repo.GetOverlayId(channelId)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expected, actual)
+}
