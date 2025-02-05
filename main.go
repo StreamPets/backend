@@ -1,38 +1,58 @@
 package main
 
 import (
+	"fmt"
+	"net/http"
 	"os"
 
-	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/joho/godotenv"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/config"
+	"github.com/streampets/backend/controllers"
+	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/routes"
+	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 )
 
-func main() {
+func run() error {
 	env := os.Getenv("ENVIRONMENT")
 	if env != "PRODUCTION" {
 		err := godotenv.Load()
 		if err != nil {
-			panic(err)
+			return err
 		}
 	}
 
 	db := config.ConnectDB()
+
+	twitchApi := twitch.New(http.DefaultClient, "https://id.twitch.tv")
+	itemRepo := repositories.NewItemRepository(db)
+	channels := repositories.NewChannelRepo(db)
+
+	auth := config.CreateAuthService(channels)
+
+	announcer := announcers.NewAnnouncerService()
+	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
+
+	items := services.NewItemService(itemRepo)
+	pets := services.NewPetService(items)
+
+	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
+	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
+	dashboard := controllers.NewDashboardController(channels, twitchApi)
+	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
+
 	r := gin.Default()
+	routes.RegisterRoutes(r, overlay, extension, dashboard, twitchBot)
 
-	overlayUrl := os.Getenv("OVERLAY_URL")
-	extensionUrl := os.Getenv("EXTENSION_URL")
-	dashboardUrl := os.Getenv("DASHBOARD_URL")
+	return r.Run()
+}
 
-	r.Use(cors.New(cors.Config{
-		AllowOrigins:     []string{overlayUrl, extensionUrl, dashboardUrl},
-		AllowMethods:     []string{"*"},
-		AllowHeaders:     []string{"*"},
-		AllowCredentials: true,
-	}))
-
-	routes.RegisterRoutes(r, db)
-	r.Run()
+func main() {
+	if err := run(); err != nil {
+		fmt.Fprintf(os.Stderr, "%s\n", err)
+		os.Exit(1)
+	}
 }

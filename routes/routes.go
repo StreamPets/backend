@@ -1,63 +1,42 @@
 package routes
 
 import (
-	"net/http"
+	"os"
 
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/config"
 	"github.com/streampets/backend/controllers"
-	"github.com/streampets/backend/repositories"
-	"github.com/streampets/backend/services"
-	"github.com/streampets/backend/twitch"
-	"gorm.io/gorm"
 )
 
 func RegisterRoutes(
 	r *gin.Engine,
-	db *gorm.DB,
+	overlay *controllers.OverlayController,
+	extension *controllers.ExtensionController,
+	dashboard *controllers.DashboardController,
+	twitchBot *controllers.TwitchBotController,
 ) {
-	twitchApi := twitch.New(http.DefaultClient, "https://id.twitch.tv")
-	itemRepo := repositories.NewItemRepository(db)
-	channels := repositories.NewChannelRepo(db)
+	overlayUrl := os.Getenv("OVERLAY_URL")
+	extensionUrl := os.Getenv("EXTENSION_URL")
+	dashboardUrl := os.Getenv("DASHBOARD_URL")
 
-	auth := config.CreateAuthService(channels)
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     []string{overlayUrl, extensionUrl, dashboardUrl},
+		AllowMethods:     []string{"*"},
+		AllowHeaders:     []string{"*"},
+		AllowCredentials: true,
+	}))
 
-	announcer := announcers.NewAnnouncerService()
-	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
+	r.GET("/overlay/listen", overlay.HandleListen)
 
-	items := services.NewItemService(itemRepo)
-	pets := services.NewPetService(items)
+	r.GET("/extension/user", extension.GetUserData)
+	r.GET("/extension/items", extension.GetStoreData)
+	r.POST("/extension/items", extension.BuyStoreItem)
+	r.PUT("/extension/items", extension.SetSelectedItem)
 
-	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
-	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
-	dashboard := controllers.NewDashboardController(channels, twitchApi)
+	r.GET("/dashboard/login", dashboard.HandleLogin)
 
-	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
-
-	overlayRouter := r.Group("/overlay")
-	{
-		overlayRouter.GET("/listen", overlay.HandleListen)
-	}
-
-	extRouter := r.Group("/extension")
-	{
-		extRouter.GET("/user", extension.GetUserData)
-		extRouter.GET("/items", extension.GetStoreData)
-		extRouter.POST("/items", extension.BuyStoreItem)
-		extRouter.PUT("/items", extension.SetSelectedItem)
-	}
-
-	dashRouter := r.Group("/dashboard")
-	{
-		dashRouter.GET("/login", dashboard.HandleLogin)
-	}
-
-	api := r.Group("/channels")
-	{
-		api.POST("/:channelId/users", twitchBot.AddPetToChannel)
-		api.DELETE("/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
-		api.POST("/:channelId/users/:userId/:action", twitchBot.Action)
-		api.PUT("/:channelId/users/:userId", twitchBot.UpdateUser)
-	}
+	r.POST("/channels/:channelId/users", twitchBot.AddPetToChannel)
+	r.DELETE("/channels/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
+	r.POST("/channels/:channelId/users/:userId/:action", twitchBot.Action)
+	r.PUT("/channels/:channelId/users/:userId", twitchBot.UpdateUser)
 }
