@@ -1,61 +1,57 @@
 package twitch
 
 import (
-	"encoding/json"
-	"errors"
+	"context"
 	"fmt"
-	"io"
 	"net/http"
-
-	"github.com/streampets/backend/models"
 )
 
-var ErrInvalidAccessToken error = errors.New("invalid access token")
-
-type ValidateTokenResponse struct {
-	Login  string          `json:"login"`
-	UserId models.TwitchId `json:"user_id"`
-}
-
+// A struct used to communicate with the Twitch Api.
 type TwitchApi struct {
-	client *http.Client
+	client  *http.Client
+	baseUrl string
 }
 
-func NewTwitchApi(client *http.Client) *TwitchApi {
-	return &TwitchApi{client: client}
+// Creates a new TwitchApi client.
+func New(
+	client *http.Client,
+	baseUrl string,
+) *TwitchApi {
+	return &TwitchApi{
+		client:  client,
+		baseUrl: baseUrl,
+	}
 }
 
-func (t *TwitchApi) ValidateToken(accessToken string) (*ValidateTokenResponse, error) {
-	url := "https://id.twitch.tv/oauth2/validate"
-	req, err := http.NewRequest("GET", url, nil)
+// Validates a Twitch user access token.
+// Returns ErrInvalidAccessToken if the access token is not valid.
+// Otherwise it returns the Twitch user id associated with the token.
+func (t *TwitchApi) ValidateToken(ctx context.Context, accessToken string) (Id, error) {
+	type validateResponse struct {
+		UserId Id `json:"user_id"`
+	}
+
+	url := t.baseUrl + "/oauth/validate"
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	req.Header.Add("Authorization", fmt.Sprintf("OAuth %s", accessToken))
 
 	response, err := t.client.Do(req)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
 	if response.StatusCode == 401 {
-		return nil, ErrInvalidAccessToken
+		return "", ErrInvalidUserToken
 	}
 
-	var data ValidateTokenResponse
+	var data validateResponse
 	if err = parseResponse(&data, response); err != nil {
-		return nil, err
+		return "", err
 	}
 
-	return &data, nil
-}
-
-func parseResponse(data interface{}, resp *http.Response) error {
-	body, err := io.ReadAll(resp.Body)
-	if err != nil {
-		return err
-	}
-
-	return json.Unmarshal(body, &data)
+	return data.UserId, nil
 }

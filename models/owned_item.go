@@ -1,10 +1,13 @@
 package models
 
-import "github.com/google/uuid"
+import (
+	"github.com/google/uuid"
+	"github.com/streampets/backend/twitch"
+)
 
 type OwnedItem struct {
-	UserId        TwitchId  `gorm:"primaryKey"`
-	ChannelId     TwitchId  `gorm:"primaryKey"`
+	UserId        twitch.Id `gorm:"primaryKey"`
+	ChannelId     twitch.Id `gorm:"primaryKey"`
 	ItemId        uuid.UUID `gorm:"primaryKey;type:uuid"`
 	TransactionId uuid.UUID `gorm:"unique"`
 }

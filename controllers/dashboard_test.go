@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
@@ -52,15 +51,14 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		invalidToken := "inavlid token"
+		ctx, recorder := setUpContext(invalidToken)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(invalidToken)).ThenReturn(nil, twitch.ErrInvalidAccessToken)
+		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(invalidToken)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -70,15 +68,14 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		invalidToken := "inavlid token"
+		ctx, recorder := setUpContext(invalidToken)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(invalidToken)).ThenReturn(nil, assert.AnError)
+		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, assert.AnError)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(invalidToken)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -88,18 +85,16 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		token := "token"
-		channelId := models.TwitchId("channel id")
-		tokenResponse := &twitch.ValidateTokenResponse{UserId: channelId}
+		channelId := twitch.Id("channel id")
+		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
+		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(token)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -109,18 +104,16 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		token := "token"
-		channelId := models.TwitchId("channel id")
-		tokenResponse := &twitch.ValidateTokenResponse{UserId: channelId}
+		channelId := twitch.Id("channel id")
+		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
+		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(token)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -130,24 +123,22 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		type userData struct {
-			OverlayId uuid.UUID       `json:"overlay_id"`
-			ChannelId models.TwitchId `json:"channel_id"`
+			OverlayId uuid.UUID `json:"overlay_id"`
+			ChannelId twitch.Id `json:"channel_id"`
 		}
 
 		token := "token"
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		overlayId := uuid.New()
-		tokenResponse := &twitch.ValidateTokenResponse{UserId: channelId}
+		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(tokenResponse, nil)
+		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(token)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)

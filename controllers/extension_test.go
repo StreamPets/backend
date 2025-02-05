@@ -14,6 +14,7 @@ import (
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -60,7 +61,7 @@ func TestGetStoreData(t *testing.T) {
 		mock.SetUp(t)
 
 		tokenString := "extension token"
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 
 		token := &services.ExtToken{
 			ChannelId: channelId,
@@ -88,8 +89,8 @@ func TestGetStoreData(t *testing.T) {
 	t.Run("items returned when extension token and channel id are valid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 		tokenString := "token string"
 		token := services.ExtToken{ChannelId: channelId, UserId: userId}
 
@@ -165,8 +166,8 @@ func TestGetUserData(t *testing.T) {
 	t.Run("fail when get owned items fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 
 		tokenString := "token string"
 		token := &services.ExtToken{
@@ -196,8 +197,8 @@ func TestGetUserData(t *testing.T) {
 	t.Run("fail when get selected items fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 
 		tokenString := "token string"
 		token := &services.ExtToken{
@@ -232,8 +233,8 @@ func TestGetUserData(t *testing.T) {
 			SelectedItem models.Item   `json:"selected"`
 		}
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 
 		tokenString := "token string"
 		token := &services.ExtToken{
@@ -293,7 +294,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when extension token is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 
 		itemId := uuid.New()
 		transactionId := uuid.New()
@@ -342,7 +343,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when item id does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 
 		itemId := uuid.New()
 		transactionId := uuid.New()
@@ -370,7 +371,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when receipt is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 
 		itemId := uuid.New()
 		transactionId := uuid.New()
@@ -401,7 +402,7 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 
 		itemId := uuid.New()
 		transactionId := uuid.New()
@@ -444,7 +445,7 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 
 		itemId := uuid.New()
 		transactionId := uuid.New()
@@ -508,11 +509,11 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when extension token is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		tokenString := "token string"
 		image := "image"
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
@@ -535,11 +536,11 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item id is not a valid uuid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		tokenString := "token string"
 		image := "image"
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 		itemId := "invalid id"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
@@ -560,11 +561,11 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item id does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		tokenString := "token string"
 		image := "image"
 
-		userId := models.TwitchId("user id")
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
@@ -590,8 +591,8 @@ func TestSetSelectedItem(t *testing.T) {
 		tokenString := "token string"
 		image := "image"
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
 		token := &services.ExtToken{
@@ -623,8 +624,8 @@ func TestSetSelectedItem(t *testing.T) {
 		tokenString := "token string"
 		image := "image"
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
 		item := models.Item{ItemId: itemId, Image: image}

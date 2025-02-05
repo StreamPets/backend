@@ -1,15 +1,18 @@
 package services
 
-import "github.com/streampets/backend/models"
+import (
+	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
+)
 
 type Pet struct {
-	UserId   models.TwitchId `json:"userId"`
-	Username string          `json:"username"`
-	Image    string          `json:"color"`
+	UserId   twitch.Id `json:"userId"`
+	Username string    `json:"username"`
+	Image    string    `json:"color"`
 }
 
 type SelectedItemGetter interface {
-	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
+	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
 }
 
 type PetService struct {
@@ -24,7 +27,7 @@ func NewPetService(
 	}
 }
 
-func (s *PetService) GetPet(userId, channelId models.TwitchId, username string) (Pet, error) {
+func (s *PetService) GetPet(userId, channelId twitch.Id, username string) (Pet, error) {
 	item, err := s.items.GetSelectedItem(userId, channelId)
 	if err != nil {
 		return Pet{}, err

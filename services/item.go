@@ -5,26 +5,27 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
 	"gorm.io/gorm"
 )
 
 var ErrSelectUnownedItem = errors.New("user tried to select an item they do not own")
 
 type ItemRepository interface {
-	GetItemByName(channelId models.TwitchId, itemName string) (models.Item, error)
+	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
 	GetItemById(itemId uuid.UUID) (models.Item, error)
 
-	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
-	SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error
-	DeleteSelectedItem(userId, channelId models.TwitchId) error
+	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
+	SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
+	DeleteSelectedItem(userId, channelId twitch.Id) error
 
-	GetChannelsItems(channelId models.TwitchId) ([]models.Item, error)
+	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
 
-	GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error)
-	AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error
-	CheckOwnedItem(userId models.TwitchId, itemId uuid.UUID) (bool, error)
+	GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
+	AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
+	CheckOwnedItem(userId twitch.Id, itemId uuid.UUID) (bool, error)
 
-	GetDefaultItem(channelId models.TwitchId) (models.Item, error)
+	GetDefaultItem(channelId twitch.Id) (models.Item, error)
 }
 
 type ItemService struct {
@@ -39,7 +40,7 @@ func NewItemService(
 	}
 }
 
-func (s *ItemService) GetItemByName(channelId models.TwitchId, itemName string) (models.Item, error) {
+func (s *ItemService) GetItemByName(channelId twitch.Id, itemName string) (models.Item, error) {
 	return s.itemRepo.GetItemByName(channelId, itemName)
 }
 
@@ -47,7 +48,7 @@ func (s *ItemService) GetItemById(itemId uuid.UUID) (models.Item, error) {
 	return s.itemRepo.GetItemById(itemId)
 }
 
-func (s *ItemService) GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error) {
+func (s *ItemService) GetSelectedItem(userId, channelId twitch.Id) (models.Item, error) {
 	item, err := s.itemRepo.GetSelectedItem(userId, channelId)
 	if err == gorm.ErrRecordNotFound {
 		return s.itemRepo.GetDefaultItem(channelId)
@@ -59,7 +60,7 @@ func (s *ItemService) GetSelectedItem(userId, channelId models.TwitchId) (models
 	return item, nil
 }
 
-func (s *ItemService) SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error {
+func (s *ItemService) SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error {
 	if owned, err := s.itemRepo.CheckOwnedItem(userId, itemId); err != nil {
 		return err
 	} else if owned {
@@ -75,11 +76,11 @@ func (s *ItemService) SetSelectedItem(userId, channelId models.TwitchId, itemId 
 	return s.itemRepo.DeleteSelectedItem(userId, channelId)
 }
 
-func (s *ItemService) GetChannelsItems(channelId models.TwitchId) ([]models.Item, error) {
+func (s *ItemService) GetChannelsItems(channelId twitch.Id) ([]models.Item, error) {
 	return s.itemRepo.GetChannelsItems(channelId)
 }
 
-func (s *ItemService) GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error) {
+func (s *ItemService) GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error) {
 	ownedItems, err := s.itemRepo.GetOwnedItems(channelId, userId)
 	if err != nil {
 		return []models.Item{}, err
@@ -104,6 +105,6 @@ func (s *ItemService) GetOwnedItems(channelId, userId models.TwitchId) ([]models
 	return result, nil
 }
 
-func (s *ItemService) AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error {
+func (s *ItemService) AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error {
 	return s.itemRepo.AddOwnedItem(userId, itemId, transactionId)
 }

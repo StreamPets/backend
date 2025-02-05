@@ -10,8 +10,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -24,7 +24,7 @@ func (c *CloseNotifierResponseWriter) CloseNotify() <-chan bool {
 }
 
 func TestHandleListen(t *testing.T) {
-	setUpContext := func(channelId models.TwitchId, overlayId uuid.UUID) (*gin.Context, *CloseNotifierResponseWriter) {
+	setUpContext := func(channelId twitch.Id, overlayId uuid.UUID) (*gin.Context, *CloseNotifierResponseWriter) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := &CloseNotifierResponseWriter{httptest.NewRecorder()}
@@ -40,7 +40,7 @@ func TestHandleListen(t *testing.T) {
 		return ctx, recorder
 	}
 
-	channelId := models.TwitchId("channel id")
+	channelId := twitch.Id("channel id")
 	overlayId := uuid.New()
 
 	t.Run("receive and send events from stream", func(t *testing.T) {

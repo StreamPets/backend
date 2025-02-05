@@ -6,7 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -14,7 +14,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		overlayId := uuid.New()
 
 		repoMock := mock.Mock[OverlayIdGetter]()
@@ -32,7 +32,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 
 		repoMock := mock.Mock[OverlayIdGetter]()
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
@@ -53,8 +53,8 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,
@@ -78,8 +78,8 @@ func TestVerifyExtToken(t *testing.T) {
 		mock.SetUp(t)
 
 		clientSecret := "secret"
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,

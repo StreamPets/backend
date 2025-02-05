@@ -7,22 +7,23 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 )
 
 type Announcer interface {
-	AnnounceJoin(channelId models.TwitchId, pet services.Pet)
-	AnnouncePart(channelId, userId models.TwitchId)
-	AnnounceAction(channelId, userId models.TwitchId, action string)
-	AnnounceUpdate(channelId, userId models.TwitchId, image string)
+	AnnounceJoin(channelId twitch.Id, pet services.Pet)
+	AnnouncePart(channelId, userId twitch.Id)
+	AnnounceAction(channelId, userId twitch.Id, action string)
+	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
 
 type PetGetter interface {
-	GetPet(userId, channelId models.TwitchId, username string) (services.Pet, error)
+	GetPet(userId, channelId twitch.Id, username string) (services.Pet, error)
 }
 
 type ItemGetSetter interface {
-	GetItemByName(channelId models.TwitchId, itemName string) (models.Item, error)
-	SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error
+	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
+	SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
 }
 
 type TwitchBotController struct {
@@ -45,8 +46,8 @@ func NewTwitchBotController(
 
 func (c *TwitchBotController) AddPetToChannel(ctx *gin.Context) {
 	type Params struct {
-		UserId   models.TwitchId `json:"user_id"`
-		Username string          `json:"username"`
+		UserId   twitch.Id `json:"user_id"`
+		Username string    `json:"username"`
 	}
 
 	var params Params
@@ -55,7 +56,7 @@ func (c *TwitchBotController) AddPetToChannel(ctx *gin.Context) {
 		return
 	}
 
-	channelId := models.TwitchId(ctx.Param(ChannelId))
+	channelId := twitch.Id(ctx.Param(ChannelId))
 	pet, err := c.Pets.GetPet(params.UserId, channelId, params.Username)
 	if err != nil {
 		addErrorToCtx(err, ctx)
@@ -67,16 +68,16 @@ func (c *TwitchBotController) AddPetToChannel(ctx *gin.Context) {
 }
 
 func (c *TwitchBotController) RemoveUserFromChannel(ctx *gin.Context) {
-	channelId := models.TwitchId(ctx.Param(ChannelId))
-	userId := models.TwitchId(ctx.Param(UserId))
+	channelId := twitch.Id(ctx.Param(ChannelId))
+	userId := twitch.Id(ctx.Param(UserId))
 
 	c.Announcer.AnnouncePart(channelId, userId)
 	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) Action(ctx *gin.Context) {
-	channelId := models.TwitchId(ctx.Param(ChannelId))
-	userId := models.TwitchId(ctx.Param(UserId))
+	channelId := twitch.Id(ctx.Param(ChannelId))
+	userId := twitch.Id(ctx.Param(UserId))
 	action := ctx.Param(Action)
 
 	c.Announcer.AnnounceAction(channelId, userId, action)
@@ -94,8 +95,8 @@ func (c *TwitchBotController) UpdateUser(ctx *gin.Context) {
 		return
 	}
 
-	channelId := models.TwitchId(ctx.Param(ChannelId))
-	userId := models.TwitchId(ctx.Param(UserId))
+	channelId := twitch.Id(ctx.Param(ChannelId))
+	userId := twitch.Id(ctx.Param(UserId))
 
 	item, err := c.Items.GetItemByName(channelId, params.ItemName)
 	if err != nil {
