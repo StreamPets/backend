@@ -1,4 +1,4 @@
-package controllers
+package routes
 
 import (
 	"encoding/json"
@@ -40,7 +40,7 @@ func TestHandleLogin(t *testing.T) {
 		validator := mock.Mock[TokenValidator]()
 
 		ctx, recorder := setUpContext("")
-		HandleLogin(validator, overlays)(ctx)
+		handleLogin(validator, overlays)(ctx)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
@@ -56,7 +56,7 @@ func TestHandleLogin(t *testing.T) {
 
 		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
 
-		HandleLogin(validator, overlays)(ctx)
+		handleLogin(validator, overlays)(ctx)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
@@ -72,7 +72,7 @@ func TestHandleLogin(t *testing.T) {
 
 		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, assert.AnError)
 
-		HandleLogin(validator, overlays)(ctx)
+		handleLogin(validator, overlays)(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -90,7 +90,7 @@ func TestHandleLogin(t *testing.T) {
 		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
 
-		HandleLogin(validator, overlays)(ctx)
+		handleLogin(validator, overlays)(ctx)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
@@ -108,7 +108,7 @@ func TestHandleLogin(t *testing.T) {
 		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
 
-		HandleLogin(validator, overlays)(ctx)
+		handleLogin(validator, overlays)(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -132,7 +132,7 @@ func TestHandleLogin(t *testing.T) {
 		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
-		HandleLogin(validator, overlays)(ctx)
+		handleLogin(validator, overlays)(ctx)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
 

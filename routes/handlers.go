@@ -1,7 +1,6 @@
-package controllers
+package routes
 
 import (
-	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -12,15 +11,7 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
-type OverlayIdGetter interface {
-	GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
-}
-
-type TokenValidator interface {
-	ValidateToken(ctx context.Context, accessToken string) (twitch.Id, error)
-}
-
-func HandleLogin(tokens TokenValidator, overlays OverlayIdGetter) gin.HandlerFunc {
+func handleLogin(tokens TokenValidator, overlays OverlayIdGetter) gin.HandlerFunc {
 	type userData struct {
 		OverlayId uuid.UUID `json:"overlay_id"`
 		ChannelId twitch.Id `json:"channel_id"`

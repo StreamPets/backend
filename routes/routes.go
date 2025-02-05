@@ -36,7 +36,7 @@ func RegisterRoutes(
 	r.POST("/extension/items", extension.BuyStoreItem)
 	r.PUT("/extension/items", extension.SetSelectedItem)
 
-	r.GET("/dashboard/login", controllers.HandleLogin(twitchApi, channelRepo))
+	r.GET("/dashboard/login", handleLogin(twitchApi, channelRepo))
 
 	r.POST("/channels/:channelId/users", twitchBot.AddPetToChannel)
 	r.DELETE("/channels/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
