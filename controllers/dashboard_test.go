@@ -52,15 +52,14 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		invalidToken := "inavlid token"
+		ctx, recorder := setUpContext(invalidToken)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
+		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(invalidToken)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
@@ -70,15 +69,14 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		invalidToken := "inavlid token"
+		ctx, recorder := setUpContext(invalidToken)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(invalidToken)).ThenReturn(nil, assert.AnError)
+		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, assert.AnError)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(invalidToken)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -89,16 +87,15 @@ func TestHandleLogin(t *testing.T) {
 
 		token := "token"
 		channelId := models.TwitchId("channel id")
+		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(channelId, nil)
+		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(token)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -109,16 +106,15 @@ func TestHandleLogin(t *testing.T) {
 
 		token := "token"
 		channelId := models.TwitchId("channel id")
+		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(channelId, nil)
+		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(token)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
@@ -135,16 +131,15 @@ func TestHandleLogin(t *testing.T) {
 		token := "token"
 		channelId := models.TwitchId("channel id")
 		overlayId := uuid.New()
+		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
 		validator := mock.Mock[TokenValidator]()
 
-		mock.When(validator.ValidateToken(token)).ThenReturn(channelId, nil)
+		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
 		controller := NewDashboardController(overlays, validator)
-
-		ctx, recorder := setUpContext(token)
 		controller.HandleLogin(ctx)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
