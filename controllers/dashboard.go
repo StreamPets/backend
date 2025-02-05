@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -22,7 +23,7 @@ type OverlayIdGetter interface {
 }
 
 type TokenValidator interface {
-	ValidateToken(accessToken string) (response models.TwitchId, err error)
+	ValidateToken(ctx context.Context, accessToken string) (response models.TwitchId, err error)
 }
 
 type DashboardController struct {
@@ -54,7 +55,7 @@ func (c *DashboardController) HandleLogin(ctx *gin.Context) {
 		return
 	}
 
-	userId, err := c.ValidateToken(token)
+	userId, err := c.ValidateToken(ctx, token)
 	if err == twitch.ErrInvalidUserToken {
 		slog.Debug("invalid access token in header")
 		ctx.JSON(http.StatusUnauthorized, nil)
