@@ -6,14 +6,17 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/streampets/backend/controllers"
+	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/twitch"
 )
 
 func RegisterRoutes(
 	r *gin.Engine,
 	overlay *controllers.OverlayController,
 	extension *controllers.ExtensionController,
-	dashboard *controllers.DashboardController,
 	twitchBot *controllers.TwitchBotController,
+	twitchApi *twitch.TwitchApi,
+	channelRepo *repositories.ChannelRepo,
 ) {
 	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
@@ -33,7 +36,7 @@ func RegisterRoutes(
 	r.POST("/extension/items", extension.BuyStoreItem)
 	r.PUT("/extension/items", extension.SetSelectedItem)
 
-	r.GET("/dashboard/login", dashboard.HandleLogin)
+	r.GET("/dashboard/login", controllers.HandleLogin(twitchApi, channelRepo))
 
 	r.POST("/channels/:channelId/users", twitchBot.AddPetToChannel)
 	r.DELETE("/channels/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)

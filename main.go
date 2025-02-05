@@ -41,11 +41,17 @@ func run() error {
 
 	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
 	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
-	dashboard := controllers.NewDashboardController(channels, twitchApi)
 	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
 
 	r := gin.Default()
-	routes.RegisterRoutes(r, overlay, extension, dashboard, twitchBot)
+	routes.RegisterRoutes(
+		r,
+		overlay,
+		extension,
+		twitchBot,
+		twitchApi,
+		channels,
+	)
 
 	return r.Run()
 }
