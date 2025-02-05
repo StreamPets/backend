@@ -1,8 +1,8 @@
 package models
 
-type TwitchId string
+import "github.com/streampets/backend/twitch"
 
 type User struct {
-	UserId   TwitchId `gorm:"primaryKey"`
+	UserId   twitch.Id `gorm:"primaryKey"`
 	Username string
 }

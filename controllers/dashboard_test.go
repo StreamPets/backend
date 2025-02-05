@@ -9,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
@@ -86,7 +85,7 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		token := "token"
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
@@ -105,7 +104,7 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		token := "token"
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		ctx, recorder := setUpContext(token)
 
 		overlays := mock.Mock[OverlayIdGetter]()
@@ -124,12 +123,12 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		type userData struct {
-			OverlayId uuid.UUID       `json:"overlay_id"`
-			ChannelId models.TwitchId `json:"channel_id"`
+			OverlayId uuid.UUID `json:"overlay_id"`
+			ChannelId twitch.Id `json:"channel_id"`
 		}
 
 		token := "token"
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		overlayId := uuid.New()
 		ctx, recorder := setUpContext(token)
 

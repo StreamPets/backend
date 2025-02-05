@@ -6,6 +6,7 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
 )
 
 var ErrIdMismatch = errors.New("channel id and overlay id do not match")
@@ -13,8 +14,8 @@ var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
 var ErrInvalidToken = errors.New("token is not valid")
 
 type ExtToken struct {
-	ChannelId models.TwitchId `json:"channel_id"`
-	UserId    models.TwitchId `json:"user_id"`
+	ChannelId twitch.Id `json:"channel_id"`
+	UserId    twitch.Id `json:"user_id"`
 	jwt.RegisteredClaims
 }
 
@@ -38,7 +39,7 @@ type AuthService struct {
 }
 
 type OverlayIdGetter interface {
-	GetOverlayId(channelId models.TwitchId) (uuid.UUID, error)
+	GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
 }
 
 func NewAuthService(
@@ -51,7 +52,7 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error {
+func (s *AuthService) VerifyOverlayId(channelId twitch.Id, overlayId uuid.UUID) error {
 	expectedId, err := s.channelRepo.GetOverlayId(channelId)
 	if err != nil {
 		return err

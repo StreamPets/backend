@@ -1,15 +1,15 @@
 package announcers
 
 import (
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 )
 
 type AnnouncerService struct {
 	announce      chan Announcement
 	newClients    chan Client
 	closedClients chan Client
-	totalClients  map[models.TwitchId](map[chan Announcement]bool)
+	totalClients  map[twitch.Id](map[chan Announcement]bool)
 }
 
 func NewAnnouncerService() *AnnouncerService {
@@ -17,7 +17,7 @@ func NewAnnouncerService() *AnnouncerService {
 		announce:      make(chan Announcement),
 		newClients:    make(chan Client),
 		closedClients: make(chan Client),
-		totalClients:  make(map[models.TwitchId]map[chan Announcement]bool),
+		totalClients:  make(map[twitch.Id]map[chan Announcement]bool),
 	}
 
 	go service.listen()
@@ -25,7 +25,7 @@ func NewAnnouncerService() *AnnouncerService {
 	return service
 }
 
-func (s *AnnouncerService) AddClient(channelId models.TwitchId) Client {
+func (s *AnnouncerService) AddClient(channelId twitch.Id) Client {
 	client := newClient(channelId)
 	s.newClients <- client
 	return client
@@ -35,19 +35,19 @@ func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelId models.TwitchId, pet services.Pet) {
+func (s *AnnouncerService) AnnounceJoin(channelId twitch.Id, pet services.Pet) {
 	s.announce <- joinAnnouncement(channelId, pet)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelId, userId models.TwitchId) {
+func (s *AnnouncerService) AnnouncePart(channelId, userId twitch.Id) {
 	s.announce <- partAnnouncement(channelId, userId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelId, userId models.TwitchId, action string) {
+func (s *AnnouncerService) AnnounceAction(channelId, userId twitch.Id, action string) {
 	s.announce <- actionAnnouncement(channelId, userId, action)
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelId, userId models.TwitchId, image string) {
+func (s *AnnouncerService) AnnounceUpdate(channelId, userId twitch.Id, image string) {
 	s.announce <- updateAnnouncement(channelId, userId, image)
 }
 

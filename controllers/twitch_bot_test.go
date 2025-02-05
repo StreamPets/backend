@@ -12,12 +12,13 @@ import (
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 )
 
 func TestAddUserToChannel(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(channelId, userId models.TwitchId, username string) *gin.Context {
+	setUpContext := func(channelId, userId twitch.Id, username string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -33,8 +34,8 @@ func TestAddUserToChannel(t *testing.T) {
 		return ctx
 	}
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 	username := "username"
 
 	pet := services.Pet{Username: username}
@@ -59,7 +60,7 @@ func TestAddUserToChannel(t *testing.T) {
 func TestRemoveUserFromChannel(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(channelId, userId models.TwitchId) *gin.Context {
+	setUpContext := func(channelId, userId twitch.Id) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -71,8 +72,8 @@ func TestRemoveUserFromChannel(t *testing.T) {
 		return ctx
 	}
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 
 	announcerMock := mock.Mock[Announcer]()
 	itemsMock := mock.Mock[ItemGetSetter]()
@@ -92,7 +93,7 @@ func TestRemoveUserFromChannel(t *testing.T) {
 func TestAction(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(channelId, userId models.TwitchId, action string) *gin.Context {
+	setUpContext := func(channelId, userId twitch.Id, action string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
@@ -105,8 +106,8 @@ func TestAction(t *testing.T) {
 		return ctx
 	}
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 	action := "action"
 
 	announcerMock := mock.Mock[Announcer]()
@@ -127,7 +128,7 @@ func TestAction(t *testing.T) {
 func TestUpdateUser(t *testing.T) {
 	mock.SetUp(t)
 
-	setUpContext := func(channelId, userId models.TwitchId, itemName string) *gin.Context {
+	setUpContext := func(channelId, userId twitch.Id, itemName string) *gin.Context {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -145,8 +146,8 @@ func TestUpdateUser(t *testing.T) {
 		return ctx
 	}
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 	itemName := "item name"
 
 	itemId := uuid.New()

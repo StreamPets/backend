@@ -1,17 +1,17 @@
 package announcers
 
 import (
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 )
 
 type announcer interface {
-	AddClient(channelId models.TwitchId) Client
+	AddClient(channelId twitch.Id) Client
 	RemoveClient(client Client)
-	AnnounceJoin(channelId models.TwitchId, pet services.Pet)
-	AnnouncePart(channelId, userId models.TwitchId)
-	AnnounceAction(channelId, userId models.TwitchId, action string)
-	AnnounceUpdate(channelId, userId models.TwitchId, image string)
+	AnnounceJoin(channelId twitch.Id, pet services.Pet)
+	AnnouncePart(channelId, userId twitch.Id)
+	AnnounceAction(channelId, userId twitch.Id, action string)
+	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
 
 type CachedAnnouncerService struct {
@@ -28,7 +28,7 @@ func NewCachedAnnouncerService(
 	}
 }
 
-func (s *CachedAnnouncerService) AddClient(channelId models.TwitchId) Client {
+func (s *CachedAnnouncerService) AddClient(channelId twitch.Id) Client {
 	client := s.announcer.AddClient(channelId)
 
 	go func() {
@@ -47,7 +47,7 @@ func (s *CachedAnnouncerService) RemoveClient(client Client) {
 	s.announcer.RemoveClient(client)
 }
 
-func (s *CachedAnnouncerService) AnnounceJoin(channelId models.TwitchId, pet services.Pet) {
+func (s *CachedAnnouncerService) AnnounceJoin(channelId twitch.Id, pet services.Pet) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		pets = make(petMap)
@@ -58,7 +58,7 @@ func (s *CachedAnnouncerService) AnnounceJoin(channelId models.TwitchId, pet ser
 	s.announcer.AnnounceJoin(channelId, pet)
 }
 
-func (s *CachedAnnouncerService) AnnouncePart(channelId, userId models.TwitchId) {
+func (s *CachedAnnouncerService) AnnouncePart(channelId, userId twitch.Id) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		return
@@ -68,11 +68,11 @@ func (s *CachedAnnouncerService) AnnouncePart(channelId, userId models.TwitchId)
 	s.announcer.AnnouncePart(channelId, userId)
 }
 
-func (s *CachedAnnouncerService) AnnounceAction(channelId, userId models.TwitchId, action string) {
+func (s *CachedAnnouncerService) AnnounceAction(channelId, userId twitch.Id, action string) {
 	s.announcer.AnnounceAction(channelId, userId, action)
 }
 
-func (s *CachedAnnouncerService) AnnounceUpdate(channelId, userId models.TwitchId, image string) {
+func (s *CachedAnnouncerService) AnnounceUpdate(channelId, userId twitch.Id, image string) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		return

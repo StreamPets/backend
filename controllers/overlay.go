@@ -7,16 +7,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
 )
 
 type clientAddRemover interface {
-	AddClient(channelId models.TwitchId) announcers.Client
+	AddClient(channelId twitch.Id) announcers.Client
 	RemoveClient(client announcers.Client)
 }
 
 type OverlayIdVerifier interface {
-	VerifyOverlayId(channelId models.TwitchId, overlayId uuid.UUID) error
+	VerifyOverlayId(channelId twitch.Id, overlayId uuid.UUID) error
 }
 
 type OverlayController struct {
@@ -35,7 +35,7 @@ func NewOverlayController(
 }
 
 func (c *OverlayController) HandleListen(ctx *gin.Context) {
-	channelId := models.TwitchId(ctx.Query(ChannelId))
+	channelId := twitch.Id(ctx.Query(ChannelId))
 	overlayId, err := uuid.Parse(ctx.Query(OverlayId))
 	if err != nil {
 		addErrorToCtx(err, ctx)

@@ -5,14 +5,15 @@ import (
 
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetUser(t *testing.T) {
 	mock.SetUp(t)
 
-	userId := models.TwitchId("user id")
-	channelId := models.TwitchId("channel id")
+	userId := twitch.Id("user id")
+	channelId := twitch.Id("channel id")
 	username := "username"
 	image := "image"
 	item := models.Item{Image: image}

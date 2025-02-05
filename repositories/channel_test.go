@@ -6,11 +6,12 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/test"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestGetOverlayId(t *testing.T) {
-	channelId := models.TwitchId("channel id")
+	channelId := twitch.Id("channel id")
 	overlayId := uuid.New()
 
 	channel := models.Channel{

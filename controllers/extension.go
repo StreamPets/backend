@@ -8,10 +8,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 )
 
 type UpdateAnnouncer interface {
-	AnnounceUpdate(channelId, userId models.TwitchId, image string)
+	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
 
 type TokenVerifier interface {
@@ -21,11 +22,11 @@ type TokenVerifier interface {
 
 type StoreService interface {
 	GetItemById(itemId uuid.UUID) (models.Item, error)
-	GetSelectedItem(userId, channelId models.TwitchId) (models.Item, error)
-	SetSelectedItem(userId, channelId models.TwitchId, itemId uuid.UUID) error
-	GetChannelsItems(channelId models.TwitchId) ([]models.Item, error)
-	GetOwnedItems(channelId, userId models.TwitchId) ([]models.Item, error)
-	AddOwnedItem(userId models.TwitchId, itemId, transactionId uuid.UUID) error
+	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
+	SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
+	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
+	GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
+	AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
 }
 
 type ExtensionController struct {

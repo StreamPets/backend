@@ -8,22 +8,21 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/twitch"
 )
 
 type userData struct {
-	OverlayId uuid.UUID       `json:"overlay_id"`
-	ChannelId models.TwitchId `json:"channel_id"`
+	OverlayId uuid.UUID `json:"overlay_id"`
+	ChannelId twitch.Id `json:"channel_id"`
 }
 
 type OverlayIdGetter interface {
-	GetOverlayId(channelId models.TwitchId) (overlayId uuid.UUID, err error)
+	GetOverlayId(channelId twitch.Id) (overlayId uuid.UUID, err error)
 }
 
 type TokenValidator interface {
-	ValidateToken(ctx context.Context, accessToken string) (response models.TwitchId, err error)
+	ValidateToken(ctx context.Context, accessToken string) (response twitch.Id, err error)
 }
 
 type DashboardController struct {

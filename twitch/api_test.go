@@ -7,14 +7,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/streampets/backend/models"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestValidateToken(t *testing.T) {
 	t.Run("user id retrieved when authorization token is valid", func(t *testing.T) {
 		mockResponse := `{"user_id":"12345"}`
-		expected := models.TwitchId("12345")
+		expected := Id("12345")
 
 		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			if r.Header.Get("Authorization") != "OAuth valid token" {

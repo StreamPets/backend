@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAddClient(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
+	channelId := twitch.Id("channel id")
 	expected := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
@@ -29,7 +29,7 @@ func TestAddClient(t *testing.T) {
 func TestRemoveClient(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
+	channelId := twitch.Id("channel id")
 	client := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
@@ -43,7 +43,7 @@ func TestRemoveClient(t *testing.T) {
 func TestAnnounceJoin(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
+	channelId := twitch.Id("channel id")
 
 	pet := services.Pet{}
 	client := newClient(channelId)
@@ -79,8 +79,8 @@ func TestAnnounceJoin(t *testing.T) {
 func TestAnnouncePart(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 
 	pet := services.Pet{UserId: userId}
 	client := newClient(channelId)
@@ -105,8 +105,8 @@ func TestAnnouncePart(t *testing.T) {
 func TestAnnounceAction(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 	action := "action"
 
 	announcerMock := mock.Mock[announcer]()
@@ -120,8 +120,8 @@ func TestAnnounceAction(t *testing.T) {
 func TestAnnounceUpdate(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
-	userId := models.TwitchId("user id")
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 	image := "image"
 	newImage := "new image"
 

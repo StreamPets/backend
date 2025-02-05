@@ -4,8 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/http"
-
-	"github.com/streampets/backend/models"
 )
 
 // A struct used to communicate with the Twitch Api.
@@ -27,10 +25,10 @@ func New(
 
 // Validates a Twitch user access token.
 // Returns ErrInvalidAccessToken if the access token is not valid.
-// Otherwise it returns the user id associated with the token.
-func (t *TwitchApi) ValidateToken(ctx context.Context, accessToken string) (models.TwitchId, error) {
+// Otherwise it returns the Twitch user id associated with the token.
+func (t *TwitchApi) ValidateToken(ctx context.Context, accessToken string) (Id, error) {
 	type validateResponse struct {
-		UserId models.TwitchId `json:"user_id"`
+		UserId Id `json:"user_id"`
 	}
 
 	url := t.baseUrl + "/oauth/validate"

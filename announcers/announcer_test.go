@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +15,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce join", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
+		channelId := twitch.Id("channel id")
 		pet := services.Pet{}
 
 		announcer := NewAnnouncerService()
@@ -50,8 +50,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce part", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel name")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel name")
+		userId := twitch.Id("user id")
 
 		announcer := NewAnnouncerService()
 
@@ -85,8 +85,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce action", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 		action := "action"
 
 		announcer := NewAnnouncerService()
@@ -121,8 +121,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce update", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := models.TwitchId("channel id")
-		userId := models.TwitchId("user id")
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
 		image := "image"
 
 		announcer := NewAnnouncerService()
@@ -154,7 +154,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 func TestRemoveClientWithAnnouncements(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := models.TwitchId("channel id")
+	channelId := twitch.Id("channel id")
 	pet := services.Pet{}
 
 	announcer := NewAnnouncerService()
@@ -186,8 +186,8 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	mock.SetUp(t)
 
-	channelOneId := models.TwitchId("channel one id")
-	channelTwoId := models.TwitchId("channel two id")
+	channelOneId := twitch.Id("channel one id")
+	channelTwoId := twitch.Id("channel two id")
 	pet := services.Pet{}
 
 	announcer := NewAnnouncerService()

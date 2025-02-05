@@ -2,9 +2,10 @@ package models
 
 import (
 	"github.com/google/uuid"
+	"github.com/streampets/backend/twitch"
 )
 
 type ChannelItem struct {
-	ChannelId TwitchId  `gorm:"primaryKey"`
+	ChannelId twitch.Id `gorm:"primaryKey"`
 	ItemId    uuid.UUID `gorm:"primaryKey;type:uuid"`
 }
