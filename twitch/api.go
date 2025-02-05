@@ -34,7 +34,7 @@ func (t *TwitchApi) ValidateToken(ctx context.Context, accessToken string) (mode
 	}
 
 	url := t.baseUrl + "/oauth/validate"
-	req, err := http.NewRequest("GET", url, nil)
+	req, err := http.NewRequestWithContext(ctx, "GET", url, nil)
 	if err != nil {
 		return "", err
 	}
