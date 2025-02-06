@@ -5,18 +5,21 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
 func RegisterRoutes(
 	r *gin.Engine,
-	overlay *controllers.OverlayController,
 	extension *controllers.ExtensionController,
 	twitchBot *controllers.TwitchBotController,
 	twitchApi *twitch.TwitchApi,
 	channelRepo *repositories.ChannelRepo,
+	announcer *announcers.CachedAnnouncerService,
+	auth *services.AuthService,
 ) {
 	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
@@ -29,7 +32,7 @@ func RegisterRoutes(
 		AllowCredentials: true,
 	}))
 
-	r.GET("/overlay/listen", overlay.HandleListen)
+	r.GET("/overlay/listen", handleListen(announcer, auth))
 
 	r.GET("/extension/user", extension.GetUserData)
 	r.GET("/extension/items", extension.GetStoreData)

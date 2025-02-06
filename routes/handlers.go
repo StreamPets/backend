@@ -2,8 +2,10 @@ package routes
 
 import (
 	"errors"
+	"io"
 	"log/slog"
 	"net/http"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -11,7 +13,7 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
-func handleLogin(tokens TokenValidator, overlays OverlayIdGetter) gin.HandlerFunc {
+func handleLogin(tokens tokenValidator, overlays overlayIdGetter) gin.HandlerFunc {
 	type userData struct {
 		OverlayId uuid.UUID `json:"overlay_id"`
 		ChannelId twitch.Id `json:"channel_id"`
@@ -57,6 +59,50 @@ func handleLogin(tokens TokenValidator, overlays OverlayIdGetter) gin.HandlerFun
 		ctx.JSON(http.StatusOK, userData{
 			OverlayId: overlayId,
 			ChannelId: userId,
+		})
+	}
+}
+
+func handleListen(announcer clientAddRemover, overlay overlayIdVerifier) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		channelId := twitch.Id(ctx.Query(ChannelId))
+		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
+		if err != nil {
+			slog.Debug("query param overlay id is not uuid type")
+			ctx.JSON(http.StatusUnauthorized, nil)
+			return
+		}
+
+		if err := overlay.VerifyOverlayId(channelId, overlayId); err != nil {
+			slog.Warn("unrecognised overlay id", "overlay id", overlayId)
+			ctx.JSON(http.StatusUnauthorized, nil)
+			return
+		}
+
+		client := announcer.AddClient(channelId)
+		defer func() {
+			go func() {
+				for range client.Stream {
+				}
+			}()
+			announcer.RemoveClient(client)
+		}()
+
+		ticker := time.NewTicker(60 * time.Second)
+		defer ticker.Stop()
+
+		ctx.Stream(func(w io.Writer) bool {
+			select {
+			case announcement, ok := <-client.Stream:
+				if ok {
+					ctx.SSEvent(announcement.Event, announcement.Message)
+					return true
+				}
+				return false
+			case <-ticker.C:
+				ctx.SSEvent("heartbeat", "ping")
+				return true
+			}
 		})
 	}
 }

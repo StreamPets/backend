@@ -39,18 +39,18 @@ func run() error {
 	items := services.NewItemService(itemRepo)
 	pets := services.NewPetService(items)
 
-	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
 	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
 	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
 
 	r := gin.Default()
 	routes.RegisterRoutes(
 		r,
-		overlay,
 		extension,
 		twitchBot,
 		twitchApi,
 		channels,
+		cachedAnnouncer,
+		auth,
 	)
 
 	return r.Run()

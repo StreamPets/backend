@@ -1,10 +1,20 @@
 package test
 
 import (
+	"net/http/httptest"
+
 	"github.com/streampets/backend/models"
 	"gorm.io/driver/sqlite"
 	"gorm.io/gorm"
 )
+
+type CloseNotifierResponseWriter struct {
+	*httptest.ResponseRecorder
+}
+
+func (c *CloseNotifierResponseWriter) CloseNotify() <-chan bool {
+	return make(<-chan bool)
+}
 
 func CreateTestDB() *gorm.DB {
 	db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
