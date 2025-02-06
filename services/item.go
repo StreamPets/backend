@@ -52,8 +52,7 @@ func (s *ItemService) GetSelectedItem(userId, channelId twitch.Id) (models.Item,
 	item, err := s.itemRepo.GetSelectedItem(userId, channelId)
 	if err == gorm.ErrRecordNotFound {
 		return s.itemRepo.GetDefaultItem(channelId)
-	}
-	if err != nil {
+	} else if err != nil {
 		return models.Item{}, err
 	}
 

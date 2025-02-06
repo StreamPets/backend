@@ -11,7 +11,6 @@ import (
 )
 
 type Announcer interface {
-	AnnounceJoin(channelId twitch.Id, pet services.Pet)
 	AnnouncePart(channelId, userId twitch.Id)
 	AnnounceAction(channelId, userId twitch.Id, action string)
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
@@ -42,29 +41,6 @@ func NewTwitchBotController(
 		Items:     items,
 		Pets:      pets,
 	}
-}
-
-func (c *TwitchBotController) AddPetToChannel(ctx *gin.Context) {
-	type Params struct {
-		UserId   twitch.Id `json:"user_id"`
-		Username string    `json:"username"`
-	}
-
-	var params Params
-	if err := ctx.ShouldBindJSON(&params); err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	channelId := twitch.Id(ctx.Param(ChannelId))
-	pet, err := c.Pets.GetPet(params.UserId, channelId, params.Username)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	c.Announcer.AnnounceJoin(channelId, pet)
-	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) RemoveUserFromChannel(ctx *gin.Context) {

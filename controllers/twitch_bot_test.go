@@ -11,51 +11,8 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
-
-func TestAddUserToChannel(t *testing.T) {
-	mock.SetUp(t)
-
-	setUpContext := func(channelId, userId twitch.Id, username string) *gin.Context {
-		gin.SetMode(gin.TestMode)
-
-		jsonData := []byte(fmt.Sprintf(`{
-			"user_id": "%s",
-			"username": "%s"
-		}`, userId, username))
-
-		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		req, _ := http.NewRequest("", "", bytes.NewBuffer(jsonData))
-		ctx.Params = gin.Params{{Key: ChannelId, Value: string(channelId)}}
-
-		ctx.Request = req
-		return ctx
-	}
-
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
-	username := "username"
-
-	pet := services.Pet{Username: username}
-
-	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetSetter]()
-	petsMock := mock.Mock[PetGetter]()
-
-	mock.When(petsMock.GetPet(userId, channelId, username)).ThenReturn(pet, nil)
-
-	controller := NewTwitchBotController(
-		announcerMock,
-		itemsMock,
-		petsMock,
-	)
-
-	controller.AddPetToChannel(setUpContext(channelId, userId, username))
-
-	mock.Verify(announcerMock, mock.Once()).AnnounceJoin(channelId, pet)
-}
 
 func TestRemoveUserFromChannel(t *testing.T) {
 	mock.SetUp(t)

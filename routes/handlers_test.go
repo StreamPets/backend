@@ -974,3 +974,83 @@ func TestSetSelectedItem(t *testing.T) {
 		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
 }
+
+func TestAddUserToChannel(t *testing.T) {
+
+	generateData := func(userId twitch.Id, username string) []byte {
+		return []byte(fmt.Sprintf(`{
+			"user_id": "%s",
+			"username": "%s"
+			}`, userId, username))
+	}
+
+	setUpContext := func(channelId twitch.Id, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("", "", bytes.NewBuffer(jsonData))
+		ctx.Params = gin.Params{{Key: ChannelId, Value: string(channelId)}}
+
+		ctx.Request = req
+		return ctx, recorder
+	}
+
+	t.Run("bad request when json has invalid format", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+
+		announcerMock := mock.Mock[joinAnnouncer]()
+		petsMock := mock.Mock[petGetter]()
+
+		jsonData := make([]byte, 0)
+		ctx, recorder := setUpContext(channelId, jsonData)
+		handleAddPetToChannel(announcerMock, petsMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(announcerMock)
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("internal server error when get pet fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		username := "username"
+
+		announcerMock := mock.Mock[joinAnnouncer]()
+		petsMock := mock.Mock[petGetter]()
+
+		mock.When(petsMock.GetPet(userId, channelId, username)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(userId, username)
+		ctx, recorder := setUpContext(channelId, jsonData)
+		handleAddPetToChannel(announcerMock, petsMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(announcerMock)
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("join announced and status no content", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		username := "username"
+
+		pet := services.Pet{Username: username}
+
+		announcerMock := mock.Mock[joinAnnouncer]()
+		petsMock := mock.Mock[petGetter]()
+
+		mock.When(petsMock.GetPet(userId, channelId, username)).ThenReturn(pet, nil)
+
+		jsonData := generateData(userId, username)
+		ctx, recorder := setUpContext(channelId, jsonData)
+		handleAddPetToChannel(announcerMock, petsMock)(ctx)
+
+		mock.Verify(announcerMock, mock.Once()).AnnounceJoin(channelId, pet)
+		assert.Equal(t, http.StatusNoContent, recorder.Code)
+	})
+}

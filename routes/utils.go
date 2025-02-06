@@ -96,11 +96,19 @@ type userDataGetter interface {
 	ownedItemsGetter
 }
 
+type joinAnnouncer interface {
+	AnnounceJoin(channelId twitch.Id, pet services.Pet)
+}
+
 type updateAnnouncer interface {
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
 
-func verifierTokenErrorHandler(ctx *gin.Context, err error) bool {
+type petGetter interface {
+	GetPet(userId, channelId twitch.Id, username string) (services.Pet, error)
+}
+
+func verifyExtTokenErrorHandler(ctx *gin.Context, err error) bool {
 	var e *services.ErrInvalidToken
 	if errors.As(err, &e) {
 		slog.Warn("invalid token", "token", e.TokenString)

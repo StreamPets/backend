@@ -102,7 +102,7 @@ func handleGetStoreData(
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
 		token, err := verifier.VerifyExtToken(tokenString)
-		if verifierTokenErrorHandler(ctx, err) {
+		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -131,7 +131,7 @@ func handleGetUserData(
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
 		token, err := verifier.VerifyExtToken(tokenString)
-		if verifierTokenErrorHandler(ctx, err) {
+		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -170,7 +170,7 @@ func handleBuyStoreItem(
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
 		token, err := verifier.VerifyExtToken(tokenString)
-		if verifierTokenErrorHandler(ctx, err) {
+		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -182,7 +182,7 @@ func handleBuyStoreItem(
 		}
 
 		receipt, err := verifier.VerifyReceipt(request.Receipt)
-		if verifierTokenErrorHandler(ctx, err) {
+		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -230,7 +230,7 @@ func handleSetSelectedItem(
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
 		token, err := verifier.VerifyExtToken(tokenString)
-		if verifierTokenErrorHandler(ctx, err) {
+		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -267,5 +267,37 @@ func handleSetSelectedItem(
 		}
 
 		announcer.AnnounceUpdate(token.ChannelId, token.UserId, item.Image)
+	}
+}
+
+func handleAddPetToChannel(
+	announcer joinAnnouncer,
+	pets petGetter,
+) gin.HandlerFunc {
+
+	type request struct {
+		UserId   twitch.Id `json:"user_id"`
+		Username string    `json:"username"`
+	}
+
+	return func(ctx *gin.Context) {
+		request := new(request)
+		err := ctx.ShouldBindJSON(request)
+		if err != nil {
+			slog.Error("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		channelId := twitch.Id(ctx.Param(ChannelId))
+		pet, err := pets.GetPet(request.UserId, channelId, request.Username)
+		if err != nil {
+			slog.Error("failed to retrieve pet", "user id", request.UserId, "channel id", channelId)
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		announcer.AnnounceJoin(channelId, pet)
+		ctx.JSON(http.StatusNoContent, nil)
 	}
 }

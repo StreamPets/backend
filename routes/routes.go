@@ -20,6 +20,7 @@ func RegisterRoutes(
 	announcer *announcers.CachedAnnouncerService,
 	auth *services.AuthService,
 	store *services.ItemService,
+	pets *services.PetService,
 ) {
 	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
@@ -41,7 +42,7 @@ func RegisterRoutes(
 
 	r.GET("/dashboard/login", handleLogin(twitchApi, channelRepo))
 
-	r.POST("/channels/:channelId/users", twitchBot.AddPetToChannel)
+	r.POST("/channels/:channelId/users", handleAddPetToChannel(announcer, pets))
 	r.DELETE("/channels/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
 	r.POST("/channels/:channelId/users/:userId/:action", twitchBot.Action)
 	r.PUT("/channels/:channelId/users/:userId", twitchBot.UpdateUser)

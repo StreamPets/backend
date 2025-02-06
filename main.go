@@ -50,6 +50,7 @@ func run() error {
 		cachedAnnouncer,
 		auth,
 		items,
+		pets,
 	)
 
 	return r.Run()
