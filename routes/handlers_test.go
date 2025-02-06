@@ -901,8 +901,9 @@ func TestSetSelectedItem(t *testing.T) {
 		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[bar]()
 
+		err := services.NewErrSelectUnownedItem(userId, channelId, itemId)
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(services.ErrSelectUnownedItem)
+		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
 
 		jsonData := generateData(itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
@@ -1085,7 +1086,6 @@ func TestRemoveUserFromChannel(t *testing.T) {
 }
 
 func TestAction(t *testing.T) {
-	mock.SetUp(t)
 
 	setUpContext := func(channelId, userId twitch.Id, action string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
@@ -1101,6 +1101,8 @@ func TestAction(t *testing.T) {
 		return ctx, recorder
 	}
 
+	mock.SetUp(t)
+
 	channelId := twitch.Id("channel id")
 	userId := twitch.Id("user id")
 	action := "action"
@@ -1112,4 +1114,136 @@ func TestAction(t *testing.T) {
 
 	mock.Verify(announcerMock, mock.Once()).AnnounceAction(channelId, userId, action)
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
+}
+
+func TestUpdateUser(t *testing.T) {
+
+	generateData := func(itemName string) []byte {
+		return []byte(fmt.Sprintf(`{
+			"item_name": "%s"
+		}`, itemName))
+	}
+
+	setUpContext := func(channelId, userId twitch.Id, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("PUT", "", bytes.NewBuffer(jsonData))
+		ctx.Params = gin.Params{
+			{Key: ChannelId, Value: string(channelId)},
+			{Key: UserId, Value: string(userId)},
+		}
+		ctx.Request = req
+
+		return ctx, recorder
+	}
+
+	t.Run("bad request when item not found", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		itemName := "item name"
+
+		announcerMock := mock.Mock[updateAnnouncer]()
+		storeMock := mock.Mock[baz]()
+
+		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(itemName)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
+		handleUpdate(announcerMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(announcerMock)
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("status forbidden when item not owned", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		itemName := "item name"
+
+		itemId := uuid.New()
+		image := "image"
+
+		item := models.Item{
+			ItemId: itemId,
+			Image:  image,
+		}
+
+		announcerMock := mock.Mock[updateAnnouncer]()
+		storeMock := mock.Mock[baz]()
+
+		err := services.NewErrSelectUnownedItem(userId, channelId, itemId)
+		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
+
+		jsonData := generateData(itemName)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
+		handleUpdate(announcerMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(announcerMock)
+		assert.Equal(t, http.StatusForbidden, recorder.Code)
+	})
+
+	t.Run("internal server error when set selected item fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		itemName := "item name"
+
+		itemId := uuid.New()
+		image := "image"
+
+		item := models.Item{
+			ItemId: itemId,
+			Image:  image,
+		}
+
+		announcerMock := mock.Mock[updateAnnouncer]()
+		storeMock := mock.Mock[baz]()
+
+		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(assert.AnError)
+
+		jsonData := generateData(itemName)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
+		handleUpdate(announcerMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(announcerMock)
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("status no content for regular case", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		itemName := "item name"
+
+		itemId := uuid.New()
+		image := "image"
+
+		item := models.Item{
+			ItemId: itemId,
+			Image:  image,
+		}
+
+		announcerMock := mock.Mock[updateAnnouncer]()
+		storeMock := mock.Mock[baz]()
+
+		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+
+		jsonData := generateData(itemName)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
+		handleUpdate(announcerMock, storeMock)(ctx)
+
+		mock.Verify(storeMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
+		mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelId, userId, image)
+		assert.Equal(t, http.StatusNoContent, recorder.Code)
+	})
 }

@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,7 +9,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -256,13 +254,7 @@ func handleSetSelectedItem(
 		}
 
 		err = store.SetSelectedItem(token.UserId, token.ChannelId, itemId)
-		if errors.Is(err, services.ErrSelectUnownedItem) {
-			slog.Error("user tried to select an item they did not own", "user id", token.UserId, "channel id", token.ChannelId, "item id", itemId)
-			ctx.JSON(http.StatusForbidden, nil)
-			return
-		} else if err != nil {
-			slog.Error("failed to select item", "user id", token.UserId, "channel id", token.ChannelId, "item id", itemId)
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if setSelectedItemErrorHandler(ctx, err) {
 			return
 		}
 
@@ -323,6 +315,43 @@ func handleAction(
 		action := ctx.Param(Action)
 
 		announcer.AnnounceAction(channelId, userId, action)
+		ctx.JSON(http.StatusNoContent, nil)
+	}
+}
+
+func handleUpdate(
+	announcer updateAnnouncer,
+	store baz,
+) gin.HandlerFunc {
+
+	type request struct {
+		ItemName string `json:"item_name"`
+	}
+
+	return func(ctx *gin.Context) {
+		request := new(request)
+		if err := ctx.ShouldBindJSON(request); err != nil {
+			slog.Warn("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		channelId := twitch.Id(ctx.Param(ChannelId))
+		userId := twitch.Id(ctx.Param(UserId))
+
+		item, err := store.GetItemByName(channelId, request.ItemName)
+		if err != nil {
+			slog.Warn("item could not be found", "item name", request.ItemName)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		err = store.SetSelectedItem(userId, channelId, item.ItemId)
+		if setSelectedItemErrorHandler(ctx, err) {
+			return
+		}
+
+		announcer.AnnounceUpdate(channelId, userId, item.Image)
 		ctx.JSON(http.StatusNoContent, nil)
 	}
 }

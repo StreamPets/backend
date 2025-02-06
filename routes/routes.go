@@ -6,7 +6,6 @@ import (
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
@@ -14,7 +13,6 @@ import (
 
 func RegisterRoutes(
 	r *gin.Engine,
-	twitchBot *controllers.TwitchBotController,
 	twitchApi *twitch.TwitchApi,
 	channelRepo *repositories.ChannelRepo,
 	announcer *announcers.CachedAnnouncerService,
@@ -45,5 +43,5 @@ func RegisterRoutes(
 	r.POST("/channels/:channelId/users", handleAddPetToChannel(announcer, pets))
 	r.DELETE("/channels/:channelId/users/:userId", handleRemoveUserFromChannel(announcer))
 	r.POST("/channels/:channelId/users/:userId/:action", handleAction(announcer))
-	r.PUT("/channels/:channelId/users/:userId", twitchBot.UpdateUser)
+	r.PUT("/channels/:channelId/users/:userId", handleUpdate(announcer, store))
 }

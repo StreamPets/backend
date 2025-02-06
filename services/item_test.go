@@ -104,7 +104,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		err := itemService.SetSelectedItem(userId, channelId, itemId)
 		if assert.Error(t, err) {
-			assert.Equal(t, ErrSelectUnownedItem, err)
+			assert.Equal(t, NewErrSelectUnownedItem(userId, channelId, itemId), err)
 		}
 	})
 }

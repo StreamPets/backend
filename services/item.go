@@ -1,15 +1,33 @@
 package services
 
 import (
-	"errors"
-
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/twitch"
 	"gorm.io/gorm"
 )
 
-var ErrSelectUnownedItem = errors.New("user tried to select an item they do not own")
+type ErrSelectUnownedItem struct {
+	UserId    twitch.Id
+	ChannelId twitch.Id
+	ItemId    uuid.UUID
+}
+
+func NewErrSelectUnownedItem(
+	UserId twitch.Id,
+	ChannelId twitch.Id,
+	ItemId uuid.UUID,
+) ErrSelectUnownedItem {
+	return ErrSelectUnownedItem{
+		UserId:    UserId,
+		ChannelId: ChannelId,
+		ItemId:    ItemId,
+	}
+}
+
+func (e ErrSelectUnownedItem) Error() string {
+	return "user tried to select an item they do not own"
+}
 
 type ItemRepository interface {
 	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
@@ -69,7 +87,7 @@ func (s *ItemService) SetSelectedItem(userId, channelId twitch.Id, itemId uuid.U
 	if defaultItem, err := s.itemRepo.GetDefaultItem(channelId); err != nil {
 		return err
 	} else if defaultItem.ItemId != itemId {
-		return ErrSelectUnownedItem
+		return NewErrSelectUnownedItem(userId, channelId, itemId)
 	}
 
 	return s.itemRepo.DeleteSelectedItem(userId, channelId)

@@ -9,7 +9,6 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/config"
-	"github.com/streampets/backend/controllers"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/routes"
 	"github.com/streampets/backend/services"
@@ -39,12 +38,9 @@ func run() error {
 	items := services.NewItemService(itemRepo)
 	pets := services.NewPetService(items)
 
-	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
-
 	r := gin.Default()
 	routes.RegisterRoutes(
 		r,
-		twitchBot,
 		twitchApi,
 		channels,
 		cachedAnnouncer,

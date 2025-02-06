@@ -64,7 +64,7 @@ type channelItemGetter interface {
 	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
 }
 
-type itemIdGetter interface {
+type itemByIdGetter interface {
 	GetItemById(itemId uuid.UUID) (models.Item, error)
 }
 
@@ -73,7 +73,7 @@ type ownedItemAdder interface {
 }
 
 type foo interface {
-	itemIdGetter
+	itemByIdGetter
 	ownedItemAdder
 }
 
@@ -82,7 +82,16 @@ type selectedItemSetter interface {
 }
 
 type bar interface {
-	itemIdGetter
+	itemByIdGetter
+	selectedItemSetter
+}
+
+type itemByNameGetter interface {
+	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
+}
+
+type baz interface {
+	itemByNameGetter
 	selectedItemSetter
 }
 
@@ -169,6 +178,27 @@ func authCookieErrorHandler(ctx *gin.Context, err error) bool {
 		// This should never happen since ctx.Cookie() only returns nil or http.ErrNoCookie.
 		// If this does occur, it might indicate a bug.
 		slog.Error("error when retrieving 'Authorization' cookie", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusForbidden if err is an ErrSelectUnownedItem.
+// Returns InternalServerError otherwise.
+//
+//	err := SetSelectedItem(...)
+//	if setSelectedItemErrorHandler(ctx, err) {
+//		return
+//	}
+func setSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
+	e := new(services.ErrSelectUnownedItem)
+	if errors.As(err, e) {
+		slog.Error("user tried to select an item they did not own", "user id", e.UserId, "channel id", e.ChannelId, "item id", e.ItemId)
+		ctx.JSON(http.StatusForbidden, nil)
+		return true
+	} else if err != nil {
+		slog.Error("failed to select item")
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}
