@@ -14,39 +14,6 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
-func TestRemoveUserFromChannel(t *testing.T) {
-	mock.SetUp(t)
-
-	setUpContext := func(channelId, userId twitch.Id) *gin.Context {
-		gin.SetMode(gin.TestMode)
-
-		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Params = gin.Params{
-			{Key: ChannelId, Value: string(channelId)},
-			{Key: UserId, Value: string(userId)},
-		}
-
-		return ctx
-	}
-
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
-
-	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetSetter]()
-	petsMock := mock.Mock[PetGetter]()
-
-	controller := NewTwitchBotController(
-		announcerMock,
-		itemsMock,
-		petsMock,
-	)
-
-	controller.RemoveUserFromChannel(setUpContext(channelId, userId))
-
-	mock.Verify(announcerMock, mock.Once()).AnnouncePart(channelId, userId)
-}
-
 func TestAction(t *testing.T) {
 	mock.SetUp(t)
 

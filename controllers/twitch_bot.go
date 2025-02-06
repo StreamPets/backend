@@ -11,7 +11,6 @@ import (
 )
 
 type Announcer interface {
-	AnnouncePart(channelId, userId twitch.Id)
 	AnnounceAction(channelId, userId twitch.Id, action string)
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
@@ -41,14 +40,6 @@ func NewTwitchBotController(
 		Items:     items,
 		Pets:      pets,
 	}
-}
-
-func (c *TwitchBotController) RemoveUserFromChannel(ctx *gin.Context) {
-	channelId := twitch.Id(ctx.Param(ChannelId))
-	userId := twitch.Id(ctx.Param(UserId))
-
-	c.Announcer.AnnouncePart(channelId, userId)
-	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) Action(ctx *gin.Context) {

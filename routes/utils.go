@@ -15,9 +15,11 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
+const XExtensionJwt string = "x-extension-jwt"
+
 const ChannelId string = "channelId"
 const OverlayId string = "overlayId"
-const XExtensionJwt string = "x-extension-jwt"
+const UserId string = "userId"
 
 type overlayIdGetter interface {
 	GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
@@ -98,6 +100,10 @@ type userDataGetter interface {
 
 type joinAnnouncer interface {
 	AnnounceJoin(channelId twitch.Id, pet services.Pet)
+}
+
+type partAnnouncer interface {
+	AnnouncePart(channelId, userId twitch.Id)
 }
 
 type updateAnnouncer interface {

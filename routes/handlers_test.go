@@ -1054,3 +1054,32 @@ func TestAddUserToChannel(t *testing.T) {
 		assert.Equal(t, http.StatusNoContent, recorder.Code)
 	})
 }
+
+func TestRemoveUserFromChannel(t *testing.T) {
+
+	setUpContext := func(channelId, userId twitch.Id) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		ctx.Params = gin.Params{
+			{Key: ChannelId, Value: string(channelId)},
+			{Key: UserId, Value: string(userId)},
+		}
+
+		return ctx, recorder
+	}
+
+	mock.SetUp(t)
+
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
+
+	announcerMock := mock.Mock[partAnnouncer]()
+
+	ctx, recorder := setUpContext(channelId, userId)
+	handleRemoveUserFromChannel(announcerMock)(ctx)
+
+	mock.Verify(announcerMock, mock.Once()).AnnouncePart(channelId, userId)
+	assert.Equal(t, http.StatusNoContent, recorder.Code)
+}

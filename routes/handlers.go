@@ -301,3 +301,15 @@ func handleAddPetToChannel(
 		ctx.JSON(http.StatusNoContent, nil)
 	}
 }
+
+func handleRemoveUserFromChannel(
+	announcer partAnnouncer,
+) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		channelId := twitch.Id(ctx.Param(ChannelId))
+		userId := twitch.Id(ctx.Param(UserId))
+
+		announcer.AnnouncePart(channelId, userId)
+		ctx.JSON(http.StatusNoContent, nil)
+	}
+}

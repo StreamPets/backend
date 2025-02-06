@@ -43,7 +43,7 @@ func RegisterRoutes(
 	r.GET("/dashboard/login", handleLogin(twitchApi, channelRepo))
 
 	r.POST("/channels/:channelId/users", handleAddPetToChannel(announcer, pets))
-	r.DELETE("/channels/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
+	r.DELETE("/channels/:channelId/users/:userId", handleRemoveUserFromChannel(announcer))
 	r.POST("/channels/:channelId/users/:userId/:action", twitchBot.Action)
 	r.PUT("/channels/:channelId/users/:userId", twitchBot.UpdateUser)
 }
