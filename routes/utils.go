@@ -46,3 +46,16 @@ type extTokenVerifier interface {
 type channelItemGetter interface {
 	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
 }
+
+type selectedItemGetter interface {
+	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
+}
+
+type ownedItemsGetter interface {
+	GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
+}
+
+type userDataGetter interface {
+	selectedItemGetter
+	ownedItemsGetter
+}

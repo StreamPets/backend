@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
@@ -141,5 +142,50 @@ func handleGetStoreData(
 		}
 
 		ctx.JSON(http.StatusOK, storeItems)
+	}
+}
+
+func handleGetUserData(
+	verifier extTokenVerifier,
+	store userDataGetter,
+) gin.HandlerFunc {
+
+	type response struct {
+		Selected models.Item   `json:"selected"`
+		Owned    []models.Item `json:"owned"`
+	}
+
+	return func(ctx *gin.Context) {
+		tokenString := ctx.GetHeader(XExtensionJwt)
+
+		token, err := verifier.VerifyExtToken(tokenString)
+		if err == services.ErrInvalidToken {
+			slog.Warn("invalid extension token", "token", tokenString)
+			ctx.JSON(http.StatusUnauthorized, nil)
+			return
+		} else if err != nil {
+			slog.Error("failed to validate token", "err", err.Error())
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		ownedItems, err := store.GetOwnedItems(token.ChannelId, token.UserId)
+		if err != nil {
+			slog.Error("failed to retrieve owned items")
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		selectedItem, err := store.GetSelectedItem(token.UserId, token.ChannelId)
+		if err != nil {
+			slog.Error("failed to retrieve selected item")
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, response{
+			Selected: selectedItem,
+			Owned:    ownedItems,
+		})
 	}
 }

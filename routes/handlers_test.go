@@ -334,3 +334,139 @@ func TestGetStoreData(t *testing.T) {
 		assert.Equal(t, storeItems, response)
 	})
 }
+
+func TestGetUserData(t *testing.T) {
+	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("GET", "/items", nil)
+
+		req.Header.Add(XExtensionJwt, tokenString)
+
+		ctx.Request = req
+		return ctx, recorder
+	}
+
+	t.Run("unauthorized when token is invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[userDataGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetUserData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
+	t.Run("internal server error when verify token fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[userDataGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetUserData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("internal server error when get owned items fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+
+		tokenString := "token string"
+		token := &services.ExtToken{
+			ChannelId: channelId,
+			UserId:    userId,
+		}
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[userDataGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(nil, assert.AnError)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetUserData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("internal server error when get selected item fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+
+		tokenString := "token string"
+		token := &services.ExtToken{
+			ChannelId: channelId,
+			UserId:    userId,
+		}
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[userDataGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(nil, assert.AnError)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetUserData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("status ok when all pre-requisites are met", func(t *testing.T) {
+		mock.SetUp(t)
+
+		type Response struct {
+			OwnedItems   []models.Item `json:"owned"`
+			SelectedItem models.Item   `json:"selected"`
+		}
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+
+		tokenString := "token string"
+		token := &services.ExtToken{
+			UserId:    userId,
+			ChannelId: channelId,
+		}
+
+		selectedItem := models.Item{ItemId: uuid.New()}
+		ownedItems := []models.Item{selectedItem}
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[userDataGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
+		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(selectedItem, nil)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetUserData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
+
+		var response Response
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Errorf("could not parse json response")
+		}
+
+		assert.Equal(t, response.OwnedItems, ownedItems)
+		assert.Equal(t, response.SelectedItem, selectedItem)
+	})
+}

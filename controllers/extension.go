@@ -2,7 +2,6 @@ package controllers
 
 import (
 	"errors"
-	"net/http"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
@@ -45,33 +44,6 @@ func NewExtensionController(
 		Verifier:  verifier,
 		Store:     store,
 	}
-}
-
-func (c *ExtensionController) GetUserData(ctx *gin.Context) {
-	tokenString := ctx.GetHeader(XExtensionJwt)
-
-	token, err := c.Verifier.VerifyExtToken(tokenString)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	ownedItems, err := c.Store.GetOwnedItems(token.ChannelId, token.UserId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	selectedItem, err := c.Store.GetSelectedItem(token.UserId, token.ChannelId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, gin.H{
-		"selected": selectedItem,
-		"owned":    ownedItems,
-	})
 }
 
 func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {

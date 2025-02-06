@@ -36,7 +36,7 @@ func RegisterRoutes(
 	r.GET("/overlay/listen", handleListen(announcer, auth))
 
 	r.GET("/extension/items", handleGetStoreData(auth, store))
-	r.GET("/extension/user", extension.GetUserData)
+	r.GET("/extension/user", handleGetUserData(auth, store))
 	r.POST("/extension/items", extension.BuyStoreItem)
 	r.PUT("/extension/items", extension.SetSelectedItem)
 
