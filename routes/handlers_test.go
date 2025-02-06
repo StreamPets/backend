@@ -1,7 +1,9 @@
 package routes
 
 import (
+	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"sync"
@@ -253,7 +255,7 @@ func TestGetStoreData(t *testing.T) {
 		verifierMock := mock.Mock[extTokenVerifier]()
 		storeMock := mock.Mock[channelItemGetter]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
 
 		ctx, recorder := setUpContext(tokenString)
 		handleGetStoreData(verifierMock, storeMock)(ctx)
@@ -357,7 +359,7 @@ func TestGetUserData(t *testing.T) {
 		verifierMock := mock.Mock[extTokenVerifier]()
 		storeMock := mock.Mock[userDataGetter]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
 
 		ctx, recorder := setUpContext(tokenString)
 		handleGetUserData(verifierMock, storeMock)(ctx)
@@ -468,5 +470,297 @@ func TestGetUserData(t *testing.T) {
 
 		assert.Equal(t, response.OwnedItems, ownedItems)
 		assert.Equal(t, response.SelectedItem, selectedItem)
+	})
+}
+
+func TestBuyStoreItem(t *testing.T) {
+
+	generateData := func(receipt, itemId string) []byte {
+		return []byte(fmt.Sprintf(`{
+			"receipt": "%s",
+			"item_id": "%s"
+		}`, receipt, itemId))
+	}
+
+	setUpContext := func(token string, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
+
+		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
+		req.Header.Add(XExtensionJwt, token)
+
+		ctx.Request = req
+		return ctx, recorder
+	}
+
+	t.Run("item not added when extension token is invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(storeMock)
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
+	t.Run("item not added when extension token cannot be validated", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(storeMock)
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("bad request when json is invalid format", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		ctx, recorder := setUpContext(tokenString, []byte{})
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(storeMock)
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("item not added when receipt is invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, services.NewErrInvalidToken(receiptString))
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(storeMock)
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
+	t.Run("item not added when receipt cannot be validated", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(storeMock)
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("item not added when item id is not a valid uuid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := "invalid id"
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		jsonData := generateData(receiptString, itemId)
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.VerifyNoMoreInteractions(storeMock)
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("item not added when item id does not exist", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.Verify(storeMock, mock.Once()).GetItemById(itemId)
+		mock.VerifyNoMoreInteractions(storeMock)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("item not added when receipt rarity and item rarity do not match", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		item := models.Item{
+			ItemId: itemId,
+			Rarity: models.Uncommon,
+		}
+
+		receipt := &services.Receipt{
+			Data: services.Data{
+				TransactionId: transactionId,
+				Product: services.Product{
+					Rarity: models.Common,
+				},
+			},
+		}
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.Verify(storeMock, mock.Once()).GetItemById(itemId)
+		mock.VerifyNoMoreInteractions(storeMock)
+
+		assert.Equal(t, http.StatusForbidden, recorder.Code)
+	})
+
+	t.Run("internal server error when add owned item fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		userId := twitch.Id("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		token := &services.ExtToken{
+			UserId: userId,
+		}
+
+		receipt := &services.Receipt{
+			Data: services.Data{
+				TransactionId: transactionId,
+				Product: services.Product{
+					Rarity: models.Common,
+				},
+			},
+		}
+
+		item := models.Item{
+			ItemId: itemId,
+			Rarity: models.Common,
+		}
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+		mock.When(storeMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(assert.AnError)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("item added when all pre-requisites are met", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		userId := twitch.Id("user id")
+
+		itemId := uuid.New()
+		transactionId := uuid.New()
+
+		token := &services.ExtToken{
+			UserId: userId,
+		}
+
+		receipt := &services.Receipt{
+			Data: services.Data{
+				TransactionId: transactionId,
+				Product: services.Product{
+					Rarity: models.Common,
+				},
+			},
+		}
+
+		item := models.Item{
+			ItemId: itemId,
+			Rarity: models.Common,
+		}
+
+		verifierMock := mock.Mock[tokenVerifier]()
+		storeMock := mock.Mock[foo]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+
+		mock.Verify(storeMock, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+		assert.Equal(t, http.StatusNoContent, recorder.Code)
 	})
 }

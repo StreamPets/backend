@@ -11,7 +11,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
-	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -124,13 +123,7 @@ func handleGetStoreData(
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
 		token, err := verifier.VerifyExtToken(tokenString)
-		if err == services.ErrInvalidToken {
-			slog.Warn("invalid extension token", "token", tokenString)
-			ctx.JSON(http.StatusUnauthorized, nil)
-			return
-		} else if err != nil {
-			slog.Error("failed to validate token", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if verifierTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -159,13 +152,7 @@ func handleGetUserData(
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
 		token, err := verifier.VerifyExtToken(tokenString)
-		if err == services.ErrInvalidToken {
-			slog.Warn("invalid extension token", "token", tokenString)
-			ctx.JSON(http.StatusUnauthorized, nil)
-			return
-		} else if err != nil {
-			slog.Error("failed to validate token", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if verifierTokenErrorHandler(ctx, err) {
 			return
 		}
 
@@ -187,5 +174,65 @@ func handleGetUserData(
 			Selected: selectedItem,
 			Owned:    ownedItems,
 		})
+	}
+}
+
+func handleBuyStoreItem(
+	verifier tokenVerifier,
+	store foo,
+) gin.HandlerFunc {
+
+	type request struct {
+		Receipt string `json:"receipt"`
+		ItemId  string `json:"item_id"`
+	}
+
+	return func(ctx *gin.Context) {
+		tokenString := ctx.GetHeader(XExtensionJwt)
+
+		token, err := verifier.VerifyExtToken(tokenString)
+		if verifierTokenErrorHandler(ctx, err) {
+			return
+		}
+
+		var request request
+		if err := ctx.ShouldBindJSON(&request); err != nil {
+			slog.Error("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		receipt, err := verifier.VerifyReceipt(request.Receipt)
+		if verifierTokenErrorHandler(ctx, err) {
+			return
+		}
+
+		itemId, err := uuid.Parse(request.ItemId)
+		if err != nil {
+			slog.Error("failed to parse item id", "item id", request.ItemId)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		item, err := store.GetItemById(itemId)
+		if err != nil {
+			slog.Error("failed to retrieve item", "item id", itemId)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		if item.Rarity != receipt.Data.Product.Rarity {
+			slog.Error("receipt and item rarity do not match")
+			ctx.JSON(http.StatusForbidden, nil)
+			return
+		}
+
+		if err := store.AddOwnedItem(token.UserId, itemId, receipt.Data.TransactionId); err != nil {
+			slog.Error("failed to add owned item", "user id", token.UserId, "item id", itemId, "channel id", token.ChannelId)
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		ctx.JSON(http.StatusNoContent, nil)
 	}
 }

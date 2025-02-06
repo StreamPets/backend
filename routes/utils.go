@@ -2,7 +2,11 @@ package routes
 
 import (
 	"context"
+	"errors"
+	"log/slog"
+	"net/http"
 
+	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/models"
@@ -43,8 +47,30 @@ type extTokenVerifier interface {
 	VerifyExtToken(tokenString string) (*services.ExtToken, error)
 }
 
+type receiptVerifier interface {
+	VerifyReceipt(receiptString string) (*services.Receipt, error)
+}
+
+type tokenVerifier interface {
+	extTokenVerifier
+	receiptVerifier
+}
+
 type channelItemGetter interface {
 	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
+}
+
+type itemIdGetter interface {
+	GetItemById(itemId uuid.UUID) (models.Item, error)
+}
+
+type ownedItemAdder interface {
+	AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
+}
+
+type foo interface {
+	itemIdGetter
+	ownedItemAdder
 }
 
 type selectedItemGetter interface {
@@ -58,4 +84,18 @@ type ownedItemsGetter interface {
 type userDataGetter interface {
 	selectedItemGetter
 	ownedItemsGetter
+}
+
+func verifierTokenErrorHandler(ctx *gin.Context, err error) bool {
+	var e *services.ErrInvalidToken
+	if errors.As(err, &e) {
+		slog.Warn("invalid token", "token", e.TokenString)
+		ctx.JSON(http.StatusUnauthorized, nil)
+		return true
+	} else if err != nil {
+		slog.Error("failed to validate token", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
 }

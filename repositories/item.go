@@ -64,27 +64,23 @@ func (repo *itemRepository) GetOwnedItems(channelId, userId twitch.Id) ([]models
 
 func (repo *itemRepository) AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error {
 	var channelItem models.ChannelItem
-	result := repo.db.Where("item_id = ?", itemId).Find(&channelItem)
-	if result.Error != nil {
+	if result := repo.db.Where("item_id = ?", itemId).Find(&channelItem); result.Error != nil {
 		return result.Error
 	}
 
-	result = repo.db.Create(&models.OwnedItem{
+	return repo.db.Create(&models.OwnedItem{
 		UserId:        userId,
 		ChannelId:     channelItem.ChannelId,
 		ItemId:        itemId,
 		TransactionId: transactionId,
-	})
-
-	return result.Error
+	}).Error
 }
 
 func (repo *itemRepository) CheckOwnedItem(userId twitch.Id, itemId uuid.UUID) (bool, error) {
 	result := repo.db.Where("user_id = ? AND item_id = ?", userId, itemId).First(&models.OwnedItem{})
 	if result.Error == gorm.ErrRecordNotFound {
 		return false, nil
-	}
-	if result.Error != nil {
+	} else if result.Error != nil {
 		return false, result.Error
 	}
 

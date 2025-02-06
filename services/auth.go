@@ -11,7 +11,18 @@ import (
 
 var ErrIdMismatch = errors.New("channel id and overlay id do not match")
 var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
-var ErrInvalidToken = errors.New("token is not valid")
+
+type ErrInvalidToken struct {
+	TokenString string
+}
+
+func NewErrInvalidToken(tokenString string) *ErrInvalidToken {
+	return &ErrInvalidToken{TokenString: tokenString}
+}
+
+func (e *ErrInvalidToken) Error() string {
+	return "token is not valid"
+}
 
 type ExtToken struct {
 	ChannelId twitch.Id `json:"channel_id"`
@@ -73,7 +84,7 @@ func (s *AuthService) VerifyExtToken(tokenString string) (*ExtToken, error) {
 
 	claims, ok := token.Claims.(*ExtToken)
 	if !ok || !token.Valid {
-		return nil, ErrInvalidToken
+		return nil, NewErrInvalidToken(tokenString)
 	}
 
 	return claims, nil
@@ -87,7 +98,7 @@ func (s *AuthService) VerifyReceipt(tokenString string) (*Receipt, error) {
 
 	claims, ok := token.Claims.(*Receipt)
 	if !ok || !token.Valid {
-		return nil, ErrInvalidToken
+		return nil, NewErrInvalidToken(tokenString)
 	}
 
 	return claims, nil

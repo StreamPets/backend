@@ -1,8 +1,6 @@
 package controllers
 
 import (
-	"errors"
-
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
@@ -43,54 +41,6 @@ func NewExtensionController(
 		Announcer: announcer,
 		Verifier:  verifier,
 		Store:     store,
-	}
-}
-
-func (c *ExtensionController) BuyStoreItem(ctx *gin.Context) {
-	type Params struct {
-		Receipt string `json:"receipt"`
-		ItemId  string `json:"item_id"`
-	}
-
-	tokenString := ctx.GetHeader(XExtensionJwt)
-	token, err := c.Verifier.VerifyExtToken(tokenString)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	var params Params
-	if err := ctx.ShouldBindJSON(&params); err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	receipt, err := c.Verifier.VerifyReceipt(params.Receipt)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	itemId, err := uuid.Parse(params.ItemId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	item, err := c.Store.GetItemById(itemId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	if item.Rarity != receipt.Data.Product.Rarity {
-		addErrorToCtx(errors.New("receipt and item rarity do not match"), ctx)
-		return
-	}
-
-	if err := c.Store.AddOwnedItem(token.UserId, itemId, receipt.Data.TransactionId); err != nil {
-		addErrorToCtx(err, ctx)
-		return
 	}
 }
 
