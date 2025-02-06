@@ -10,6 +10,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
@@ -73,6 +74,15 @@ type foo interface {
 	ownedItemAdder
 }
 
+type selectedItemSetter interface {
+	SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
+}
+
+type bar interface {
+	itemIdGetter
+	selectedItemSetter
+}
+
 type selectedItemGetter interface {
 	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
 }
@@ -86,6 +96,10 @@ type userDataGetter interface {
 	ownedItemsGetter
 }
 
+type updateAnnouncer interface {
+	AnnounceUpdate(channelId, userId twitch.Id, image string)
+}
+
 func verifierTokenErrorHandler(ctx *gin.Context, err error) bool {
 	var e *services.ErrInvalidToken
 	if errors.As(err, &e) {
@@ -94,6 +108,48 @@ func verifierTokenErrorHandler(ctx *gin.Context, err error) bool {
 		return true
 	} else if err != nil {
 		slog.Error("failed to validate token", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+func validateTokenErrorHandler(ctx *gin.Context, err error) bool {
+	if err == twitch.ErrInvalidUserToken {
+		slog.Debug("invalid access token in header")
+		ctx.JSON(http.StatusUnauthorized, nil)
+		return true
+	} else if err != nil {
+		slog.Error("error when validating access token", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+func getOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
+	var e *repositories.ErrNoOverlayId
+	if errors.As(err, &e) {
+		slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
+		ctx.JSON(http.StatusBadRequest, nil)
+		return true
+	} else if err != nil {
+		slog.Error("error when getting overlay url", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+func authCookieErrorHandler(ctx *gin.Context, err error) bool {
+	if err == http.ErrNoCookie {
+		slog.Debug("no 'Authorization' cookie present")
+		ctx.JSON(http.StatusUnauthorized, nil)
+		return true
+	} else if err != nil {
+		// This should never happen since ctx.Cookie() only returns nil or http.ErrNoCookie.
+		// If this does occur, it might indicate a bug.
+		slog.Error("error when retrieving 'Authorization' cookie", "err", err.Error())
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}

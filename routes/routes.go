@@ -14,7 +14,6 @@ import (
 
 func RegisterRoutes(
 	r *gin.Engine,
-	extension *controllers.ExtensionController,
 	twitchBot *controllers.TwitchBotController,
 	twitchApi *twitch.TwitchApi,
 	channelRepo *repositories.ChannelRepo,
@@ -38,7 +37,7 @@ func RegisterRoutes(
 	r.GET("/extension/items", handleGetStoreData(auth, store))
 	r.GET("/extension/user", handleGetUserData(auth, store))
 	r.POST("/extension/items", handleBuyStoreItem(auth, store))
-	r.PUT("/extension/items", extension.SetSelectedItem)
+	r.PUT("/extension/items", handleSetSelectedItem(announcer, auth, store))
 
 	r.GET("/dashboard/login", handleLogin(twitchApi, channelRepo))
 

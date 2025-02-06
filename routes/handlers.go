@@ -10,7 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -26,38 +26,17 @@ func handleLogin(
 
 	return func(ctx *gin.Context) {
 		token, err := ctx.Cookie("Authorization")
-		if err == http.ErrNoCookie {
-			slog.Debug("no 'Authorization' cookie present")
-			ctx.JSON(http.StatusUnauthorized, nil)
-			return
-		} else if err != nil {
-			// This should never happen since ctx.Cookie() only returns nil or http.ErrNoCookie.
-			// If this does occur, it might indicate a bug.
-			slog.Error("error when retrieving 'Authorization' cookie", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if authCookieErrorHandler(ctx, err) {
 			return
 		}
 
 		userId, err := tokens.ValidateToken(ctx, token)
-		if err == twitch.ErrInvalidUserToken {
-			slog.Debug("invalid access token in header")
-			ctx.JSON(http.StatusUnauthorized, nil)
-			return
-		} else if err != nil {
-			slog.Error("error when validating access token", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if validateTokenErrorHandler(ctx, err) {
 			return
 		}
 
 		overlayId, err := overlays.GetOverlayId(userId)
-		var e *repositories.ErrNoOverlayId
-		if errors.As(err, &e) {
-			slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
-			ctx.JSON(http.StatusBadRequest, nil)
-			return
-		} else if err != nil {
-			slog.Error("error when getting overlay url", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if getOverlayIdErrorHandler(ctx, err) {
 			return
 		}
 
@@ -195,8 +174,8 @@ func handleBuyStoreItem(
 			return
 		}
 
-		var request request
-		if err := ctx.ShouldBindJSON(&request); err != nil {
+		request := new(request)
+		if err = ctx.ShouldBindJSON(request); err != nil {
 			slog.Error("failed to bind json")
 			ctx.JSON(http.StatusBadRequest, nil)
 			return
@@ -234,5 +213,59 @@ func handleBuyStoreItem(
 		}
 
 		ctx.JSON(http.StatusNoContent, nil)
+	}
+}
+
+func handleSetSelectedItem(
+	announcer updateAnnouncer,
+	verifier extTokenVerifier,
+	store bar,
+) gin.HandlerFunc {
+
+	type request struct {
+		ItemId string `json:"item_id"`
+	}
+
+	return func(ctx *gin.Context) {
+		tokenString := ctx.GetHeader(XExtensionJwt)
+
+		token, err := verifier.VerifyExtToken(tokenString)
+		if verifierTokenErrorHandler(ctx, err) {
+			return
+		}
+
+		request := new(request)
+		if err = ctx.ShouldBindJSON(request); err != nil {
+			slog.Error("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		itemId, err := uuid.Parse(request.ItemId)
+		if err != nil {
+			slog.Error("failed to parse item id", "item id", request.ItemId)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		item, err := store.GetItemById(itemId)
+		if err != nil {
+			slog.Error("failed to retrieve item", "item id", itemId)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		err = store.SetSelectedItem(token.UserId, token.ChannelId, itemId)
+		if errors.Is(err, services.ErrSelectUnownedItem) {
+			slog.Error("user tried to select an item they did not own", "user id", token.UserId, "channel id", token.ChannelId, "item id", itemId)
+			ctx.JSON(http.StatusForbidden, nil)
+			return
+		} else if err != nil {
+			slog.Error("failed to select item", "user id", token.UserId, "channel id", token.ChannelId, "item id", itemId)
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		announcer.AnnounceUpdate(token.ChannelId, token.UserId, item.Image)
 	}
 }
