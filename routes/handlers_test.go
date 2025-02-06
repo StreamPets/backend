@@ -11,6 +11,7 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/announcers"
+	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/test"
@@ -183,7 +184,7 @@ func TestHandleListen(t *testing.T) {
 		client := announcers.Client{Stream: stream}
 
 		announcerMock := mock.Mock[clientAddRemover]()
-		authMock := mock.Mock[overlayIdVerifier]()
+		authMock := mock.Mock[overlayIdValidator]()
 
 		mock.When(announcerMock.AddClient(channelId)).ThenReturn(client)
 
@@ -203,7 +204,7 @@ func TestHandleListen(t *testing.T) {
 		close(stream)
 		wg.Wait()
 
-		mock.Verify(authMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
+		mock.Verify(authMock, mock.Once()).ValidateOverlayId(channelId, overlayId)
 		mock.Verify(announcerMock, mock.Once()).AddClient(channelId)
 		mock.Verify(announcerMock, mock.Once()).RemoveClient(client)
 
@@ -217,15 +218,119 @@ func TestHandleListen(t *testing.T) {
 		ctx, recorder := setUpContext(channelId, overlayId)
 
 		announcerMock := mock.Mock[clientAddRemover]()
-		authMock := mock.Mock[overlayIdVerifier]()
+		authMock := mock.Mock[overlayIdValidator]()
 
-		mock.When(authMock.VerifyOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
+		mock.When(authMock.ValidateOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
 
 		handleListen(announcerMock, authMock)(ctx)
 
-		mock.Verify(authMock, mock.Once()).VerifyOverlayId(channelId, overlayId)
+		mock.Verify(authMock, mock.Once()).ValidateOverlayId(channelId, overlayId)
 		mock.Verify(announcerMock, mock.Never()).AddClient(channelId)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+}
+
+func TestGetStoreData(t *testing.T) {
+	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
+		gin.SetMode(gin.TestMode)
+
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		req, _ := http.NewRequest("GET", "/items", nil)
+
+		req.Header.Add(XExtensionJwt, tokenString)
+
+		ctx.Request = req
+		return ctx, recorder
+	}
+
+	t.Run("access forbidden with invalid extension token", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "invalid token"
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[channelItemGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetStoreData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
+	t.Run("internal server error when error received from verify token", func(t *testing.T) {
+		mock.SetUp(t)
+
+		tokenString := "invalid token"
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[channelItemGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetStoreData(verifierMock, storeMock)(ctx)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("internal server error when error received from get channels items", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		tokenString := "token string"
+		token := services.ExtToken{ChannelId: channelId, UserId: userId}
+
+		storeItems := []models.Item{{}, {}}
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[channelItemGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, assert.AnError)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetStoreData(verifierMock, storeMock)(ctx)
+
+		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
+	})
+
+	t.Run("items returned when extension token and channel id are valid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		tokenString := "token string"
+		token := services.ExtToken{ChannelId: channelId, UserId: userId}
+
+		storeItems := []models.Item{{}, {}}
+
+		verifierMock := mock.Mock[extTokenVerifier]()
+		storeMock := mock.Mock[channelItemGetter]()
+
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
+
+		ctx, recorder := setUpContext(tokenString)
+		handleGetStoreData(verifierMock, storeMock)(ctx)
+
+		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
+
+		assert.Equal(t, recorder.Code, http.StatusOK)
+
+		var response []models.Item
+		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
+			t.Errorf("could not parse json response")
+		}
+
+		assert.Equal(t, storeItems, response)
 	})
 }

@@ -10,10 +10,15 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
-func handleLogin(tokens tokenValidator, overlays overlayIdGetter) gin.HandlerFunc {
+func handleLogin(
+	tokens tokenValidator,
+	overlays overlayIdGetter,
+) gin.HandlerFunc {
+
 	type userData struct {
 		OverlayId uuid.UUID `json:"overlay_id"`
 		ChannelId twitch.Id `json:"channel_id"`
@@ -63,7 +68,10 @@ func handleLogin(tokens tokenValidator, overlays overlayIdGetter) gin.HandlerFun
 	}
 }
 
-func handleListen(announcer clientAddRemover, overlay overlayIdVerifier) gin.HandlerFunc {
+func handleListen(
+	announcer clientAddRemover,
+	overlay overlayIdValidator,
+) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		channelId := twitch.Id(ctx.Query(ChannelId))
 		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
@@ -73,7 +81,7 @@ func handleListen(announcer clientAddRemover, overlay overlayIdVerifier) gin.Han
 			return
 		}
 
-		if err := overlay.VerifyOverlayId(channelId, overlayId); err != nil {
+		if err := overlay.ValidateOverlayId(channelId, overlayId); err != nil {
 			slog.Warn("unrecognised overlay id", "overlay id", overlayId)
 			ctx.JSON(http.StatusUnauthorized, nil)
 			return
@@ -104,5 +112,34 @@ func handleListen(announcer clientAddRemover, overlay overlayIdVerifier) gin.Han
 				return true
 			}
 		})
+	}
+}
+
+func handleGetStoreData(
+	verifier extTokenVerifier,
+	store channelItemGetter,
+) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		tokenString := ctx.GetHeader(XExtensionJwt)
+
+		token, err := verifier.VerifyExtToken(tokenString)
+		if err == services.ErrInvalidToken {
+			slog.Warn("invalid extension token", "token", tokenString)
+			ctx.JSON(http.StatusUnauthorized, nil)
+			return
+		} else if err != nil {
+			slog.Error("failed to validate token", "err", err.Error())
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		storeItems, err := store.GetChannelsItems(token.ChannelId)
+		if err != nil {
+			slog.Error("failed to retrieve channels items", "channel id", token.ChannelId)
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		}
+
+		ctx.JSON(http.StatusOK, storeItems)
 	}
 }

@@ -20,6 +20,7 @@ func RegisterRoutes(
 	channelRepo *repositories.ChannelRepo,
 	announcer *announcers.CachedAnnouncerService,
 	auth *services.AuthService,
+	store *services.ItemService,
 ) {
 	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
@@ -34,8 +35,8 @@ func RegisterRoutes(
 
 	r.GET("/overlay/listen", handleListen(announcer, auth))
 
+	r.GET("/extension/items", handleGetStoreData(auth, store))
 	r.GET("/extension/user", extension.GetUserData)
-	r.GET("/extension/items", extension.GetStoreData)
 	r.POST("/extension/items", extension.BuyStoreItem)
 	r.PUT("/extension/items", extension.SetSelectedItem)
 

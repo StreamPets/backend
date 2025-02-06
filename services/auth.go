@@ -52,7 +52,7 @@ func NewAuthService(
 	}
 }
 
-func (s *AuthService) VerifyOverlayId(channelId twitch.Id, overlayId uuid.UUID) error {
+func (s *AuthService) ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID) error {
 	expectedId, err := s.channelRepo.GetOverlayId(channelId)
 	if err != nil {
 		return err

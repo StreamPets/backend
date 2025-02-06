@@ -51,6 +51,7 @@ func run() error {
 		channels,
 		cachedAnnouncer,
 		auth,
+		items,
 	)
 
 	return r.Run()

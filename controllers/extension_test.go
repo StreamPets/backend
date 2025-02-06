@@ -3,7 +3,6 @@ package controllers
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -18,113 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var ErrTestError error = errors.New("this is a test error")
-
-func TestGetStoreData(t *testing.T) {
-	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
-		gin.SetMode(gin.TestMode)
-
-		recorder := httptest.NewRecorder()
-		ctx, _ := gin.CreateTestContext(recorder)
-		req, _ := http.NewRequest("GET", "/items", nil)
-
-		req.Header.Add("x-extension-jwt", tokenString)
-
-		ctx.Request = req
-		return ctx, recorder
-	}
-
-	t.Run("access forbidden with invalid extension token", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "invalid token"
-
-		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
-		storeMock := mock.Mock[StoreService]()
-
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
-
-		controller := NewExtensionController(
-			announcerMock,
-			verifierMock,
-			storeMock,
-		)
-
-		ctx, recorder := setUpContext(tokenString)
-		controller.GetStoreData(ctx)
-
-		assert.NotEqual(t, recorder.Code, http.StatusOK)
-	})
-
-	t.Run("not found with invalid channel id", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "extension token"
-		channelId := twitch.Id("channel id")
-
-		token := &services.ExtToken{
-			ChannelId: channelId,
-		}
-
-		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
-		storeMock := mock.Mock[StoreService]()
-
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(nil, ErrTestError)
-
-		controller := NewExtensionController(
-			announcerMock,
-			verifierMock,
-			storeMock,
-		)
-
-		ctx, recorder := setUpContext(tokenString)
-		controller.GetStoreData(ctx)
-
-		assert.NotEqual(t, recorder.Code, http.StatusOK)
-	})
-
-	t.Run("items returned when extension token and channel id are valid", func(t *testing.T) {
-		mock.SetUp(t)
-
-		channelId := twitch.Id("channel id")
-		userId := twitch.Id("user id")
-		tokenString := "token string"
-		token := services.ExtToken{ChannelId: channelId, UserId: userId}
-
-		storeItems := []models.Item{{}, {}}
-
-		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
-		storeMock := mock.Mock[StoreService]()
-
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
-
-		controller := NewExtensionController(
-			announcerMock,
-			verifierMock,
-			storeMock,
-		)
-
-		ctx, recorder := setUpContext(tokenString)
-		controller.GetStoreData(ctx)
-
-		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
-
-		assert.Equal(t, recorder.Code, http.StatusOK)
-
-		var response []models.Item
-		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
-			t.Errorf("could not parse json response")
-		}
-
-		assert.Equal(t, storeItems, response)
-	})
-}
+// var ErrTestError error = errors.New("this is a test error")
 
 func TestGetUserData(t *testing.T) {
 	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
@@ -146,7 +39,7 @@ func TestGetUserData(t *testing.T) {
 		tokenString := "token string"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
@@ -176,11 +69,11 @@ func TestGetUserData(t *testing.T) {
 		}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(nil, ErrTestError)
+		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(nil, assert.AnError)
 
 		extController := NewExtensionController(
 			announcerMock,
@@ -207,11 +100,11 @@ func TestGetUserData(t *testing.T) {
 		}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(nil, ErrTestError)
+		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(nil, assert.AnError)
 
 		extController := NewExtensionController(
 			announcerMock,
@@ -246,7 +139,7 @@ func TestGetUserData(t *testing.T) {
 		ownedItems := []models.Item{selectedItem}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
@@ -303,7 +196,7 @@ func TestBuyStoreItem(t *testing.T) {
 		receiptString := "receipt string"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.ErrInvalidToken)
@@ -328,7 +221,7 @@ func TestBuyStoreItem(t *testing.T) {
 		receiptString := "receipt string"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		extController := NewExtensionController(
@@ -352,10 +245,10 @@ func TestBuyStoreItem(t *testing.T) {
 		receiptString := "receipt string"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, ErrTestError)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
 
 		extController := NewExtensionController(
 			announcerMock,
@@ -380,7 +273,7 @@ func TestBuyStoreItem(t *testing.T) {
 		receiptString := "receipt string"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, services.ErrInvalidToken)
@@ -422,7 +315,7 @@ func TestBuyStoreItem(t *testing.T) {
 		}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
@@ -469,7 +362,7 @@ func TestBuyStoreItem(t *testing.T) {
 		}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
@@ -517,10 +410,10 @@ func TestSetSelectedItem(t *testing.T) {
 		itemId := uuid.New()
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, ErrTestError)
+		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
 
 		controller := NewExtensionController(
 			announcerMock,
@@ -544,7 +437,7 @@ func TestSetSelectedItem(t *testing.T) {
 		itemId := "invalid id"
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		controller := NewExtensionController(
@@ -569,10 +462,10 @@ func TestSetSelectedItem(t *testing.T) {
 		itemId := uuid.New()
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, ErrTestError)
+		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
 
 		controller := NewExtensionController(
 			announcerMock,
@@ -601,11 +494,11 @@ func TestSetSelectedItem(t *testing.T) {
 		}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(ErrTestError)
+		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(assert.AnError)
 
 		controller := NewExtensionController(
 			announcerMock,
@@ -636,7 +529,7 @@ func TestSetSelectedItem(t *testing.T) {
 		}
 
 		announcerMock := mock.Mock[UpdateAnnouncer]()
-		verifierMock := mock.Mock[TokenVerifier]()
+		verifierMock := mock.Mock[tokenVerifier]()
 		storeMock := mock.Mock[StoreService]()
 
 		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)

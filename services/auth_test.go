@@ -22,7 +22,7 @@ func TestVerifyOverlayId(t *testing.T) {
 
 		authService := NewAuthService(repoMock, "")
 
-		err := authService.VerifyOverlayId(channelId, overlayId)
+		err := authService.ValidateOverlayId(channelId, overlayId)
 
 		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
 
@@ -38,7 +38,7 @@ func TestVerifyOverlayId(t *testing.T) {
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
 
 		authService := NewAuthService(repoMock, "")
-		err := authService.VerifyOverlayId(channelId, uuid.New())
+		err := authService.ValidateOverlayId(channelId, uuid.New())
 
 		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
 

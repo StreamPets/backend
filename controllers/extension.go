@@ -15,7 +15,7 @@ type UpdateAnnouncer interface {
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
 
-type TokenVerifier interface {
+type tokenVerifier interface {
 	VerifyExtToken(tokenString string) (*services.ExtToken, error)
 	VerifyReceipt(receiptString string) (*services.Receipt, error)
 }
@@ -31,13 +31,13 @@ type StoreService interface {
 
 type ExtensionController struct {
 	Announcer UpdateAnnouncer
-	Verifier  TokenVerifier
+	Verifier  tokenVerifier
 	Store     StoreService
 }
 
 func NewExtensionController(
 	announcer UpdateAnnouncer,
-	verifier TokenVerifier,
+	verifier tokenVerifier,
 	store StoreService,
 ) *ExtensionController {
 	return &ExtensionController{
@@ -45,24 +45,6 @@ func NewExtensionController(
 		Verifier:  verifier,
 		Store:     store,
 	}
-}
-
-func (c *ExtensionController) GetStoreData(ctx *gin.Context) {
-	tokenString := ctx.GetHeader(XExtensionJwt)
-
-	token, err := c.Verifier.VerifyExtToken(tokenString)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	storeItems, err := c.Store.GetChannelsItems(token.ChannelId)
-	if err != nil {
-		addErrorToCtx(err, ctx)
-		return
-	}
-
-	ctx.JSON(http.StatusOK, storeItems)
 }
 
 func (c *ExtensionController) GetUserData(ctx *gin.Context) {
