@@ -15,6 +15,7 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
+const Action string = "action"
 const XExtensionJwt string = "x-extension-jwt"
 
 const ChannelId string = "channelId"
@@ -104,6 +105,10 @@ type joinAnnouncer interface {
 
 type partAnnouncer interface {
 	AnnouncePart(channelId, userId twitch.Id)
+}
+
+type actionAnnouncer interface {
+	AnnounceAction(channelId, userId twitch.Id, action string)
 }
 
 type updateAnnouncer interface {

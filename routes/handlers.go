@@ -313,3 +313,16 @@ func handleRemoveUserFromChannel(
 		ctx.JSON(http.StatusNoContent, nil)
 	}
 }
+
+func handleAction(
+	announcer actionAnnouncer,
+) gin.HandlerFunc {
+	return func(ctx *gin.Context) {
+		channelId := twitch.Id(ctx.Param(ChannelId))
+		userId := twitch.Id(ctx.Param(UserId))
+		action := ctx.Param(Action)
+
+		announcer.AnnounceAction(channelId, userId, action)
+		ctx.JSON(http.StatusNoContent, nil)
+	}
+}

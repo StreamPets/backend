@@ -11,7 +11,6 @@ import (
 )
 
 type Announcer interface {
-	AnnounceAction(channelId, userId twitch.Id, action string)
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
 
@@ -40,15 +39,6 @@ func NewTwitchBotController(
 		Items:     items,
 		Pets:      pets,
 	}
-}
-
-func (c *TwitchBotController) Action(ctx *gin.Context) {
-	channelId := twitch.Id(ctx.Param(ChannelId))
-	userId := twitch.Id(ctx.Param(UserId))
-	action := ctx.Param(Action)
-
-	c.Announcer.AnnounceAction(channelId, userId, action)
-	ctx.JSON(http.StatusNoContent, nil)
 }
 
 func (c *TwitchBotController) UpdateUser(ctx *gin.Context) {

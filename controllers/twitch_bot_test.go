@@ -14,41 +14,6 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
-func TestAction(t *testing.T) {
-	mock.SetUp(t)
-
-	setUpContext := func(channelId, userId twitch.Id, action string) *gin.Context {
-		gin.SetMode(gin.TestMode)
-
-		ctx, _ := gin.CreateTestContext(httptest.NewRecorder())
-		ctx.Params = gin.Params{
-			{Key: ChannelId, Value: string(channelId)},
-			{Key: UserId, Value: string(userId)},
-			{Key: Action, Value: action},
-		}
-
-		return ctx
-	}
-
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
-	action := "action"
-
-	announcerMock := mock.Mock[Announcer]()
-	itemsMock := mock.Mock[ItemGetSetter]()
-	petsMock := mock.Mock[PetGetter]()
-
-	controller := NewTwitchBotController(
-		announcerMock,
-		itemsMock,
-		petsMock,
-	)
-
-	controller.Action(setUpContext(channelId, userId, action))
-
-	mock.Verify(announcerMock, mock.Once()).AnnounceAction(channelId, userId, action)
-}
-
 func TestUpdateUser(t *testing.T) {
 	mock.SetUp(t)
 
