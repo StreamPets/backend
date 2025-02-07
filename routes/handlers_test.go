@@ -1101,18 +1101,26 @@ func TestAction(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		AnnounceAction(channelId, userId twitch.Id, action string)
+	}
+
 	mock.SetUp(t)
 
 	channelId := twitch.Id("channel id")
 	userId := twitch.Id("user id")
 	action := "action"
 
-	announcerMock := mock.Mock[actionAnnouncer]()
+	dep := mock.Mock[mockDep]()
 
 	ctx, recorder := setUpContext(channelId, userId, action)
-	handleAction(announcerMock)(ctx)
+	handleAction(
+		dep.AnnounceAction,
+	)(ctx)
 
-	mock.Verify(announcerMock, mock.Once()).AnnounceAction(channelId, userId, action)
+	mock.Verify(dep, mock.Once()).AnnounceAction(channelId, userId, action)
+	mock.VerifyNoMoreInteractions(dep)
+
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 }
 
@@ -1154,7 +1162,8 @@ func TestUpdateUser(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(nil, assert.AnError)
+		err := services.NewErrItemNotFound(itemName)
+		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemName)
 		ctx, recorder := setUpContext(channelId, userId, jsonData)

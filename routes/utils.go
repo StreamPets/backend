@@ -107,10 +107,6 @@ type partAnnouncer interface {
 	AnnouncePart(channelId, userId twitch.Id)
 }
 
-type actionAnnouncer interface {
-	AnnounceAction(channelId, userId twitch.Id, action string)
-}
-
 type updateAnnouncer interface {
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }

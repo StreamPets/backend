@@ -42,10 +42,10 @@ func RegisterRoutes(
 
 	r.POST("/channels/:channelId/users", handleAddPetToChannel(announcer, pets))
 	r.DELETE("/channels/:channelId/users/:userId", handleRemoveUserFromChannel(announcer))
-	r.POST("/channels/:channelId/users/:userId/:action", handleAction(announcer))
-	r.PUT("/channels/:channelId/users/:userId", handleUpdate(
-		announcer.AnnounceUpdate,
-		store.GetItemByName,
-		store.SetSelectedItem,
-	))
+	r.POST("/channels/:channelId/users/:userId/:action",
+		handleAction(announcer.AnnounceAction),
+	)
+	r.PUT("/channels/:channelId/users/:userId",
+		handleUpdate(announcer.AnnounceUpdate, store.GetItemByName, store.SetSelectedItem),
+	)
 }
