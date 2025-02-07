@@ -997,19 +997,26 @@ func TestAddUserToChannel(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		AnnounceJoin(channelId twitch.Id, pet services.Pet)
+		GetPet(userId, channelId twitch.Id, username string) (services.Pet, error)
+	}
+
 	t.Run("bad request when json has invalid format", func(t *testing.T) {
 		mock.SetUp(t)
 
 		channelId := twitch.Id("channel id")
 
-		announcerMock := mock.Mock[joinAnnouncer]()
-		petsMock := mock.Mock[petGetter]()
+		mockDep := mock.Mock[mockDep]()
 
 		jsonData := make([]byte, 0)
 		ctx, recorder := setUpContext(channelId, jsonData)
-		handleAddPetToChannel(announcerMock, petsMock)(ctx)
+		handleAddPetToChannel(
+			mockDep.AnnounceJoin,
+			mockDep.GetPet,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(announcerMock)
+		mock.VerifyNoMoreInteractions(mockDep)
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
@@ -1020,16 +1027,45 @@ func TestAddUserToChannel(t *testing.T) {
 		userId := twitch.Id("user id")
 		username := "username"
 
-		announcerMock := mock.Mock[joinAnnouncer]()
-		petsMock := mock.Mock[petGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(petsMock.GetPet(userId, channelId, username)).ThenReturn(nil, assert.AnError)
+		err := services.NewErrCreatePet(userId, username, channelId)
+		mock.When(mockDep.GetPet(userId, channelId, username)).ThenReturn(nil, err)
 
 		jsonData := generateData(userId, username)
 		ctx, recorder := setUpContext(channelId, jsonData)
-		handleAddPetToChannel(announcerMock, petsMock)(ctx)
+		handleAddPetToChannel(
+			mockDep.AnnounceJoin,
+			mockDep.GetPet,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(announcerMock)
+		mock.Verify(mockDep, mock.Once()).GetPet(userId, channelId, username)
+		mock.VerifyNoMoreInteractions(mockDep)
+
+		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("internal server error when get pet fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		channelId := twitch.Id("channel id")
+		userId := twitch.Id("user id")
+		username := "username"
+
+		mockDep := mock.Mock[mockDep]()
+
+		mock.When(mockDep.GetPet(userId, channelId, username)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(userId, username)
+		ctx, recorder := setUpContext(channelId, jsonData)
+		handleAddPetToChannel(
+			mockDep.AnnounceJoin,
+			mockDep.GetPet,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).GetPet(userId, channelId, username)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
 
@@ -1042,16 +1078,21 @@ func TestAddUserToChannel(t *testing.T) {
 
 		pet := services.Pet{Username: username}
 
-		announcerMock := mock.Mock[joinAnnouncer]()
-		petsMock := mock.Mock[petGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(petsMock.GetPet(userId, channelId, username)).ThenReturn(pet, nil)
+		mock.When(mockDep.GetPet(userId, channelId, username)).ThenReturn(pet, nil)
 
 		jsonData := generateData(userId, username)
 		ctx, recorder := setUpContext(channelId, jsonData)
-		handleAddPetToChannel(announcerMock, petsMock)(ctx)
+		handleAddPetToChannel(
+			mockDep.AnnounceJoin,
+			mockDep.GetPet,
+		)(ctx)
 
-		mock.Verify(announcerMock, mock.Once()).AnnounceJoin(channelId, pet)
+		mock.Verify(mockDep, mock.Once()).GetPet(userId, channelId, username)
+		mock.Verify(mockDep, mock.Once()).AnnounceJoin(channelId, pet)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusNoContent, recorder.Code)
 	})
 }

@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
+	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -263,8 +264,8 @@ func handleSetSelectedItem(
 }
 
 func handleAddPetToChannel(
-	announcer joinAnnouncer,
-	pets petGetter,
+	announceJoin func(channelId twitch.Id, pet services.Pet),
+	getPet func(userId, channelId twitch.Id, username string) (services.Pet, error),
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -275,21 +276,17 @@ func handleAddPetToChannel(
 	return func(ctx *gin.Context) {
 		request := new(request)
 		err := ctx.ShouldBindJSON(request)
-		if err != nil {
-			slog.Error("failed to bind json")
-			ctx.JSON(http.StatusBadRequest, nil)
+		if shouldBindJsonErrorHandler(ctx, err) {
 			return
 		}
 
 		channelId := twitch.Id(ctx.Param(ChannelId))
-		pet, err := pets.GetPet(request.UserId, channelId, request.Username)
-		if err != nil {
-			slog.Error("failed to retrieve pet", "user id", request.UserId, "channel id", channelId)
-			ctx.JSON(http.StatusInternalServerError, nil)
+		pet, err := getPet(request.UserId, channelId, request.Username)
+		if getPetErrorHandler(ctx, err) {
 			return
 		}
 
-		announcer.AnnounceJoin(channelId, pet)
+		announceJoin(channelId, pet)
 		ctx.JSON(http.StatusNoContent, nil)
 	}
 }

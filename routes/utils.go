@@ -99,16 +99,8 @@ type userDataGetter interface {
 	ownedItemsGetter
 }
 
-type joinAnnouncer interface {
-	AnnounceJoin(channelId twitch.Id, pet services.Pet)
-}
-
 type updateAnnouncer interface {
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
-}
-
-type petGetter interface {
-	GetPet(userId, channelId twitch.Id, username string) (services.Pet, error)
 }
 
 func verifyExtTokenErrorHandler(ctx *gin.Context, err error) bool {
@@ -203,6 +195,23 @@ func getItemByNameErrorHandler(ctx *gin.Context, err error) bool {
 		return true
 	} else if err != nil {
 		slog.Error("error when retrieving item", "err", err.Error())
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusBadRequest [400] if err is ErrCreatePet.
+//
+// Returns StatusInternalServerError [500] otherwise.
+func getPetErrorHandler(ctx *gin.Context, err error) bool {
+	e := new(services.ErrCreatePet)
+	if errors.As(err, e) {
+		slog.Error("failed to retrieve pet", "channel id", e.ChannelId)
+		ctx.JSON(http.StatusBadRequest, nil)
+		return true
+	} else if err != nil {
+		slog.Error("failed to retrieve pet")
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}

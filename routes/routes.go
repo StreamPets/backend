@@ -40,7 +40,9 @@ func RegisterRoutes(
 
 	r.GET("/dashboard/login", handleLogin(twitchApi, channelRepo))
 
-	r.POST("/channels/:channelId/users", handleAddPetToChannel(announcer, pets))
+	r.POST("/channels/:channelId/users",
+		handleAddPetToChannel(announcer.AnnounceJoin, pets.GetPet),
+	)
 	r.DELETE("/channels/:channelId/users/:userId",
 		handleRemoveUserFromChannel(announcer.AnnouncePart),
 	)
