@@ -331,9 +331,8 @@ func handleUpdate(
 
 	return func(ctx *gin.Context) {
 		request := new(request)
-		if err := ctx.ShouldBindJSON(request); err != nil {
-			slog.Warn("failed to bind json")
-			ctx.JSON(http.StatusBadRequest, nil)
+		err := ctx.ShouldBindJSON(request)
+		if shouldBindJsonErrorHandler(ctx, err) {
 			return
 		}
 
@@ -341,9 +340,7 @@ func handleUpdate(
 		userId := twitch.Id(ctx.Param(UserId))
 
 		item, err := getItemByName(channelId, request.ItemName)
-		if err != nil {
-			slog.Warn("item could not be found", "item name", request.ItemName)
-			ctx.JSON(http.StatusBadRequest, nil)
+		if getItemByNameErrorHandler(ctx, err) {
 			return
 		}
 

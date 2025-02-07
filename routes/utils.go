@@ -175,13 +175,9 @@ func authCookieErrorHandler(ctx *gin.Context, err error) bool {
 	return false
 }
 
-// Returns StatusForbidden if err is an ErrSelectUnownedItem.
-// Returns InternalServerError otherwise.
+// Returns StatusForbidden [403] if err is an ErrSelectUnownedItem.
 //
-//	err := SetSelectedItem(...)
-//	if setSelectedItemErrorHandler(ctx, err) {
-//		return
-//	}
+// Returns InternalServerError [500] otherwise.
 func setSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
 	e := new(services.ErrSelectUnownedItem)
 	if errors.As(err, e) {
@@ -190,6 +186,31 @@ func setSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
 		return true
 	} else if err != nil {
 		slog.Error("failed to select item")
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusBadRequest [400] if err is not nil.
+func shouldBindJsonErrorHandler(ctx *gin.Context, err error) bool {
+	if err != nil {
+		slog.Warn("failed to bind json")
+		ctx.JSON(http.StatusBadRequest, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusBadRequest [400] if err is not nil.
+func getItemByNameErrorHandler(ctx *gin.Context, err error) bool {
+	e := new(services.ErrItemNotFound)
+	if errors.As(err, e) {
+		slog.Warn("item could not be found", "item name", e.ItemName)
+		ctx.JSON(http.StatusBadRequest, nil)
+		return true
+	} else if err != nil {
+		slog.Error("error when retrieving item", "err", err.Error())
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}
