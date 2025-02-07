@@ -1139,6 +1139,12 @@ func TestUpdateUser(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		AnnounceUpdate(channelId, userId twitch.Id, image string)
+		GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
+		SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
+	}
+
 	t.Run("bad request when item not found", func(t *testing.T) {
 		mock.SetUp(t)
 
@@ -1146,16 +1152,21 @@ func TestUpdateUser(t *testing.T) {
 		userId := twitch.Id("user id")
 		itemName := "item name"
 
-		announcerMock := mock.Mock[updateAnnouncer]()
-		storeMock := mock.Mock[baz]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(nil, assert.AnError)
 
 		jsonData := generateData(itemName)
 		ctx, recorder := setUpContext(channelId, userId, jsonData)
-		handleUpdate(announcerMock, storeMock)(ctx)
+		handleUpdate(
+			mockDep.AnnounceUpdate,
+			mockDep.GetItemByName,
+			mockDep.SetSelectedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(announcerMock)
+		mock.Verify(mockDep, mock.Once()).GetItemByName(channelId, itemName)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
@@ -1174,18 +1185,24 @@ func TestUpdateUser(t *testing.T) {
 			Image:  image,
 		}
 
-		announcerMock := mock.Mock[updateAnnouncer]()
-		storeMock := mock.Mock[baz]()
+		mockDep := mock.Mock[mockDep]()
 
 		err := services.NewErrSelectUnownedItem(userId, channelId, itemId)
-		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
-		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
+		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+		mock.When(mockDep.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
 
 		jsonData := generateData(itemName)
 		ctx, recorder := setUpContext(channelId, userId, jsonData)
-		handleUpdate(announcerMock, storeMock)(ctx)
+		handleUpdate(
+			mockDep.AnnounceUpdate,
+			mockDep.GetItemByName,
+			mockDep.SetSelectedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(announcerMock)
+		mock.Verify(mockDep, mock.Once()).GetItemByName(channelId, itemName)
+		mock.Verify(mockDep, mock.Once()).SetSelectedItem(userId, channelId, itemId)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusForbidden, recorder.Code)
 	})
 
@@ -1204,17 +1221,23 @@ func TestUpdateUser(t *testing.T) {
 			Image:  image,
 		}
 
-		announcerMock := mock.Mock[updateAnnouncer]()
-		storeMock := mock.Mock[baz]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
-		mock.When(storeMock.SetSelectedItem(userId, channelId, itemId)).ThenReturn(assert.AnError)
+		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+		mock.When(mockDep.SetSelectedItem(userId, channelId, itemId)).ThenReturn(assert.AnError)
 
 		jsonData := generateData(itemName)
 		ctx, recorder := setUpContext(channelId, userId, jsonData)
-		handleUpdate(announcerMock, storeMock)(ctx)
+		handleUpdate(
+			mockDep.AnnounceUpdate,
+			mockDep.GetItemByName,
+			mockDep.SetSelectedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(announcerMock)
+		mock.Verify(mockDep, mock.Once()).GetItemByName(channelId, itemName)
+		mock.Verify(mockDep, mock.Once()).SetSelectedItem(userId, channelId, itemId)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
 
@@ -1233,17 +1256,23 @@ func TestUpdateUser(t *testing.T) {
 			Image:  image,
 		}
 
-		announcerMock := mock.Mock[updateAnnouncer]()
-		storeMock := mock.Mock[baz]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(storeMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
 
 		jsonData := generateData(itemName)
 		ctx, recorder := setUpContext(channelId, userId, jsonData)
-		handleUpdate(announcerMock, storeMock)(ctx)
+		handleUpdate(
+			mockDep.AnnounceUpdate,
+			mockDep.GetItemByName,
+			mockDep.SetSelectedItem,
+		)(ctx)
 
-		mock.Verify(storeMock, mock.Once()).SetSelectedItem(userId, channelId, itemId)
-		mock.Verify(announcerMock, mock.Once()).AnnounceUpdate(channelId, userId, image)
+		mock.Verify(mockDep, mock.Once()).GetItemByName(channelId, itemName)
+		mock.Verify(mockDep, mock.Once()).SetSelectedItem(userId, channelId, itemId)
+		mock.Verify(mockDep, mock.Once()).AnnounceUpdate(channelId, userId, image)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusNoContent, recorder.Code)
 	})
 }

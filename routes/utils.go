@@ -86,15 +86,6 @@ type bar interface {
 	selectedItemSetter
 }
 
-type itemByNameGetter interface {
-	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
-}
-
-type baz interface {
-	itemByNameGetter
-	selectedItemSetter
-}
-
 type selectedItemGetter interface {
 	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
 }

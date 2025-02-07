@@ -320,8 +320,9 @@ func handleAction(
 }
 
 func handleUpdate(
-	announcer updateAnnouncer,
-	store baz,
+	announceUpdate func(channelId, userId twitch.Id, image string),
+	getItemByName func(channelId twitch.Id, itemName string) (models.Item, error),
+	setSelectedItem func(userId, channelId twitch.Id, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -339,19 +340,19 @@ func handleUpdate(
 		channelId := twitch.Id(ctx.Param(ChannelId))
 		userId := twitch.Id(ctx.Param(UserId))
 
-		item, err := store.GetItemByName(channelId, request.ItemName)
+		item, err := getItemByName(channelId, request.ItemName)
 		if err != nil {
 			slog.Warn("item could not be found", "item name", request.ItemName)
 			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
-		err = store.SetSelectedItem(userId, channelId, item.ItemId)
+		err = setSelectedItem(userId, channelId, item.ItemId)
 		if setSelectedItemErrorHandler(ctx, err) {
 			return
 		}
 
-		announcer.AnnounceUpdate(channelId, userId, item.Image)
+		announceUpdate(channelId, userId, item.Image)
 		ctx.JSON(http.StatusNoContent, nil)
 	}
 }
