@@ -1071,17 +1071,25 @@ func TestRemoveUserFromChannel(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		AnnouncePart(channelId, userId twitch.Id)
+	}
+
 	mock.SetUp(t)
 
 	channelId := twitch.Id("channel id")
 	userId := twitch.Id("user id")
 
-	announcerMock := mock.Mock[partAnnouncer]()
+	dep := mock.Mock[mockDep]()
 
 	ctx, recorder := setUpContext(channelId, userId)
-	handleRemoveUserFromChannel(announcerMock)(ctx)
+	handleRemoveUserFromChannel(
+		dep.AnnouncePart,
+	)(ctx)
 
-	mock.Verify(announcerMock, mock.Once()).AnnouncePart(channelId, userId)
+	mock.Verify(dep, mock.Once()).AnnouncePart(channelId, userId)
+	mock.VerifyNoMoreInteractions(dep)
+
 	assert.Equal(t, http.StatusNoContent, recorder.Code)
 }
 

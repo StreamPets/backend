@@ -103,10 +103,6 @@ type joinAnnouncer interface {
 	AnnounceJoin(channelId twitch.Id, pet services.Pet)
 }
 
-type partAnnouncer interface {
-	AnnouncePart(channelId, userId twitch.Id)
-}
-
 type updateAnnouncer interface {
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }

@@ -295,13 +295,13 @@ func handleAddPetToChannel(
 }
 
 func handleRemoveUserFromChannel(
-	announcer partAnnouncer,
+	announcePart func(channelId, userId twitch.Id),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		channelId := twitch.Id(ctx.Param(ChannelId))
 		userId := twitch.Id(ctx.Param(UserId))
 
-		announcer.AnnouncePart(channelId, userId)
+		announcePart(channelId, userId)
 		ctx.JSON(http.StatusNoContent, nil)
 	}
 }
