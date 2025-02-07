@@ -1,6 +1,7 @@
 package routes
 
 import (
+	"context"
 	"io"
 	"log/slog"
 	"net/http"
@@ -14,8 +15,8 @@ import (
 )
 
 func handleLogin(
-	tokens tokenValidator,
-	overlays overlayIdGetter,
+	validateToken func(ctx context.Context, accessToken string) (twitch.Id, error),
+	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
 ) gin.HandlerFunc {
 
 	type userData struct {
@@ -29,12 +30,12 @@ func handleLogin(
 			return
 		}
 
-		userId, err := tokens.ValidateToken(ctx, token)
+		userId, err := validateToken(ctx, token)
 		if validateTokenErrorHandler(ctx, err) {
 			return
 		}
 
-		overlayId, err := overlays.GetOverlayId(userId)
+		overlayId, err := getOverlayId(userId)
 		if getOverlayIdErrorHandler(ctx, err) {
 			return
 		}

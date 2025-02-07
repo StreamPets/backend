@@ -38,7 +38,9 @@ func RegisterRoutes(
 	r.POST("/extension/items", handleBuyStoreItem(auth, store))
 	r.PUT("/extension/items", handleSetSelectedItem(announcer, auth, store))
 
-	r.GET("/dashboard/login", handleLogin(twitchApi, channelRepo))
+	r.GET("/dashboard/login",
+		handleLogin(twitchApi.ValidateToken, channelRepo.GetOverlayId),
+	)
 
 	r.POST("/channels/:channelId/users",
 		handleAddPetToChannel(announcer.AnnounceJoin, pets.GetPet),

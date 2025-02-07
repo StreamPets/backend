@@ -1,7 +1,6 @@
 package routes
 
 import (
-	"context"
 	"errors"
 	"log/slog"
 	"net/http"
@@ -22,16 +21,8 @@ const ChannelId string = "channelId"
 const OverlayId string = "overlayId"
 const UserId string = "userId"
 
-type overlayIdGetter interface {
-	GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
-}
-
 type overlayIdValidator interface {
 	ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID) error
-}
-
-type tokenValidator interface {
-	ValidateToken(ctx context.Context, accessToken string) (twitch.Id, error)
 }
 
 type clientAdder interface {

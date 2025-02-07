@@ -2,6 +2,7 @@ package routes
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -40,14 +41,21 @@ func TestHandleLogin(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		ValidateToken(ctx context.Context, accessToken string) (twitch.Id, error)
+		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
+	}
+
 	t.Run("unauthorized status when no 'Authorization' cookie present", func(t *testing.T) {
 		mock.SetUp(t)
 
-		overlays := mock.Mock[overlayIdGetter]()
-		validator := mock.Mock[tokenValidator]()
+		mockDep := mock.Mock[mockDep]()
 
 		ctx, recorder := setUpContext("")
-		handleLogin(validator, overlays)(ctx)
+		handleLogin(
+			mockDep.ValidateToken,
+			mockDep.GetOverlayId,
+		)(ctx)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
@@ -58,12 +66,14 @@ func TestHandleLogin(t *testing.T) {
 		invalidToken := "inavlid token"
 		ctx, recorder := setUpContext(invalidToken)
 
-		overlays := mock.Mock[overlayIdGetter]()
-		validator := mock.Mock[tokenValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
+		mock.When(mockDep.ValidateToken(ctx, invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
 
-		handleLogin(validator, overlays)(ctx)
+		handleLogin(
+			mockDep.ValidateToken,
+			mockDep.GetOverlayId,
+		)(ctx)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
@@ -74,12 +84,14 @@ func TestHandleLogin(t *testing.T) {
 		invalidToken := "inavlid token"
 		ctx, recorder := setUpContext(invalidToken)
 
-		overlays := mock.Mock[overlayIdGetter]()
-		validator := mock.Mock[tokenValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(validator.ValidateToken(ctx, invalidToken)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.ValidateToken(ctx, invalidToken)).ThenReturn(nil, assert.AnError)
 
-		handleLogin(validator, overlays)(ctx)
+		handleLogin(
+			mockDep.ValidateToken,
+			mockDep.GetOverlayId,
+		)(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -91,13 +103,15 @@ func TestHandleLogin(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		ctx, recorder := setUpContext(token)
 
-		overlays := mock.Mock[overlayIdGetter]()
-		validator := mock.Mock[tokenValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
-		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
+		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
 
-		handleLogin(validator, overlays)(ctx)
+		handleLogin(
+			mockDep.ValidateToken,
+			mockDep.GetOverlayId,
+		)(ctx)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
@@ -109,13 +123,15 @@ func TestHandleLogin(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		ctx, recorder := setUpContext(token)
 
-		overlays := mock.Mock[overlayIdGetter]()
-		validator := mock.Mock[tokenValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
-		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
 
-		handleLogin(validator, overlays)(ctx)
+		handleLogin(
+			mockDep.ValidateToken,
+			mockDep.GetOverlayId,
+		)(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -133,13 +149,15 @@ func TestHandleLogin(t *testing.T) {
 		overlayId := uuid.New()
 		ctx, recorder := setUpContext(token)
 
-		overlays := mock.Mock[overlayIdGetter]()
-		validator := mock.Mock[tokenValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(validator.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
-		mock.When(overlays.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
+		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
-		handleLogin(validator, overlays)(ctx)
+		handleLogin(
+			mockDep.ValidateToken,
+			mockDep.GetOverlayId,
+		)(ctx)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
 
