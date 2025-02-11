@@ -38,7 +38,9 @@ func RegisterRoutes(
 	r.GET("/extension/items",
 		handleGetStoreData(auth.VerifyExtToken, store.GetChannelsItems),
 	)
-	r.GET("/extension/user", handleGetUserData(auth, store))
+	r.GET("/extension/user",
+		handleGetUserData(auth.VerifyExtToken, store.GetSelectedItem, store.GetOwnedItems),
+	)
 	r.POST("/extension/items", handleBuyStoreItem(auth, store))
 	r.PUT("/extension/items", handleSetSelectedItem(announcer, auth, store))
 

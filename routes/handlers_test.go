@@ -392,6 +392,7 @@ func TestGetStoreData(t *testing.T) {
 }
 
 func TestGetUserData(t *testing.T) {
+
 	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
@@ -405,18 +406,30 @@ func TestGetUserData(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		VerifyExtToken(tokenString string) (*services.ExtToken, error)
+		GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
+		GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
+	}
+
 	t.Run("unauthorized when token is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
 		tokenString := "token string"
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[userDataGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(verifierMock, storeMock)(ctx)
+		handleGetUserData(
+			mockDep.VerifyExtToken,
+			mockDep.GetSelectedItem,
+			mockDep.GetOwnedItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
@@ -426,13 +439,19 @@ func TestGetUserData(t *testing.T) {
 
 		tokenString := "token string"
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[userDataGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(verifierMock, storeMock)(ctx)
+		handleGetUserData(
+			mockDep.VerifyExtToken,
+			mockDep.GetSelectedItem,
+			mockDep.GetOwnedItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -449,14 +468,21 @@ func TestGetUserData(t *testing.T) {
 			UserId:    userId,
 		}
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[userDataGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(mockDep.GetOwnedItems(channelId, userId)).ThenReturn(nil, assert.AnError)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(verifierMock, storeMock)(ctx)
+		handleGetUserData(
+			mockDep.VerifyExtToken,
+			mockDep.GetSelectedItem,
+			mockDep.GetOwnedItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).GetOwnedItems(channelId, userId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -473,14 +499,22 @@ func TestGetUserData(t *testing.T) {
 			UserId:    userId,
 		}
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[userDataGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(mockDep.GetSelectedItem(userId, channelId)).ThenReturn(nil, assert.AnError)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(verifierMock, storeMock)(ctx)
+		handleGetUserData(
+			mockDep.VerifyExtToken,
+			mockDep.GetSelectedItem,
+			mockDep.GetOwnedItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).GetOwnedItems(channelId, userId)
+		mock.Verify(mockDep, mock.Once()).GetSelectedItem(userId, channelId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -505,15 +539,23 @@ func TestGetUserData(t *testing.T) {
 		selectedItem := models.Item{ItemId: uuid.New()}
 		ownedItems := []models.Item{selectedItem}
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[userDataGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(storeMock.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
-		mock.When(storeMock.GetSelectedItem(userId, channelId)).ThenReturn(selectedItem, nil)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(mockDep.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
+		mock.When(mockDep.GetSelectedItem(userId, channelId)).ThenReturn(selectedItem, nil)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(verifierMock, storeMock)(ctx)
+		handleGetUserData(
+			mockDep.VerifyExtToken,
+			mockDep.GetSelectedItem,
+			mockDep.GetOwnedItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).GetOwnedItems(channelId, userId)
+		mock.Verify(mockDep, mock.Once()).GetSelectedItem(userId, channelId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
 

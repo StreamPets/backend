@@ -55,19 +55,6 @@ type bar interface {
 	selectedItemSetter
 }
 
-type selectedItemGetter interface {
-	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
-}
-
-type ownedItemsGetter interface {
-	GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
-}
-
-type userDataGetter interface {
-	selectedItemGetter
-	ownedItemsGetter
-}
-
 type updateAnnouncer interface {
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
 }
@@ -202,6 +189,36 @@ func validateOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
 	if err != nil {
 		slog.Warn("unrecognised overlay id", "overlay id", ctx.Query(OverlayId), "channel id", ctx.Query(ChannelId))
 		ctx.JSON(http.StatusUnauthorized, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusInternalServerError [500] if err is not nil.
+func getChannelsItemsErrorHandler(ctx *gin.Context, err error) bool {
+	if err != nil {
+		slog.Error("failed to retrieve channels items")
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusInternalServerError [500] if err is not nil.
+func getOwnedItemsErrorHandler(ctx *gin.Context, err error) bool {
+	if err != nil {
+		slog.Error("failed to retrieve owned items")
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusInternalServerError [500] if err is not nil.
+func getSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
+	if err != nil {
+		slog.Error("failed to retrieve selected item")
+		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}
 	return false

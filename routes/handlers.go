@@ -98,17 +98,13 @@ func handleGetStoreData(
 	getChannelsItems func(channelId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		tokenString := ctx.GetHeader(XExtensionJwt)
-
-		token, err := verifyExtToken(tokenString)
+		token, err := verifyExtToken(ctx.GetHeader(XExtensionJwt))
 		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
 		storeItems, err := getChannelsItems(token.ChannelId)
-		if err != nil {
-			slog.Error("failed to retrieve channels items", "channel id", token.ChannelId)
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if getChannelsItemsErrorHandler(ctx, err) {
 			return
 		}
 
@@ -117,8 +113,9 @@ func handleGetStoreData(
 }
 
 func handleGetUserData(
-	verifier extTokenVerifier,
-	store userDataGetter,
+	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	getSelectedItem func(userId, channelId twitch.Id) (models.Item, error),
+	getOwnedItems func(channelId, userId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
 
 	type response struct {
@@ -129,22 +126,18 @@ func handleGetUserData(
 	return func(ctx *gin.Context) {
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
-		token, err := verifier.VerifyExtToken(tokenString)
+		token, err := verifyExtToken(tokenString)
 		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
-		ownedItems, err := store.GetOwnedItems(token.ChannelId, token.UserId)
-		if err != nil {
-			slog.Error("failed to retrieve owned items")
-			ctx.JSON(http.StatusInternalServerError, nil)
+		ownedItems, err := getOwnedItems(token.ChannelId, token.UserId)
+		if getOwnedItemsErrorHandler(ctx, err) {
 			return
 		}
 
-		selectedItem, err := store.GetSelectedItem(token.UserId, token.ChannelId)
-		if err != nil {
-			slog.Error("failed to retrieve selected item")
-			ctx.JSON(http.StatusInternalServerError, nil)
+		selectedItem, err := getSelectedItem(token.UserId, token.ChannelId)
+		if getSelectedItemErrorHandler(ctx, err) {
 			return
 		}
 
