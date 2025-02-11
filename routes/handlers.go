@@ -196,9 +196,7 @@ func handleBuyStoreItem(
 		}
 
 		err = addOwnedItem(token.UserId, itemId, receipt.Data.TransactionId)
-		if err != nil {
-			slog.Error("failed to add owned item", "user id", token.UserId, "item id", itemId, "channel id", token.ChannelId)
-			ctx.JSON(http.StatusInternalServerError, nil)
+		if addOwnedItemErrorHandler(ctx, err) {
 			return
 		}
 

@@ -192,3 +192,18 @@ func getItemByIdErrorHandler(ctx *gin.Context, err error) bool {
 	}
 	return false
 }
+
+// TODO: Returns ...
+func addOwnedItemErrorHandler(ctx *gin.Context, err error) bool {
+	e := new(repositories.ErrAddItemNotExist)
+	if errors.As(err, e) {
+		slog.Error("failed to add owned item", "user id", e.UserId, "item id", e.ItemId, "transaction id", e.TransactionId)
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	} else if err != nil {
+		slog.Error("failed to add owned item")
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}

@@ -42,6 +42,28 @@ func (e ErrItemNotFoundById) Error() string {
 	return "an item with the associated item id could not be found"
 }
 
+type ErrAddItemNotExist struct {
+	UserId        twitch.Id
+	ItemId        uuid.UUID
+	TransactionId uuid.UUID
+}
+
+func NewErrAddItemNotExist(
+	userId twitch.Id,
+	itemId uuid.UUID,
+	transactionId uuid.UUID,
+) ErrAddItemNotExist {
+	return ErrAddItemNotExist{
+		UserId:        userId,
+		ItemId:        itemId,
+		TransactionId: transactionId,
+	}
+}
+
+func (e ErrAddItemNotExist) Error() string {
+	return "tried to add an owned item for an item that does not exist"
+}
+
 type itemRepository struct {
 	db *gorm.DB
 }
@@ -106,7 +128,11 @@ func (repo *itemRepository) GetOwnedItems(channelId, userId twitch.Id) ([]models
 
 func (repo *itemRepository) AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error {
 	var channelItem models.ChannelItem
-	if result := repo.db.Where("item_id = ?", itemId).Find(&channelItem); result.Error != nil {
+	result := repo.db.Where("item_id = ?", itemId).Find(&channelItem)
+
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return NewErrAddItemNotExist(userId, itemId, transactionId)
+	} else if result.Error != nil {
 		return result.Error
 	}
 
