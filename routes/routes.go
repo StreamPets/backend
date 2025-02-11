@@ -31,7 +31,9 @@ func RegisterRoutes(
 		AllowCredentials: true,
 	}))
 
-	r.GET("/overlay/listen", handleListen(announcer, auth))
+	r.GET("/overlay/listen",
+		handleListen(announcer.AddClient, announcer.RemoveClient, auth.ValidateOverlayId),
+	)
 
 	r.GET("/extension/items", handleGetStoreData(auth, store))
 	r.GET("/extension/user", handleGetUserData(auth, store))

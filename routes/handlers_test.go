@@ -176,6 +176,7 @@ func TestHandleLogin(t *testing.T) {
 }
 
 func TestHandleListen(t *testing.T) {
+
 	setUpContext := func(channelId twitch.Id, overlayId uuid.UUID) (*gin.Context, *test.CloseNotifierResponseWriter) {
 		gin.SetMode(gin.TestMode)
 
@@ -192,6 +193,12 @@ func TestHandleListen(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		AddClient(channelId twitch.Id) announcers.Client
+		RemoveClient(client announcers.Client)
+		ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID) error
+	}
+
 	channelId := twitch.Id("channel id")
 	overlayId := uuid.New()
 
@@ -203,17 +210,20 @@ func TestHandleListen(t *testing.T) {
 		stream := make(chan announcers.Announcement)
 		client := announcers.Client{Stream: stream}
 
-		announcerMock := mock.Mock[clientAddRemover]()
-		authMock := mock.Mock[overlayIdValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(announcerMock.AddClient(channelId)).ThenReturn(client)
+		mock.When(mockDep.AddClient(channelId)).ThenReturn(client)
 
 		var wg sync.WaitGroup
 		wg.Add(1)
 
 		go func() {
 			defer wg.Done()
-			handleListen(announcerMock, authMock)(ctx)
+			handleListen(
+				mockDep.AddClient,
+				mockDep.RemoveClient,
+				mockDep.ValidateOverlayId,
+			)(ctx)
 		}()
 
 		stream <- announcers.Announcement{
@@ -224,9 +234,10 @@ func TestHandleListen(t *testing.T) {
 		close(stream)
 		wg.Wait()
 
-		mock.Verify(authMock, mock.Once()).ValidateOverlayId(channelId, overlayId)
-		mock.Verify(announcerMock, mock.Once()).AddClient(channelId)
-		mock.Verify(announcerMock, mock.Once()).RemoveClient(client)
+		mock.Verify(mockDep, mock.Once()).ValidateOverlayId(channelId, overlayId)
+		mock.Verify(mockDep, mock.Once()).AddClient(channelId)
+		mock.Verify(mockDep, mock.Once()).RemoveClient(client)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Contains(t, recorder.Body.String(), "event:event")
 		assert.Contains(t, recorder.Body.String(), "data:message")
@@ -237,15 +248,19 @@ func TestHandleListen(t *testing.T) {
 
 		ctx, recorder := setUpContext(channelId, overlayId)
 
-		announcerMock := mock.Mock[clientAddRemover]()
-		authMock := mock.Mock[overlayIdValidator]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(authMock.ValidateOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
+		mock.When(mockDep.ValidateOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
 
-		handleListen(announcerMock, authMock)(ctx)
+		handleListen(
+			mockDep.AddClient,
+			mockDep.RemoveClient,
+			mockDep.ValidateOverlayId,
+		)(ctx)
 
-		mock.Verify(authMock, mock.Once()).ValidateOverlayId(channelId, overlayId)
-		mock.Verify(announcerMock, mock.Never()).AddClient(channelId)
+		mock.Verify(mockDep, mock.Once()).ValidateOverlayId(channelId, overlayId)
+		mock.Verify(mockDep, mock.Never()).AddClient(channelId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})

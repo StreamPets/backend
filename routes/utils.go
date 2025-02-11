@@ -7,7 +7,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
-	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
@@ -20,23 +19,6 @@ const XExtensionJwt string = "x-extension-jwt"
 const ChannelId string = "channelId"
 const OverlayId string = "overlayId"
 const UserId string = "userId"
-
-type overlayIdValidator interface {
-	ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID) error
-}
-
-type clientAdder interface {
-	AddClient(channelId twitch.Id) announcers.Client
-}
-
-type clientRemover interface {
-	RemoveClient(client announcers.Client)
-}
-
-type clientAddRemover interface {
-	clientAdder
-	clientRemover
-}
 
 type extTokenVerifier interface {
 	VerifyExtToken(tokenString string) (*services.ExtToken, error)
@@ -204,6 +186,26 @@ func getPetErrorHandler(ctx *gin.Context, err error) bool {
 	} else if err != nil {
 		slog.Error("failed to retrieve pet")
 		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusUnauthorized [401] if err is not nil.
+func parseUuidErrorHandler(ctx *gin.Context, err error) bool {
+	if err != nil {
+		slog.Debug("query param overlay id is not uuid type")
+		ctx.JSON(http.StatusUnauthorized, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusUnauthorized [401] if OverlayId and ChannelId do not match.
+func validateOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
+	if err != nil {
+		slog.Warn("unrecognised overlay id", "overlay id", ctx.Query(OverlayId), "channel id", ctx.Query(ChannelId))
+		ctx.JSON(http.StatusUnauthorized, nil)
 		return true
 	}
 	return false

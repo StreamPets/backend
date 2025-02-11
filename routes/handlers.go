@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
@@ -48,31 +49,29 @@ func handleLogin(
 }
 
 func handleListen(
-	announcer clientAddRemover,
-	overlay overlayIdValidator,
+	addClient func(channelId twitch.Id) announcers.Client,
+	removeClient func(client announcers.Client),
+	validateOverlayId func(channelId twitch.Id, overlayId uuid.UUID) error,
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		channelId := twitch.Id(ctx.Query(ChannelId))
 		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
-		if err != nil {
-			slog.Debug("query param overlay id is not uuid type")
-			ctx.JSON(http.StatusUnauthorized, nil)
+		if parseUuidErrorHandler(ctx, err) {
 			return
 		}
 
-		if err := overlay.ValidateOverlayId(channelId, overlayId); err != nil {
-			slog.Warn("unrecognised overlay id", "overlay id", overlayId)
-			ctx.JSON(http.StatusUnauthorized, nil)
+		err = validateOverlayId(channelId, overlayId)
+		if validateOverlayIdErrorHandler(ctx, err) {
 			return
 		}
 
-		client := announcer.AddClient(channelId)
+		client := addClient(channelId)
 		defer func() {
 			go func() {
 				for range client.Stream {
 				}
 			}()
-			announcer.RemoveClient(client)
+			removeClient(client)
 		}()
 
 		ticker := time.NewTicker(60 * time.Second)
