@@ -37,15 +37,6 @@ type itemByIdGetter interface {
 	GetItemById(itemId uuid.UUID) (models.Item, error)
 }
 
-type ownedItemAdder interface {
-	AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
-}
-
-type foo interface {
-	itemByIdGetter
-	ownedItemAdder
-}
-
 type selectedItemSetter interface {
 	SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
 }
@@ -144,7 +135,7 @@ func shouldBindJsonErrorHandler(ctx *gin.Context, err error) bool {
 
 // Returns StatusBadRequest [400] if err is not nil.
 func getItemByNameErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(services.ErrItemNotFound)
+	e := new(repositories.ErrItemNotFoundByName)
 	if errors.As(err, e) {
 		slog.Warn("item could not be found", "item name", e.ItemName)
 		ctx.JSON(http.StatusBadRequest, nil)
@@ -174,11 +165,11 @@ func getPetErrorHandler(ctx *gin.Context, err error) bool {
 	return false
 }
 
-// Returns StatusUnauthorized [401] if err is not nil.
+// Returns StatusBadRequest [400] if err is not nil.
 func parseUuidErrorHandler(ctx *gin.Context, err error) bool {
 	if err != nil {
 		slog.Debug("query param overlay id is not uuid type")
-		ctx.JSON(http.StatusUnauthorized, nil)
+		ctx.JSON(http.StatusBadRequest, nil)
 		return true
 	}
 	return false
@@ -218,6 +209,23 @@ func getOwnedItemsErrorHandler(ctx *gin.Context, err error) bool {
 func getSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
 	if err != nil {
 		slog.Error("failed to retrieve selected item")
+		ctx.JSON(http.StatusInternalServerError, nil)
+		return true
+	}
+	return false
+}
+
+// Returns StatusBadRequest [400] if err is an ErrItemNotFoundById.
+//
+// Returns StatusInternalServerError [500] is err is not nil.
+func getItemByIdErrorHandler(ctx *gin.Context, err error) bool {
+	e := new(repositories.ErrItemNotFoundById)
+	if errors.As(err, e) {
+		slog.Error("failed to retrieve item", "item id", e.ItemId)
+		ctx.JSON(http.StatusBadRequest, nil)
+		return true
+	} else if err != nil {
+		slog.Error("error when retrieving item")
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}

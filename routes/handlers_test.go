@@ -592,6 +592,13 @@ func TestBuyStoreItem(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		VerifyExtToken(tokenString string) (*services.ExtToken, error)
+		VerifyReceipt(receiptString string) (*services.Receipt, error)
+		GetItemById(itemId uuid.UUID) (models.Item, error)
+		AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
+	}
+
 	t.Run("item not added when extension token is invalid", func(t *testing.T) {
 		mock.SetUp(t)
 
@@ -600,16 +607,23 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
+		err := services.NewErrInvalidToken(tokenString)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 
@@ -621,16 +635,22 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
 
@@ -639,13 +659,19 @@ func TestBuyStoreItem(t *testing.T) {
 
 		tokenString := "token string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
 		ctx, recorder := setUpContext(tokenString, []byte{})
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
@@ -657,16 +683,24 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, services.NewErrInvalidToken(receiptString))
+		err := services.NewErrInvalidToken(receiptString)
+		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(nil, err)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 
@@ -678,16 +712,23 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(nil, assert.AnError)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
 
@@ -699,14 +740,21 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
 		jsonData := generateData(receiptString, itemId)
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
@@ -718,19 +766,55 @@ func TestBuyStoreItem(t *testing.T) {
 		tokenString := "token string"
 		receiptString := "receipt string"
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
+		err := repositories.NewErrItemNotFoundById(itemId)
+		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.Verify(storeMock, mock.Once()).GetItemById(itemId)
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
+	})
+
+	t.Run("item not added when get item by id fails", func(t *testing.T) {
+		mock.SetUp(t)
+
+		itemId := uuid.New()
+
+		tokenString := "token string"
+		receiptString := "receipt string"
+
+		mockDep := mock.Mock[mockDep]()
+
+		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
+
+		jsonData := generateData(receiptString, itemId.String())
+		ctx, recorder := setUpContext(tokenString, jsonData)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
+		mock.VerifyNoMoreInteractions(mockDep)
+
+		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
 
 	t.Run("item not added when receipt rarity and item rarity do not match", func(t *testing.T) {
@@ -756,18 +840,24 @@ func TestBuyStoreItem(t *testing.T) {
 			},
 		}
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
-		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.Verify(storeMock, mock.Once()).GetItemById(itemId)
-		mock.VerifyNoMoreInteractions(storeMock)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusForbidden, recorder.Code)
 	})
@@ -801,17 +891,27 @@ func TestBuyStoreItem(t *testing.T) {
 			Rarity: models.Common,
 		}
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
-		mock.When(storeMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
+		mock.When(mockDep.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(assert.AnError)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
+		mock.Verify(mockDep, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -845,18 +945,27 @@ func TestBuyStoreItem(t *testing.T) {
 			Rarity: models.Common,
 		}
 
-		verifierMock := mock.Mock[tokenVerifier]()
-		storeMock := mock.Mock[foo]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(verifierMock.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
-		mock.When(storeMock.GetItemById(itemId)).ThenReturn(item, nil)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
+		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
+		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
 
 		jsonData := generateData(receiptString, itemId.String())
 		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(verifierMock, storeMock)(ctx)
+		handleBuyStoreItem(
+			mockDep.VerifyExtToken,
+			mockDep.VerifyReceipt,
+			mockDep.GetItemById,
+			mockDep.AddOwnedItem,
+		)(ctx)
 
-		mock.Verify(storeMock, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
+		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
+		mock.Verify(mockDep, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
+		mock.VerifyNoMoreInteractions(mockDep)
+
 		assert.Equal(t, http.StatusNoContent, recorder.Code)
 	})
 }
@@ -1307,7 +1416,7 @@ func TestUpdateUser(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := services.NewErrItemNotFound(itemName)
+		err := repositories.NewErrItemNotFoundByName(itemName)
 		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemName)

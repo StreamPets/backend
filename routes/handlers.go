@@ -149,8 +149,10 @@ func handleGetUserData(
 }
 
 func handleBuyStoreItem(
-	verifier tokenVerifier,
-	store foo,
+	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	verifyReceipt func(receiptString string) (*services.Receipt, error),
+	getItemById func(itemId uuid.UUID) (models.Item, error),
+	addOwnedItem func(userId twitch.Id, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -161,34 +163,29 @@ func handleBuyStoreItem(
 	return func(ctx *gin.Context) {
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
-		token, err := verifier.VerifyExtToken(tokenString)
+		token, err := verifyExtToken(tokenString)
 		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
 		request := new(request)
-		if err = ctx.ShouldBindJSON(request); err != nil {
-			slog.Error("failed to bind json")
-			ctx.JSON(http.StatusBadRequest, nil)
+		err = ctx.ShouldBindJSON(request)
+		if shouldBindJsonErrorHandler(ctx, err) {
 			return
 		}
 
-		receipt, err := verifier.VerifyReceipt(request.Receipt)
+		receipt, err := verifyReceipt(request.Receipt)
 		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
 		itemId, err := uuid.Parse(request.ItemId)
-		if err != nil {
-			slog.Error("failed to parse item id", "item id", request.ItemId)
-			ctx.JSON(http.StatusBadRequest, nil)
+		if parseUuidErrorHandler(ctx, err) {
 			return
 		}
 
-		item, err := store.GetItemById(itemId)
-		if err != nil {
-			slog.Error("failed to retrieve item", "item id", itemId)
-			ctx.JSON(http.StatusBadRequest, nil)
+		item, err := getItemById(itemId)
+		if getItemByIdErrorHandler(ctx, err) {
 			return
 		}
 
@@ -198,7 +195,8 @@ func handleBuyStoreItem(
 			return
 		}
 
-		if err := store.AddOwnedItem(token.UserId, itemId, receipt.Data.TransactionId); err != nil {
+		err = addOwnedItem(token.UserId, itemId, receipt.Data.TransactionId)
+		if err != nil {
 			slog.Error("failed to add owned item", "user id", token.UserId, "item id", itemId, "channel id", token.ChannelId)
 			ctx.JSON(http.StatusInternalServerError, nil)
 			return

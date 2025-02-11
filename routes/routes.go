@@ -41,8 +41,12 @@ func RegisterRoutes(
 	r.GET("/extension/user",
 		handleGetUserData(auth.VerifyExtToken, store.GetSelectedItem, store.GetOwnedItems),
 	)
-	r.POST("/extension/items", handleBuyStoreItem(auth, store))
-	r.PUT("/extension/items", handleSetSelectedItem(announcer, auth, store))
+	r.POST("/extension/items",
+		handleBuyStoreItem(auth.VerifyExtToken, auth.VerifyReceipt, store.GetItemById, store.AddOwnedItem),
+	)
+	r.PUT("/extension/items",
+		handleSetSelectedItem(announcer, auth, store),
+	)
 
 	r.GET("/dashboard/login",
 		handleLogin(twitchApi.ValidateToken, channelRepo.GetOverlayId),

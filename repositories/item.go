@@ -1,12 +1,46 @@
 package repositories
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/twitch"
 	"gorm.io/gorm"
 	"gorm.io/gorm/clause"
 )
+
+type ErrItemNotFoundByName struct {
+	ItemName string
+}
+
+func NewErrItemNotFoundByName(
+	itemName string,
+) ErrItemNotFoundByName {
+	return ErrItemNotFoundByName{
+		ItemName: itemName,
+	}
+}
+
+func (e ErrItemNotFoundByName) Error() string {
+	return "an item with the associated item name could not be found"
+}
+
+type ErrItemNotFoundById struct {
+	ItemId uuid.UUID
+}
+
+func NewErrItemNotFoundById(
+	itemId uuid.UUID,
+) ErrItemNotFoundById {
+	return ErrItemNotFoundById{
+		ItemId: itemId,
+	}
+}
+
+func (e ErrItemNotFoundById) Error() string {
+	return "an item with the associated item id could not be found"
+}
 
 type itemRepository struct {
 	db *gorm.DB
@@ -16,16 +50,24 @@ func NewItemRepository(db *gorm.DB) *itemRepository {
 	return &itemRepository{db: db}
 }
 
-func (repo *itemRepository) GetItemByName(channelId twitch.Id, itemName string) (models.Item, error) {
-	var item models.Item
+func (repo *itemRepository) GetItemByName(channelId twitch.Id, itemName string) (item models.Item, err error) {
 	result := repo.db.Joins("JOIN channel_items ON channel_items.item_id = items.item_id AND channel_items.channel_id = ? AND items.name = ?", channelId, itemName).First(&item)
-	return item, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return models.Item{}, NewErrItemNotFoundByName(itemName)
+	} else if result.Error != nil {
+		return models.Item{}, result.Error
+	}
+	return
 }
 
-func (repo *itemRepository) GetItemById(itemId uuid.UUID) (models.Item, error) {
-	var item models.Item
+func (repo *itemRepository) GetItemById(itemId uuid.UUID) (item models.Item, err error) {
 	result := repo.db.Where("item_id = ?", itemId).First(&item)
-	return item, result.Error
+	if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+		return models.Item{}, NewErrItemNotFoundById(itemId)
+	} else if result.Error != nil {
+		return models.Item{}, result.Error
+	}
+	return
 }
 
 func (repo *itemRepository) GetSelectedItem(userId, channelId twitch.Id) (models.Item, error) {

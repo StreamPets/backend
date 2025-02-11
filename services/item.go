@@ -29,22 +29,6 @@ func (e ErrSelectUnownedItem) Error() string {
 	return "user tried to select an item they do not own"
 }
 
-type ErrItemNotFound struct {
-	ItemName string
-}
-
-func NewErrItemNotFound(
-	itemName string,
-) ErrItemNotFound {
-	return ErrItemNotFound{
-		ItemName: itemName,
-	}
-}
-
-func (e ErrItemNotFound) Error() string {
-	return "an item with the associated item name could not be found"
-}
-
 type ItemRepository interface {
 	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
 	GetItemById(itemId uuid.UUID) (models.Item, error)
@@ -75,14 +59,7 @@ func NewItemService(
 }
 
 func (s *ItemService) GetItemByName(channelId twitch.Id, itemName string) (models.Item, error) {
-	item, err := s.itemRepo.GetItemByName(channelId, itemName)
-	if err == gorm.ErrRecordNotFound {
-		return models.Item{}, err
-	} else if err != nil {
-		return models.Item{}, NewErrItemNotFound(itemName)
-	}
-
-	return item, nil
+	return s.itemRepo.GetItemByName(channelId, itemName)
 }
 
 func (s *ItemService) GetItemById(itemId uuid.UUID) (models.Item, error) {
