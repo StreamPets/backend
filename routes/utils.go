@@ -6,8 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/repositories"
 	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
@@ -19,36 +17,6 @@ const XExtensionJwt string = "x-extension-jwt"
 const ChannelId string = "channelId"
 const OverlayId string = "overlayId"
 const UserId string = "userId"
-
-type extTokenVerifier interface {
-	VerifyExtToken(tokenString string) (*services.ExtToken, error)
-}
-
-type receiptVerifier interface {
-	VerifyReceipt(receiptString string) (*services.Receipt, error)
-}
-
-type tokenVerifier interface {
-	extTokenVerifier
-	receiptVerifier
-}
-
-type itemByIdGetter interface {
-	GetItemById(itemId uuid.UUID) (models.Item, error)
-}
-
-type selectedItemSetter interface {
-	SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
-}
-
-type bar interface {
-	itemByIdGetter
-	selectedItemSetter
-}
-
-type updateAnnouncer interface {
-	AnnounceUpdate(channelId, userId twitch.Id, image string)
-}
 
 func verifyExtTokenErrorHandler(ctx *gin.Context, err error) bool {
 	var e *services.ErrInvalidToken
@@ -148,16 +116,9 @@ func getItemByNameErrorHandler(ctx *gin.Context, err error) bool {
 	return false
 }
 
-// Returns StatusBadRequest [400] if err is ErrCreatePet.
-//
-// Returns StatusInternalServerError [500] otherwise.
+// Returns StatusInternalServerError [500] if err is not nil.
 func getPetErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(services.ErrCreatePet)
-	if errors.As(err, e) {
-		slog.Error("failed to retrieve pet", "channel id", e.ChannelId)
-		ctx.JSON(http.StatusBadRequest, nil)
-		return true
-	} else if err != nil {
+	if err != nil {
 		slog.Error("failed to retrieve pet")
 		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
@@ -168,7 +129,7 @@ func getPetErrorHandler(ctx *gin.Context, err error) bool {
 // Returns StatusBadRequest [400] if err is not nil.
 func parseUuidErrorHandler(ctx *gin.Context, err error) bool {
 	if err != nil {
-		slog.Debug("query param overlay id is not uuid type")
+		slog.Debug("param is not uuid type")
 		ctx.JSON(http.StatusBadRequest, nil)
 		return true
 	}

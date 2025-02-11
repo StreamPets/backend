@@ -45,7 +45,7 @@ func RegisterRoutes(
 		handleBuyStoreItem(auth.VerifyExtToken, auth.VerifyReceipt, store.GetItemById, store.AddOwnedItem),
 	)
 	r.PUT("/extension/items",
-		handleSetSelectedItem(announcer, auth, store),
+		handleSetSelectedItem(announcer.AnnounceUpdate, auth.VerifyExtToken, store.GetItemById, store.SetSelectedItem),
 	)
 
 	r.GET("/dashboard/login",

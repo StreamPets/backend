@@ -207,9 +207,10 @@ func handleBuyStoreItem(
 }
 
 func handleSetSelectedItem(
-	announcer updateAnnouncer,
-	verifier extTokenVerifier,
-	store bar,
+	announceUpdate func(channelId, userId twitch.Id, image string),
+	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	getItemById func(itemId uuid.UUID) (models.Item, error),
+	setSelectedItem func(userId, channelId twitch.Id, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -219,38 +220,33 @@ func handleSetSelectedItem(
 	return func(ctx *gin.Context) {
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
-		token, err := verifier.VerifyExtToken(tokenString)
+		token, err := verifyExtToken(tokenString)
 		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
 		request := new(request)
-		if err = ctx.ShouldBindJSON(request); err != nil {
-			slog.Error("failed to bind json")
-			ctx.JSON(http.StatusBadRequest, nil)
+		err = ctx.ShouldBindJSON(request)
+		if shouldBindJsonErrorHandler(ctx, err) {
 			return
 		}
 
 		itemId, err := uuid.Parse(request.ItemId)
-		if err != nil {
-			slog.Error("failed to parse item id", "item id", request.ItemId)
-			ctx.JSON(http.StatusBadRequest, nil)
+		if parseUuidErrorHandler(ctx, err) {
 			return
 		}
 
-		item, err := store.GetItemById(itemId)
-		if err != nil {
-			slog.Error("failed to retrieve item", "item id", itemId)
-			ctx.JSON(http.StatusBadRequest, nil)
+		item, err := getItemById(itemId)
+		if getItemByIdErrorHandler(ctx, err) {
 			return
 		}
 
-		err = store.SetSelectedItem(token.UserId, token.ChannelId, itemId)
+		err = setSelectedItem(token.UserId, token.ChannelId, itemId)
 		if setSelectedItemErrorHandler(ctx, err) {
 			return
 		}
 
-		announcer.AnnounceUpdate(token.ChannelId, token.UserId, item.Image)
+		announceUpdate(token.ChannelId, token.UserId, item.Image)
 	}
 }
 
