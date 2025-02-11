@@ -280,18 +280,28 @@ func TestGetStoreData(t *testing.T) {
 		return ctx, recorder
 	}
 
+	type mockDep interface {
+		VerifyExtToken(tokenString string) (*services.ExtToken, error)
+		GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
+	}
+
 	t.Run("access forbidden with invalid extension token", func(t *testing.T) {
 		mock.SetUp(t)
 
 		tokenString := "invalid token"
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[channelItemGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetStoreData(verifierMock, storeMock)(ctx)
+		handleGetStoreData(
+			mockDep.VerifyExtToken,
+			mockDep.GetChannelsItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
@@ -301,13 +311,18 @@ func TestGetStoreData(t *testing.T) {
 
 		tokenString := "invalid token"
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[channelItemGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetStoreData(verifierMock, storeMock)(ctx)
+		handleGetStoreData(
+			mockDep.VerifyExtToken,
+			mockDep.GetChannelsItems,
+		)(ctx)
+
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -322,17 +337,20 @@ func TestGetStoreData(t *testing.T) {
 
 		storeItems := []models.Item{{}, {}}
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[channelItemGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, assert.AnError)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+		mock.When(mockDep.GetChannelsItems(channelId)).ThenReturn(storeItems, assert.AnError)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetStoreData(verifierMock, storeMock)(ctx)
+		handleGetStoreData(
+			mockDep.VerifyExtToken,
+			mockDep.GetChannelsItems,
+		)(ctx)
 
-		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).GetChannelsItems(channelId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -347,17 +365,20 @@ func TestGetStoreData(t *testing.T) {
 
 		storeItems := []models.Item{{}, {}}
 
-		verifierMock := mock.Mock[extTokenVerifier]()
-		storeMock := mock.Mock[channelItemGetter]()
+		mockDep := mock.Mock[mockDep]()
 
-		mock.When(verifierMock.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-		mock.When(storeMock.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
+		mock.When(mockDep.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
 
 		ctx, recorder := setUpContext(tokenString)
-		handleGetStoreData(verifierMock, storeMock)(ctx)
+		handleGetStoreData(
+			mockDep.VerifyExtToken,
+			mockDep.GetChannelsItems,
+		)(ctx)
 
-		mock.Verify(verifierMock, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(storeMock, mock.Once()).GetChannelsItems(channelId)
+		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
+		mock.Verify(mockDep, mock.Once()).GetChannelsItems(channelId)
+		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, recorder.Code, http.StatusOK)
 

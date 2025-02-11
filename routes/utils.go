@@ -33,10 +33,6 @@ type tokenVerifier interface {
 	receiptVerifier
 }
 
-type channelItemGetter interface {
-	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
-}
-
 type itemByIdGetter interface {
 	GetItemById(itemId uuid.UUID) (models.Item, error)
 }

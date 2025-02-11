@@ -35,7 +35,9 @@ func RegisterRoutes(
 		handleListen(announcer.AddClient, announcer.RemoveClient, auth.ValidateOverlayId),
 	)
 
-	r.GET("/extension/items", handleGetStoreData(auth, store))
+	r.GET("/extension/items",
+		handleGetStoreData(auth.VerifyExtToken, store.GetChannelsItems),
+	)
 	r.GET("/extension/user", handleGetUserData(auth, store))
 	r.POST("/extension/items", handleBuyStoreItem(auth, store))
 	r.PUT("/extension/items", handleSetSelectedItem(announcer, auth, store))

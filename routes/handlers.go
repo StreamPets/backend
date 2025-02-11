@@ -94,18 +94,18 @@ func handleListen(
 }
 
 func handleGetStoreData(
-	verifier extTokenVerifier,
-	store channelItemGetter,
+	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	getChannelsItems func(channelId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
-		token, err := verifier.VerifyExtToken(tokenString)
+		token, err := verifyExtToken(tokenString)
 		if verifyExtTokenErrorHandler(ctx, err) {
 			return
 		}
 
-		storeItems, err := store.GetChannelsItems(token.ChannelId)
+		storeItems, err := getChannelsItems(token.ChannelId)
 		if err != nil {
 			slog.Error("failed to retrieve channels items", "channel id", token.ChannelId)
 			ctx.JSON(http.StatusInternalServerError, nil)
