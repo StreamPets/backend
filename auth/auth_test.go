@@ -1,8 +1,11 @@
 package auth
 
 import (
+	"net/http"
+	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
@@ -53,19 +56,21 @@ func TestVerifyOverlayId(t *testing.T) {
 	})
 }
 
-func TestVerifyExtToken(t *testing.T) {
+func TestExtensionMiddleware(t *testing.T) {
 
-	type OverlayIdGetter interface {
-		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
-	}
+	clientSecret := "secret"
+	channelId := twitch.Id("channel id")
+	userId := twitch.Id("user id")
 
-	t.Run("valid token is verified correctly", func(t *testing.T) {
-		mock.SetUp(t)
+	authService := New(nil, clientSecret)
 
-		clientSecret := "secret"
-		channelId := twitch.Id("channel id")
-		userId := twitch.Id("user id")
+	router := gin.Default()
+	router.Use(authService.ExtensionMiddleware())
+	router.GET("/protected", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, nil)
+	})
 
+	t.Run("valid", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,
 			"user_id":    userId,
@@ -74,45 +79,34 @@ func TestVerifyExtToken(t *testing.T) {
 		tokenString, err := token.SignedString([]byte(clientSecret))
 		assert.NoError(t, err)
 
-		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := New(repoMock.GetOverlayId, clientSecret)
+		req := httptest.NewRequest("GET", "/protected", nil)
+		req.Header.Add(XExtensionJwt, tokenString)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
 
-		got, err := authService.VerifyExtToken(tokenString)
-		assert.NoError(t, err)
-
-		assert.Equal(t, channelId, got.ChannelId)
-		assert.Equal(t, userId, got.UserId)
+		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
 
-	t.Run("invalid token is not verified", func(t *testing.T) {
-		mock.SetUp(t)
-
-		clientSecret := "secret"
-		channelId := twitch.Id("channel id")
-		userId := twitch.Id("user id")
-
+	t.Run("invalid", func(t *testing.T) {
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 			"channel_id": channelId,
 			"user_id":    userId,
+			"exp":        0,
 		})
 
-		tokenString, err := token.SignedString([]byte("fake secret"))
+		tokenString, err := token.SignedString([]byte(clientSecret))
 		assert.NoError(t, err)
 
-		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := New(repoMock.GetOverlayId, clientSecret)
+		req := httptest.NewRequest("GET", "/protected", nil)
+		req.Header.Add(XExtensionJwt, tokenString)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
 
-		_, err = authService.VerifyExtToken(tokenString)
-
-		assert.Error(t, err)
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 }
 
 func TestVerifyReceipt(t *testing.T) {
-
-	type OverlayIdGetter interface {
-		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
-	}
 
 	t.Run("valid token is verified correctly", func(t *testing.T) {
 		mock.SetUp(t)
@@ -132,8 +126,7 @@ func TestVerifyReceipt(t *testing.T) {
 		tokenString, err := token.SignedString([]byte(clientSecret))
 		assert.NoError(t, err)
 
-		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := New(repoMock.GetOverlayId, clientSecret)
+		authService := New(nil, clientSecret)
 
 		got, err := authService.VerifyReceipt(tokenString)
 
@@ -154,8 +147,7 @@ func TestVerifyReceipt(t *testing.T) {
 		tokenString, err := token.SignedString([]byte("fake secret"))
 		assert.NoError(t, err)
 
-		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := New(repoMock.GetOverlayId, clientSecret)
+		authService := New(nil, clientSecret)
 
 		_, err = authService.VerifyReceipt(tokenString)
 		assert.Error(t, err)

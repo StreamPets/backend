@@ -37,18 +37,25 @@ func RegisterRoutes(
 		handleListen(announcer.AddClient, announcer.RemoveClient, auth.ValidateOverlayId),
 	)
 
-	r.GET("/extension/items",
-		handleGetStoreData(auth.VerifyExtToken, store.GetChannelsItems),
-	)
-	r.GET("/extension/user",
-		handleGetUserData(auth.VerifyExtToken, store.GetSelectedItem, store.GetOwnedItems),
-	)
-	r.POST("/extension/items",
-		handleBuyStoreItem(auth.VerifyExtToken, auth.VerifyReceipt, store.GetItemById, store.AddOwnedItem),
-	)
-	r.PUT("/extension/items",
-		handleSetSelectedItem(announcer.AnnounceUpdate, auth.VerifyExtToken, store.GetItemById, store.SetSelectedItem),
-	)
+	extension := r.Group("/extension")
+	{
+		extension.Use(
+			auth.ExtensionMiddleware(),
+		)
+		extension.GET("/items",
+			handleGetStoreData(store.GetChannelsItems),
+		)
+		extension.GET("/user",
+			handleGetUserData(store.GetSelectedItem, store.GetOwnedItems),
+		)
+		extension.POST("/items",
+			auth.ReceiptMiddleware(),
+			handleBuyStoreItem(store.GetItemById, store.AddOwnedItem),
+		)
+		extension.PUT("/items",
+			handleSetSelectedItem(announcer.AnnounceUpdate, store.GetItemById, store.SetSelectedItem),
+		)
+	}
 
 	r.GET("/dashboard/login",
 		handleLogin(twitchApi.ValidateToken, db.GetOverlayId),

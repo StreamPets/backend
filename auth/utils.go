@@ -6,8 +6,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/twitch"
 )
+
+const XExtensionJwt = "x-extension-jwt"
+const TransactionId = "transactionId"
+const Rarity = "rarity"
 
 var ErrIdMismatch = errors.New("channel id and overlay id do not match")
 var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
@@ -16,17 +19,17 @@ type ErrInvalidToken struct {
 	TokenString string
 }
 
-func NewErrInvalidToken(tokenString string) *ErrInvalidToken {
-	return &ErrInvalidToken{TokenString: tokenString}
+func NewErrInvalidToken(tokenString string) ErrInvalidToken {
+	return ErrInvalidToken{TokenString: tokenString}
 }
 
-func (e *ErrInvalidToken) Error() string {
+func (e ErrInvalidToken) Error() string {
 	return "token is not valid"
 }
 
-type ExtToken struct {
-	ChannelId twitch.Id `json:"channel_id"`
-	UserId    twitch.Id `json:"user_id"`
+type extToken struct {
+	ChannelId string `json:"channel_id"`
+	UserId    string `json:"user_id"`
 	jwt.RegisteredClaims
 }
 

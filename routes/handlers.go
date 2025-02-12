@@ -10,12 +10,12 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/auth"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
+// TODO: Mahybe move this to /auth
 func handleLogin(
 	validateToken func(ctx context.Context, accessToken string) (twitch.Id, error),
 	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
@@ -66,6 +66,7 @@ func handleListen(
 			return
 		}
 
+		// TODO:
 		client := addClient(channelId)
 		defer func() {
 			go func() {
@@ -91,21 +92,20 @@ func handleListen(
 				return true
 			}
 		})
+		/////
 	}
 }
 
 func handleGetStoreData(
-	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
 	getChannelsItems func(channelId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		token, err := verifyExtToken(ctx.GetHeader(XExtensionJwt))
-		if verifyExtTokenErrorHandler(ctx, err) {
-			return
-		}
+		channelId := twitch.Id(ctx.GetString(ChannelId))
 
-		storeItems, err := getChannelsItems(token.ChannelId)
-		if getChannelsItemsErrorHandler(ctx, err) {
+		storeItems, err := getChannelsItems(channelId)
+		if err != nil {
+			slog.Error("failed to retrieve channels items")
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -114,7 +114,6 @@ func handleGetStoreData(
 }
 
 func handleGetUserData(
-	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
 	getSelectedItem func(userId, channelId twitch.Id) (models.Item, error),
 	getOwnedItems func(channelId, userId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
@@ -125,19 +124,15 @@ func handleGetUserData(
 	}
 
 	return func(ctx *gin.Context) {
-		tokenString := ctx.GetHeader(XExtensionJwt)
+		channelId := twitch.Id(ctx.GetString(ChannelId))
+		userId := twitch.Id(ctx.GetString(UserId))
 
-		token, err := verifyExtToken(tokenString)
-		if verifyExtTokenErrorHandler(ctx, err) {
-			return
-		}
-
-		ownedItems, err := getOwnedItems(token.ChannelId, token.UserId)
+		ownedItems, err := getOwnedItems(channelId, userId)
 		if getOwnedItemsErrorHandler(ctx, err) {
 			return
 		}
 
-		selectedItem, err := getSelectedItem(token.UserId, token.ChannelId)
+		selectedItem, err := getSelectedItem(userId, channelId)
 		if getSelectedItemErrorHandler(ctx, err) {
 			return
 		}
@@ -150,37 +145,19 @@ func handleGetUserData(
 }
 
 func handleBuyStoreItem(
-	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
-	verifyReceipt func(receiptString string) (*auth.Receipt, error),
 	getItemById func(itemId uuid.UUID) (models.Item, error),
 	addOwnedItem func(userId twitch.Id, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
-
-	type request struct {
-		Receipt string `json:"receipt"`
-		ItemId  string `json:"item_id"`
-	}
-
 	return func(ctx *gin.Context) {
-		tokenString := ctx.GetHeader(XExtensionJwt)
+		userId := twitch.Id(ctx.GetString(UserId))
+		rarity := models.Rarity(ctx.GetString(Rarity))
 
-		token, err := verifyExtToken(tokenString)
-		if verifyExtTokenErrorHandler(ctx, err) {
+		itemId, err := uuid.Parse(ctx.GetString(ItemId))
+		if parseUuidErrorHandler(ctx, err) {
 			return
 		}
 
-		request := new(request)
-		err = ctx.ShouldBindJSON(request)
-		if shouldBindJsonErrorHandler(ctx, err) {
-			return
-		}
-
-		receipt, err := verifyReceipt(request.Receipt)
-		if verifyExtTokenErrorHandler(ctx, err) {
-			return
-		}
-
-		itemId, err := uuid.Parse(request.ItemId)
+		transactionId, err := uuid.Parse(ctx.GetString(TransactionId))
 		if parseUuidErrorHandler(ctx, err) {
 			return
 		}
@@ -190,13 +167,13 @@ func handleBuyStoreItem(
 			return
 		}
 
-		if item.Rarity != receipt.Data.Product.Rarity {
+		if item.Rarity != rarity {
 			slog.Error("receipt and item rarity do not match")
 			ctx.JSON(http.StatusForbidden, nil)
 			return
 		}
 
-		err = addOwnedItem(token.UserId, itemId, receipt.Data.TransactionId)
+		err = addOwnedItem(userId, itemId, transactionId)
 		if addOwnedItemErrorHandler(ctx, err) {
 			return
 		}
@@ -207,7 +184,6 @@ func handleBuyStoreItem(
 
 func handleSetSelectedItem(
 	announceUpdate func(channelId, userId twitch.Id, image string),
-	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
 	getItemById func(itemId uuid.UUID) (models.Item, error),
 	setSelectedItem func(userId, channelId twitch.Id, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
@@ -217,15 +193,11 @@ func handleSetSelectedItem(
 	}
 
 	return func(ctx *gin.Context) {
-		tokenString := ctx.GetHeader(XExtensionJwt)
-
-		token, err := verifyExtToken(tokenString)
-		if verifyExtTokenErrorHandler(ctx, err) {
-			return
-		}
+		channelId := twitch.Id(ctx.GetString(ChannelId))
+		userId := twitch.Id(ctx.GetString(UserId))
 
 		request := new(request)
-		err = ctx.ShouldBindJSON(request)
+		err := ctx.ShouldBindJSON(request)
 		if shouldBindJsonErrorHandler(ctx, err) {
 			return
 		}
@@ -240,12 +212,12 @@ func handleSetSelectedItem(
 			return
 		}
 
-		err = setSelectedItem(token.UserId, token.ChannelId, itemId)
+		err = setSelectedItem(userId, channelId, itemId)
 		if setSelectedItemErrorHandler(ctx, err) {
 			return
 		}
 
-		announceUpdate(token.ChannelId, token.UserId, item.Image)
+		announceUpdate(channelId, userId, item.Image)
 	}
 }
 

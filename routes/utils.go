@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/streampets/backend/auth"
 	"github.com/streampets/backend/database"
 	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/twitch"
@@ -18,20 +17,9 @@ const XExtensionJwt string = "x-extension-jwt"
 const ChannelId string = "channelId"
 const OverlayId string = "overlayId"
 const UserId string = "userId"
-
-func verifyExtTokenErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(auth.ErrInvalidToken)
-	if errors.As(err, &e) {
-		slog.Warn("invalid token", "token", e.TokenString)
-		ctx.JSON(http.StatusUnauthorized, nil)
-		return true
-	} else if err != nil {
-		slog.Error("failed to validate token", "err", err.Error())
-		ctx.JSON(http.StatusInternalServerError, nil)
-		return true
-	}
-	return false
-}
+const ItemId string = "itemId"
+const TransactionId string = "transactionId"
+const Rarity string = "rarity"
 
 func validateTokenErrorHandler(ctx *gin.Context, err error) bool {
 	if err == twitch.ErrInvalidUserToken {
@@ -142,16 +130,6 @@ func validateOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
 	if err != nil {
 		slog.Warn("unrecognised overlay id", "overlay id", ctx.Query(OverlayId), "channel id", ctx.Query(ChannelId))
 		ctx.JSON(http.StatusUnauthorized, nil)
-		return true
-	}
-	return false
-}
-
-// Returns StatusInternalServerError [500] if err is not nil.
-func getChannelsItemsErrorHandler(ctx *gin.Context, err error) bool {
-	if err != nil {
-		slog.Error("failed to retrieve channels items")
-		ctx.JSON(http.StatusInternalServerError, nil)
 		return true
 	}
 	return false

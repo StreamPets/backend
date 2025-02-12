@@ -270,89 +270,40 @@ func TestHandleListen(t *testing.T) {
 }
 
 func TestGetStoreData(t *testing.T) {
-	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
+
+	setUpContext := func(channelId, userId twitch.Id) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("GET", "/items", nil)
 
-		req.Header.Add(XExtensionJwt, tokenString)
+		ctx.Set(ChannelId, string(channelId))
+		ctx.Set(UserId, string(userId))
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
 		GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
 	}
-
-	t.Run("access forbidden with invalid extension token", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "invalid token"
-
-		mockDep := mock.Mock[mockDep]()
-
-		err := auth.NewErrInvalidToken(tokenString)
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
-
-		ctx, recorder := setUpContext(tokenString)
-		handleGetStoreData(
-			mockDep.VerifyExtToken,
-			mockDep.GetChannelsItems,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("internal server error when error received from verify token", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "invalid token"
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
-
-		ctx, recorder := setUpContext(tokenString)
-		handleGetStoreData(
-			mockDep.VerifyExtToken,
-			mockDep.GetChannelsItems,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	})
 
 	t.Run("internal server error when error received from get channels items", func(t *testing.T) {
 		mock.SetUp(t)
 
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
-		tokenString := "token string"
-		token := auth.ExtToken{ChannelId: channelId, UserId: userId}
-
-		storeItems := []models.Item{{}, {}}
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
-		mock.When(mockDep.GetChannelsItems(channelId)).ThenReturn(storeItems, assert.AnError)
+		mock.When(mockDep.GetChannelsItems(channelId)).ThenReturn(nil, assert.AnError)
 
-		ctx, recorder := setUpContext(tokenString)
+		ctx, recorder := setUpContext(channelId, userId)
 		handleGetStoreData(
-			mockDep.VerifyExtToken,
 			mockDep.GetChannelsItems,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetChannelsItems(channelId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -364,23 +315,18 @@ func TestGetStoreData(t *testing.T) {
 
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
-		tokenString := "token string"
-		token := auth.ExtToken{ChannelId: channelId, UserId: userId}
 
 		storeItems := []models.Item{{}, {}}
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
 		mock.When(mockDep.GetChannelsItems(channelId)).ThenReturn(storeItems, nil)
 
-		ctx, recorder := setUpContext(tokenString)
+		ctx, recorder := setUpContext(channelId, userId)
 		handleGetStoreData(
-			mockDep.VerifyExtToken,
 			mockDep.GetChannelsItems,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetChannelsItems(channelId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -397,69 +343,24 @@ func TestGetStoreData(t *testing.T) {
 
 func TestGetUserData(t *testing.T) {
 
-	setUpContext := func(tokenString string) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId twitch.Id) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("GET", "/items", nil)
 
-		req.Header.Add(XExtensionJwt, tokenString)
+		ctx.Set(ChannelId, string(channelId))
+		ctx.Set(UserId, string(userId))
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
 		GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
 		GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
 	}
-
-	t.Run("unauthorized when token is invalid", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "token string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		err := auth.NewErrInvalidToken(tokenString)
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
-
-		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(
-			mockDep.VerifyExtToken,
-			mockDep.GetSelectedItem,
-			mockDep.GetOwnedItems,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("internal server error when verify token fails", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "token string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
-
-		ctx, recorder := setUpContext(tokenString)
-		handleGetUserData(
-			mockDep.VerifyExtToken,
-			mockDep.GetSelectedItem,
-			mockDep.GetOwnedItems,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	})
 
 	t.Run("internal server error when get owned items fails", func(t *testing.T) {
 		mock.SetUp(t)
@@ -467,25 +368,16 @@ func TestGetUserData(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 
-		tokenString := "token string"
-		token := &auth.ExtToken{
-			ChannelId: channelId,
-			UserId:    userId,
-		}
-
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(mockDep.GetOwnedItems(channelId, userId)).ThenReturn(nil, assert.AnError)
 
-		ctx, recorder := setUpContext(tokenString)
+		ctx, recorder := setUpContext(channelId, userId)
 		handleGetUserData(
-			mockDep.VerifyExtToken,
 			mockDep.GetSelectedItem,
 			mockDep.GetOwnedItems,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetOwnedItems(channelId, userId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -498,25 +390,16 @@ func TestGetUserData(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 
-		tokenString := "token string"
-		token := &auth.ExtToken{
-			ChannelId: channelId,
-			UserId:    userId,
-		}
-
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(mockDep.GetSelectedItem(userId, channelId)).ThenReturn(nil, assert.AnError)
 
-		ctx, recorder := setUpContext(tokenString)
+		ctx, recorder := setUpContext(channelId, userId)
 		handleGetUserData(
-			mockDep.VerifyExtToken,
 			mockDep.GetSelectedItem,
 			mockDep.GetOwnedItems,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetOwnedItems(channelId, userId)
 		mock.Verify(mockDep, mock.Once()).GetSelectedItem(userId, channelId)
 		mock.VerifyNoMoreInteractions(mockDep)
@@ -535,29 +418,20 @@ func TestGetUserData(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 
-		tokenString := "token string"
-		token := &auth.ExtToken{
-			UserId:    userId,
-			ChannelId: channelId,
-		}
-
 		selectedItem := models.Item{ItemId: uuid.New()}
 		ownedItems := []models.Item{selectedItem}
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(mockDep.GetOwnedItems(channelId, userId)).ThenReturn(ownedItems, nil)
 		mock.When(mockDep.GetSelectedItem(userId, channelId)).ThenReturn(selectedItem, nil)
 
-		ctx, recorder := setUpContext(tokenString)
+		ctx, recorder := setUpContext(channelId, userId)
 		handleGetUserData(
-			mockDep.VerifyExtToken,
 			mockDep.GetSelectedItem,
 			mockDep.GetOwnedItems,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetOwnedItems(channelId, userId)
 		mock.Verify(mockDep, mock.Once()).GetSelectedItem(userId, channelId)
 		mock.VerifyNoMoreInteractions(mockDep)
@@ -576,217 +450,46 @@ func TestGetUserData(t *testing.T) {
 
 func TestBuyStoreItem(t *testing.T) {
 
-	generateData := func(receipt, itemId string) []byte {
-		return []byte(fmt.Sprintf(`{
-			"receipt": "%s",
-			"item_id": "%s"
-		}`, receipt, itemId))
-	}
-
-	setUpContext := func(token string, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(userId twitch.Id, itemId, transactionId uuid.UUID, rarity models.Rarity) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
-		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
+		req, _ := http.NewRequest("POST", "/items", nil)
 
-		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-		req.Header.Add(XExtensionJwt, token)
+		ctx.Set(UserId, string(userId))
+		ctx.Set(ItemId, itemId.String())
+		ctx.Set(TransactionId, transactionId.String())
+		ctx.Set(Rarity, string(rarity))
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
-		VerifyReceipt(receiptString string) (*auth.Receipt, error)
 		GetItemById(itemId uuid.UUID) (models.Item, error)
 		AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
 	}
 
-	t.Run("item not added when extension token is invalid", func(t *testing.T) {
+	t.Run("item not added when item with itemId does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
-
-		tokenString := "token string"
-		receiptString := "receipt string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		err := auth.NewErrInvalidToken(tokenString)
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
-
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
-			mockDep.GetItemById,
-			mockDep.AddOwnedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("item not added when extension token cannot be validated", func(t *testing.T) {
-		mock.SetUp(t)
-
-		itemId := uuid.New()
-
-		tokenString := "token string"
-		receiptString := "receipt string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
-
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
-			mockDep.GetItemById,
-			mockDep.AddOwnedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	})
-
-	t.Run("bad request when json is invalid format", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "token string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		ctx, recorder := setUpContext(tokenString, []byte{})
-		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
-			mockDep.GetItemById,
-			mockDep.AddOwnedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	})
-
-	t.Run("item not added when receipt is invalid", func(t *testing.T) {
-		mock.SetUp(t)
-
-		itemId := uuid.New()
-
-		tokenString := "token string"
-		receiptString := "receipt string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		err := auth.NewErrInvalidToken(receiptString)
-		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(nil, err)
-
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
-			mockDep.GetItemById,
-			mockDep.AddOwnedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("item not added when receipt cannot be validated", func(t *testing.T) {
-		mock.SetUp(t)
-
-		itemId := uuid.New()
-
-		tokenString := "token string"
-		receiptString := "receipt string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(nil, assert.AnError)
-
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
-			mockDep.GetItemById,
-			mockDep.AddOwnedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	})
-
-	t.Run("item not added when item id is not a valid uuid", func(t *testing.T) {
-		mock.SetUp(t)
-
-		itemId := "invalid id"
-
-		tokenString := "token string"
-		receiptString := "receipt string"
-
-		mockDep := mock.Mock[mockDep]()
-
-		jsonData := generateData(receiptString, itemId)
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
-			mockDep.GetItemById,
-			mockDep.AddOwnedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusBadRequest, recorder.Code)
-	})
-
-	t.Run("item not added when item id does not exist", func(t *testing.T) {
-		mock.SetUp(t)
-
-		itemId := uuid.New()
-
-		tokenString := "token string"
-		receiptString := "receipt string"
+		transactionId := uuid.New()
+		rarity := models.Common
 
 		mockDep := mock.Mock[mockDep]()
 
 		err := database.NewErrItemNotFoundById(itemId)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(userId, itemId, transactionId, rarity)
 		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
 			mockDep.GetItemById,
 			mockDep.AddOwnedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -796,26 +499,21 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when get item by id fails", func(t *testing.T) {
 		mock.SetUp(t)
 
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
-
-		tokenString := "token string"
-		receiptString := "receipt string"
+		transactionId := uuid.New()
+		rarity := models.Common
 
 		mockDep := mock.Mock[mockDep]()
 
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
 
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(userId, itemId, transactionId, rarity)
 		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
 			mockDep.GetItemById,
 			mockDep.AddOwnedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -825,42 +523,25 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when receipt rarity and item rarity do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
-		receiptString := "receipt string"
-
+		userId := twitch.Id("user id")
 		itemId := uuid.New()
 		transactionId := uuid.New()
+		rarity := models.Common
 
 		item := models.Item{
 			ItemId: itemId,
 			Rarity: models.Uncommon,
 		}
 
-		receipt := &auth.Receipt{
-			Data: auth.Data{
-				TransactionId: transactionId,
-				Product: auth.Product{
-					Rarity: models.Common,
-				},
-			},
-		}
-
 		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
 
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(userId, itemId, transactionId, rarity)
 		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
 			mockDep.GetItemById,
 			mockDep.AddOwnedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -870,26 +551,10 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("internal server error when add owned item fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
-		receiptString := "receipt string"
-
 		userId := twitch.Id("user id")
-
 		itemId := uuid.New()
 		transactionId := uuid.New()
-
-		token := &auth.ExtToken{
-			UserId: userId,
-		}
-
-		receipt := &auth.Receipt{
-			Data: auth.Data{
-				TransactionId: transactionId,
-				Product: auth.Product{
-					Rarity: models.Common,
-				},
-			},
-		}
+		rarity := models.Common
 
 		item := models.Item{
 			ItemId: itemId,
@@ -898,22 +563,15 @@ func TestBuyStoreItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
 		mock.When(mockDep.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(assert.AnError)
 
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(userId, itemId, transactionId, rarity)
 		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
 			mockDep.GetItemById,
 			mockDep.AddOwnedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.Verify(mockDep, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
 		mock.VerifyNoMoreInteractions(mockDep)
@@ -924,26 +582,10 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item added when all pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
-		receiptString := "receipt string"
-
 		userId := twitch.Id("user id")
-
 		itemId := uuid.New()
 		transactionId := uuid.New()
-
-		token := &auth.ExtToken{
-			UserId: userId,
-		}
-
-		receipt := &auth.Receipt{
-			Data: auth.Data{
-				TransactionId: transactionId,
-				Product: auth.Product{
-					Rarity: models.Common,
-				},
-			},
-		}
+		rarity := models.Common
 
 		item := models.Item{
 			ItemId: itemId,
@@ -952,21 +594,14 @@ func TestBuyStoreItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
-		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(receipt, nil)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
 
-		jsonData := generateData(receiptString, itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(userId, itemId, transactionId, rarity)
 		handleBuyStoreItem(
-			mockDep.VerifyExtToken,
-			mockDep.VerifyReceipt,
 			mockDep.GetItemById,
 			mockDep.AddOwnedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.Verify(mockDep, mock.Once()).VerifyReceipt(receiptString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.Verify(mockDep, mock.Once()).AddOwnedItem(userId, itemId, transactionId)
 		mock.VerifyNoMoreInteractions(mockDep)
@@ -983,15 +618,15 @@ func TestSetSelectedItem(t *testing.T) {
 		}`, itemId))
 	}
 
-	setUpContext := func(token string, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId twitch.Id, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
 
-		req.Header.Set("Content-Type", "application/json; charset=UTF-8")
-		req.Header.Add("x-extension-jwt", token)
+		ctx.Set(ChannelId, string(channelId))
+		ctx.Set(UserId, string(userId))
 
 		ctx.Request = req
 		return ctx, recorder
@@ -999,79 +634,23 @@ func TestSetSelectedItem(t *testing.T) {
 
 	type mockDep interface {
 		AnnounceUpdate(channelId, userId twitch.Id, image string)
-		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
 		GetItemById(itemId uuid.UUID) (models.Item, error)
 		SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
 	}
 
-	t.Run("pet not updated when extension token is invalid", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "token string"
-		itemId := uuid.New()
-
-		mockDep := mock.Mock[mockDep]()
-
-		err := auth.NewErrInvalidToken(tokenString)
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
-
-		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleSetSelectedItem(
-			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
-			mockDep.GetItemById,
-			mockDep.SetSelectedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("pet not updated when extension token cannot be validated", func(t *testing.T) {
-		mock.SetUp(t)
-
-		tokenString := "token string"
-		itemId := uuid.New()
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, assert.AnError)
-
-		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
-		handleSetSelectedItem(
-			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
-			mockDep.GetItemById,
-			mockDep.SetSelectedItem,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	})
-
 	t.Run("pet not updated when json has invalid format", func(t *testing.T) {
 		mock.SetUp(t)
-
-		tokenString := "token string"
 
 		mockDep := mock.Mock[mockDep]()
 
 		jsonData := make([]byte, 0)
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext("", "", jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -1080,21 +659,18 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item id is not a valid uuid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
 		itemId := "invalid id"
 
 		mockDep := mock.Mock[mockDep]()
 
 		jsonData := generateData(itemId)
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext("", "", jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
@@ -1103,7 +679,6 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item id does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
 		itemId := uuid.New()
 
 		mockDep := mock.Mock[mockDep]()
@@ -1112,15 +687,13 @@ func TestSetSelectedItem(t *testing.T) {
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext("", "", jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -1130,7 +703,6 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when get item by id fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
 		itemId := uuid.New()
 
 		mockDep := mock.Mock[mockDep]()
@@ -1138,15 +710,13 @@ func TestSetSelectedItem(t *testing.T) {
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, assert.AnError)
 
 		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext("", "", jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
 
@@ -1156,32 +726,23 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
-		token := &auth.ExtToken{
-			ChannelId: channelId,
-			UserId:    userId,
-		}
-
 		mockDep := mock.Mock[mockDep]()
 
 		err := items.NewErrSelectUnownedItem(userId, channelId, itemId)
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(mockDep.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
 
 		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.Verify(mockDep, mock.Once()).SetSelectedItem(userId, channelId, itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
@@ -1192,31 +753,22 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
-		token := &auth.ExtToken{
-			ChannelId: channelId,
-			UserId:    userId,
-		}
-
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(mockDep.SetSelectedItem(userId, channelId, itemId)).ThenReturn(assert.AnError)
 
 		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.Verify(mockDep, mock.Once()).SetSelectedItem(userId, channelId, itemId)
 		mock.VerifyNoMoreInteractions(mockDep)
@@ -1227,7 +779,6 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet updated when pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
-		tokenString := "token string"
 		image := "image"
 
 		channelId := twitch.Id("channel id")
@@ -1236,26 +787,18 @@ func TestSetSelectedItem(t *testing.T) {
 
 		item := models.Item{ItemId: itemId, Image: image}
 
-		token := auth.ExtToken{
-			ChannelId: channelId,
-			UserId:    userId,
-		}
-
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(&token, nil)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(item, nil)
 
 		jsonData := generateData(itemId.String())
-		ctx, recorder := setUpContext(tokenString, jsonData)
+		ctx, recorder := setUpContext(channelId, userId, jsonData)
 		handleSetSelectedItem(
 			mockDep.AnnounceUpdate,
-			mockDep.VerifyExtToken,
 			mockDep.GetItemById,
 			mockDep.SetSelectedItem,
 		)(ctx)
 
-		mock.Verify(mockDep, mock.Once()).VerifyExtToken(tokenString)
 		mock.Verify(mockDep, mock.Once()).GetItemById(itemId)
 		mock.Verify(mockDep, mock.Once()).SetSelectedItem(userId, channelId, itemId)
 		mock.Verify(mockDep, mock.Once()).AnnounceUpdate(channelId, userId, image)
