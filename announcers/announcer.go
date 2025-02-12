@@ -1,7 +1,7 @@
 package announcers
 
 import (
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -35,7 +35,7 @@ func (s *AnnouncerService) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelId twitch.Id, pet services.Pet) {
+func (s *AnnouncerService) AnnounceJoin(channelId twitch.Id, pet pets.Pet) {
 	s.announce <- joinAnnouncement(channelId, pet)
 }
 

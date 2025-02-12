@@ -1,14 +1,14 @@
 package announcers
 
 import (
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
 type announcer interface {
 	AddClient(channelId twitch.Id) Client
 	RemoveClient(client Client)
-	AnnounceJoin(channelId twitch.Id, pet services.Pet)
+	AnnounceJoin(channelId twitch.Id, pet pets.Pet)
 	AnnouncePart(channelId, userId twitch.Id)
 	AnnounceAction(channelId, userId twitch.Id, action string)
 	AnnounceUpdate(channelId, userId twitch.Id, image string)
@@ -47,7 +47,7 @@ func (s *CachedAnnouncerService) RemoveClient(client Client) {
 	s.announcer.RemoveClient(client)
 }
 
-func (s *CachedAnnouncerService) AnnounceJoin(channelId twitch.Id, pet services.Pet) {
+func (s *CachedAnnouncerService) AnnounceJoin(channelId twitch.Id, pet pets.Pet) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		pets = make(petMap)

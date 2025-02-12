@@ -1,4 +1,4 @@
-package services
+package pets
 
 import (
 	"testing"
@@ -21,7 +21,7 @@ func TestGetUser(t *testing.T) {
 	itemMock := mock.Mock[SelectedItemGetter]()
 	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(item, nil)
 
-	petService := NewPetService(itemMock)
+	petService := New(itemMock)
 
 	pet, err := petService.GetPet(userId, channelId, username)
 

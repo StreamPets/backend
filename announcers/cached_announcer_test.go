@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
@@ -45,7 +45,7 @@ func TestAnnounceJoin(t *testing.T) {
 
 	channelId := twitch.Id("channel id")
 
-	pet := services.Pet{}
+	pet := pets.Pet{}
 	client := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
@@ -82,7 +82,7 @@ func TestAnnouncePart(t *testing.T) {
 	channelId := twitch.Id("channel id")
 	userId := twitch.Id("user id")
 
-	pet := services.Pet{UserId: userId}
+	pet := pets.Pet{UserId: userId}
 	client := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
@@ -125,7 +125,7 @@ func TestAnnounceUpdate(t *testing.T) {
 	image := "image"
 	newImage := "new image"
 
-	pet := services.Pet{UserId: userId, Image: image}
+	pet := pets.Pet{UserId: userId, Image: image}
 	client := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
@@ -151,8 +151,8 @@ func TestAnnounceUpdate(t *testing.T) {
 
 	assert.Equal(t, 1, len(announcements))
 
-	actual := announcements[0].Message.(services.Pet)
-	expected := services.Pet{UserId: userId, Image: newImage}
+	actual := announcements[0].Message.(pets.Pet)
+	expected := pets.Pet{UserId: userId, Image: newImage}
 
 	assert.Equal(t, expected, actual)
 

@@ -1,4 +1,4 @@
-package services
+package items
 
 import (
 	"testing"
@@ -18,10 +18,10 @@ func TestGetItemByName(t *testing.T) {
 
 	item := models.Item{Name: itemName}
 
-	itemMock := mock.Mock[ItemRepository]()
+	itemMock := mock.Mock[database]()
 	mock.When(itemMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
 
-	database := NewItemService(itemMock)
+	database := New(itemMock)
 
 	got, err := database.GetItemByName(channelId, itemName)
 
@@ -37,10 +37,10 @@ func TestGetItemById(t *testing.T) {
 	itemId := uuid.New()
 	item := models.Item{ItemId: itemId}
 
-	itemMock := mock.Mock[ItemRepository]()
+	itemMock := mock.Mock[database]()
 	mock.When(itemMock.GetItemById(itemId)).ThenReturn(item, nil)
 
-	database := NewItemService(itemMock)
+	database := New(itemMock)
 
 	got, err := database.GetItemById(itemId)
 
@@ -57,10 +57,10 @@ func TestGetSelectedItem(t *testing.T) {
 	channelId := twitch.Id("channel id")
 	want := models.Item{ItemId: uuid.New()}
 
-	itemMock := mock.Mock[ItemRepository]()
+	itemMock := mock.Mock[database]()
 	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(want, nil)
 
-	itemService := NewItemService(itemMock)
+	itemService := New(itemMock)
 
 	got, err := itemService.GetSelectedItem(userId, channelId)
 
@@ -76,10 +76,10 @@ func TestSetSelectedItem(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		itemId := uuid.New()
 
-		itemMock := mock.Mock[ItemRepository]()
+		itemMock := mock.Mock[database]()
 		mock.When(itemMock.CheckOwnedItem(userId, itemId)).ThenReturn(true, nil)
 
-		itemService := NewItemService(itemMock)
+		itemService := New(itemMock)
 
 		err := itemService.SetSelectedItem(userId, channelId, itemId)
 
@@ -95,10 +95,10 @@ func TestSetSelectedItem(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		itemId := uuid.New()
 
-		itemMock := mock.Mock[ItemRepository]()
+		itemMock := mock.Mock[database]()
 		mock.When(itemMock.CheckOwnedItem(userId, itemId)).ThenReturn(false, nil)
 
-		itemService := NewItemService(itemMock)
+		itemService := New(itemMock)
 
 		mock.Verify(itemMock, mock.Never()).SetSelectedItem(channelId, userId, itemId)
 
@@ -115,10 +115,10 @@ func TestGetChannelsItems(t *testing.T) {
 	channelId := twitch.Id("channel id")
 	expected := []models.Item{{}}
 
-	itemMock := mock.Mock[ItemRepository]()
+	itemMock := mock.Mock[database]()
 	mock.When(itemMock.GetChannelsItems(channelId)).ThenReturn(expected, nil)
 
-	itemService := NewItemService(itemMock)
+	itemService := New(itemMock)
 
 	items, err := itemService.GetChannelsItems(channelId)
 
@@ -135,11 +135,11 @@ func TestGetOwnedItems(t *testing.T) {
 	userId := twitch.Id("user id")
 	expected := []models.Item{{}}
 
-	itemMock := mock.Mock[ItemRepository]()
+	itemMock := mock.Mock[database]()
 
 	mock.When(itemMock.GetOwnedItems(channelId, userId)).ThenReturn(expected, nil)
 
-	itemService := NewItemService(itemMock)
+	itemService := New(itemMock)
 
 	items, err := itemService.GetOwnedItems(channelId, userId)
 
@@ -154,10 +154,10 @@ func TestAddOwnedItem(t *testing.T) {
 	itemId := uuid.New()
 	transactionId := uuid.New()
 
-	itemMock := mock.Mock[ItemRepository]()
+	itemMock := mock.Mock[database]()
 	mock.When(itemMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(nil)
 
-	itemService := NewItemService(itemMock)
+	itemService := New(itemMock)
 
 	err := itemService.AddOwnedItem(userId, itemId, transactionId)
 

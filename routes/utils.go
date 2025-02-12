@@ -6,8 +6,9 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
-	"github.com/streampets/backend/repositories"
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/auth"
+	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -19,7 +20,7 @@ const OverlayId string = "overlayId"
 const UserId string = "userId"
 
 func verifyExtTokenErrorHandler(ctx *gin.Context, err error) bool {
-	var e *services.ErrInvalidToken
+	e := new(auth.ErrInvalidToken)
 	if errors.As(err, &e) {
 		slog.Warn("invalid token", "token", e.TokenString)
 		ctx.JSON(http.StatusUnauthorized, nil)
@@ -46,7 +47,7 @@ func validateTokenErrorHandler(ctx *gin.Context, err error) bool {
 }
 
 func getOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
-	var e *repositories.ErrNoOverlayId
+	var e *database.ErrNoOverlayId
 	if errors.As(err, &e) {
 		slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
 		ctx.JSON(http.StatusBadRequest, nil)
@@ -78,7 +79,7 @@ func authCookieErrorHandler(ctx *gin.Context, err error) bool {
 //
 // Returns InternalServerError [500] otherwise.
 func setSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(services.ErrSelectUnownedItem)
+	e := new(items.ErrSelectUnownedItem)
 	if errors.As(err, e) {
 		slog.Error("user tried to select an item they did not own", "user id", e.UserId, "channel id", e.ChannelId, "item id", e.ItemId)
 		ctx.JSON(http.StatusForbidden, nil)
@@ -103,7 +104,7 @@ func shouldBindJsonErrorHandler(ctx *gin.Context, err error) bool {
 
 // Returns StatusBadRequest [400] if err is not nil.
 func getItemByNameErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(repositories.ErrItemNotFoundByName)
+	e := new(database.ErrItemNotFoundByName)
 	if errors.As(err, e) {
 		slog.Warn("item could not be found", "item name", e.ItemName)
 		ctx.JSON(http.StatusBadRequest, nil)
@@ -180,7 +181,7 @@ func getSelectedItemErrorHandler(ctx *gin.Context, err error) bool {
 //
 // Returns StatusInternalServerError [500] is err is not nil.
 func getItemByIdErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(repositories.ErrItemNotFoundById)
+	e := new(database.ErrItemNotFoundById)
 	if errors.As(err, e) {
 		slog.Error("failed to retrieve item", "item id", e.ItemId)
 		ctx.JSON(http.StatusBadRequest, nil)
@@ -193,9 +194,11 @@ func getItemByIdErrorHandler(ctx *gin.Context, err error) bool {
 	return false
 }
 
-// TODO: Returns ...
+// Returns StatusInternalServerError [500] if err is an ErrAddItemNotExist.
+//
+// Returns StatusInternalServerError [500] if err is not nil.
 func addOwnedItemErrorHandler(ctx *gin.Context, err error) bool {
-	e := new(repositories.ErrAddItemNotExist)
+	e := new(database.ErrAddItemNotExist)
 	if errors.As(err, e) {
 		slog.Error("failed to add owned item", "user id", e.UserId, "item id", e.ItemId, "transaction id", e.TransactionId)
 		ctx.JSON(http.StatusInternalServerError, nil)

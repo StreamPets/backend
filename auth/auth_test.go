@@ -1,4 +1,4 @@
-package services
+package auth
 
 import (
 	"testing"
@@ -11,6 +11,11 @@ import (
 )
 
 func TestVerifyOverlayId(t *testing.T) {
+
+	type OverlayIdGetter interface {
+		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
+	}
+
 	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
@@ -20,7 +25,7 @@ func TestVerifyOverlayId(t *testing.T) {
 		repoMock := mock.Mock[OverlayIdGetter]()
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
-		authService := NewAuthService(repoMock, "")
+		authService := New(repoMock.GetOverlayId, "")
 
 		err := authService.ValidateOverlayId(channelId, overlayId)
 
@@ -37,7 +42,7 @@ func TestVerifyOverlayId(t *testing.T) {
 		repoMock := mock.Mock[OverlayIdGetter]()
 		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
 
-		authService := NewAuthService(repoMock, "")
+		authService := New(repoMock.GetOverlayId, "")
 		err := authService.ValidateOverlayId(channelId, uuid.New())
 
 		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
@@ -49,6 +54,11 @@ func TestVerifyOverlayId(t *testing.T) {
 }
 
 func TestVerifyExtToken(t *testing.T) {
+
+	type OverlayIdGetter interface {
+		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
+	}
+
 	t.Run("valid token is verified correctly", func(t *testing.T) {
 		mock.SetUp(t)
 
@@ -65,7 +75,7 @@ func TestVerifyExtToken(t *testing.T) {
 		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := NewAuthService(repoMock, clientSecret)
+		authService := New(repoMock.GetOverlayId, clientSecret)
 
 		got, err := authService.VerifyExtToken(tokenString)
 		assert.NoError(t, err)
@@ -90,7 +100,7 @@ func TestVerifyExtToken(t *testing.T) {
 		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := NewAuthService(repoMock, clientSecret)
+		authService := New(repoMock.GetOverlayId, clientSecret)
 
 		_, err = authService.VerifyExtToken(tokenString)
 
@@ -99,6 +109,11 @@ func TestVerifyExtToken(t *testing.T) {
 }
 
 func TestVerifyReceipt(t *testing.T) {
+
+	type OverlayIdGetter interface {
+		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
+	}
+
 	t.Run("valid token is verified correctly", func(t *testing.T) {
 		mock.SetUp(t)
 
@@ -118,7 +133,7 @@ func TestVerifyReceipt(t *testing.T) {
 		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := NewAuthService(repoMock, clientSecret)
+		authService := New(repoMock.GetOverlayId, clientSecret)
 
 		got, err := authService.VerifyReceipt(tokenString)
 
@@ -140,7 +155,7 @@ func TestVerifyReceipt(t *testing.T) {
 		assert.NoError(t, err)
 
 		repoMock := mock.Mock[OverlayIdGetter]()
-		authService := NewAuthService(repoMock, clientSecret)
+		authService := New(repoMock.GetOverlayId, clientSecret)
 
 		_, err = authService.VerifyReceipt(tokenString)
 		assert.Error(t, err)

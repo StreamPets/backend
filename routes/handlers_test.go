@@ -14,9 +14,11 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/announcers"
+	"github.com/streampets/backend/auth"
+	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/repositories"
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/test"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
@@ -105,8 +107,9 @@ func TestHandleLogin(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
+		err := database.NewErrNoOverlayId(channelId)
 		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
-		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, repositories.NewErrNoOverlayId(channelId))
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, err)
 
 		handleLogin(
 			mockDep.ValidateToken,
@@ -250,7 +253,7 @@ func TestHandleListen(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.ValidateOverlayId(channelId, overlayId)).ThenReturn(services.ErrIdMismatch)
+		mock.When(mockDep.ValidateOverlayId(channelId, overlayId)).ThenReturn(auth.ErrIdMismatch)
 
 		handleListen(
 			mockDep.AddClient,
@@ -281,7 +284,7 @@ func TestGetStoreData(t *testing.T) {
 	}
 
 	type mockDep interface {
-		VerifyExtToken(tokenString string) (*services.ExtToken, error)
+		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
 		GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
 	}
 
@@ -292,7 +295,8 @@ func TestGetStoreData(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
+		err := auth.NewErrInvalidToken(tokenString)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
 
 		ctx, recorder := setUpContext(tokenString)
 		handleGetStoreData(
@@ -333,7 +337,7 @@ func TestGetStoreData(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 		tokenString := "token string"
-		token := services.ExtToken{ChannelId: channelId, UserId: userId}
+		token := auth.ExtToken{ChannelId: channelId, UserId: userId}
 
 		storeItems := []models.Item{{}, {}}
 
@@ -361,7 +365,7 @@ func TestGetStoreData(t *testing.T) {
 		channelId := twitch.Id("channel id")
 		userId := twitch.Id("user id")
 		tokenString := "token string"
-		token := services.ExtToken{ChannelId: channelId, UserId: userId}
+		token := auth.ExtToken{ChannelId: channelId, UserId: userId}
 
 		storeItems := []models.Item{{}, {}}
 
@@ -407,7 +411,7 @@ func TestGetUserData(t *testing.T) {
 	}
 
 	type mockDep interface {
-		VerifyExtToken(tokenString string) (*services.ExtToken, error)
+		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
 		GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
 		GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
 	}
@@ -419,7 +423,8 @@ func TestGetUserData(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, services.NewErrInvalidToken(tokenString))
+		err := auth.NewErrInvalidToken(tokenString)
+		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
 
 		ctx, recorder := setUpContext(tokenString)
 		handleGetUserData(
@@ -463,7 +468,7 @@ func TestGetUserData(t *testing.T) {
 		userId := twitch.Id("user id")
 
 		tokenString := "token string"
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			ChannelId: channelId,
 			UserId:    userId,
 		}
@@ -494,7 +499,7 @@ func TestGetUserData(t *testing.T) {
 		userId := twitch.Id("user id")
 
 		tokenString := "token string"
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			ChannelId: channelId,
 			UserId:    userId,
 		}
@@ -531,7 +536,7 @@ func TestGetUserData(t *testing.T) {
 		userId := twitch.Id("user id")
 
 		tokenString := "token string"
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			UserId:    userId,
 			ChannelId: channelId,
 		}
@@ -593,8 +598,8 @@ func TestBuyStoreItem(t *testing.T) {
 	}
 
 	type mockDep interface {
-		VerifyExtToken(tokenString string) (*services.ExtToken, error)
-		VerifyReceipt(receiptString string) (*services.Receipt, error)
+		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
+		VerifyReceipt(receiptString string) (*auth.Receipt, error)
 		GetItemById(itemId uuid.UUID) (models.Item, error)
 		AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
 	}
@@ -609,7 +614,7 @@ func TestBuyStoreItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := services.NewErrInvalidToken(tokenString)
+		err := auth.NewErrInvalidToken(tokenString)
 		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
 
 		jsonData := generateData(receiptString, itemId.String())
@@ -685,7 +690,7 @@ func TestBuyStoreItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := services.NewErrInvalidToken(receiptString)
+		err := auth.NewErrInvalidToken(receiptString)
 		mock.When(mockDep.VerifyReceipt(receiptString)).ThenReturn(nil, err)
 
 		jsonData := generateData(receiptString, itemId.String())
@@ -768,7 +773,7 @@ func TestBuyStoreItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := repositories.NewErrItemNotFoundById(itemId)
+		err := database.NewErrItemNotFoundById(itemId)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
 		jsonData := generateData(receiptString, itemId.String())
@@ -831,10 +836,10 @@ func TestBuyStoreItem(t *testing.T) {
 			Rarity: models.Uncommon,
 		}
 
-		receipt := &services.Receipt{
-			Data: services.Data{
+		receipt := &auth.Receipt{
+			Data: auth.Data{
 				TransactionId: transactionId,
-				Product: services.Product{
+				Product: auth.Product{
 					Rarity: models.Common,
 				},
 			},
@@ -873,14 +878,14 @@ func TestBuyStoreItem(t *testing.T) {
 		itemId := uuid.New()
 		transactionId := uuid.New()
 
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			UserId: userId,
 		}
 
-		receipt := &services.Receipt{
-			Data: services.Data{
+		receipt := &auth.Receipt{
+			Data: auth.Data{
 				TransactionId: transactionId,
-				Product: services.Product{
+				Product: auth.Product{
 					Rarity: models.Common,
 				},
 			},
@@ -927,14 +932,14 @@ func TestBuyStoreItem(t *testing.T) {
 		itemId := uuid.New()
 		transactionId := uuid.New()
 
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			UserId: userId,
 		}
 
-		receipt := &services.Receipt{
-			Data: services.Data{
+		receipt := &auth.Receipt{
+			Data: auth.Data{
 				TransactionId: transactionId,
-				Product: services.Product{
+				Product: auth.Product{
 					Rarity: models.Common,
 				},
 			},
@@ -994,7 +999,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 	type mockDep interface {
 		AnnounceUpdate(channelId, userId twitch.Id, image string)
-		VerifyExtToken(tokenString string) (*services.ExtToken, error)
+		VerifyExtToken(tokenString string) (*auth.ExtToken, error)
 		GetItemById(itemId uuid.UUID) (models.Item, error)
 		SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error
 	}
@@ -1007,7 +1012,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := services.NewErrInvalidToken(tokenString)
+		err := auth.NewErrInvalidToken(tokenString)
 		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemId.String())
@@ -1103,7 +1108,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := repositories.NewErrItemNotFoundById(itemId)
+		err := database.NewErrItemNotFoundById(itemId)
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemId.String())
@@ -1156,14 +1161,14 @@ func TestSetSelectedItem(t *testing.T) {
 		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			ChannelId: channelId,
 			UserId:    userId,
 		}
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := services.NewErrSelectUnownedItem(userId, channelId, itemId)
+		err := items.NewErrSelectUnownedItem(userId, channelId, itemId)
 		mock.When(mockDep.VerifyExtToken(tokenString)).ThenReturn(token, nil)
 		mock.When(mockDep.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
 
@@ -1192,7 +1197,7 @@ func TestSetSelectedItem(t *testing.T) {
 		userId := twitch.Id("user id")
 		itemId := uuid.New()
 
-		token := &services.ExtToken{
+		token := &auth.ExtToken{
 			ChannelId: channelId,
 			UserId:    userId,
 		}
@@ -1231,7 +1236,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		item := models.Item{ItemId: itemId, Image: image}
 
-		token := services.ExtToken{
+		token := auth.ExtToken{
 			ChannelId: channelId,
 			UserId:    userId,
 		}
@@ -1282,8 +1287,8 @@ func TestAddUserToChannel(t *testing.T) {
 	}
 
 	type mockDep interface {
-		AnnounceJoin(channelId twitch.Id, pet services.Pet)
-		GetPet(userId, channelId twitch.Id, username string) (services.Pet, error)
+		AnnounceJoin(channelId twitch.Id, pet pets.Pet)
+		GetPet(userId, channelId twitch.Id, username string) (pets.Pet, error)
 	}
 
 	t.Run("bad request when json has invalid format", func(t *testing.T) {
@@ -1335,7 +1340,7 @@ func TestAddUserToChannel(t *testing.T) {
 		userId := twitch.Id("user id")
 		username := "username"
 
-		pet := services.Pet{Username: username}
+		pet := pets.Pet{Username: username}
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -1470,7 +1475,7 @@ func TestUpdateUser(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := repositories.NewErrItemNotFoundByName(itemName)
+		err := database.NewErrItemNotFoundByName(itemName)
 		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemName)
@@ -1504,7 +1509,7 @@ func TestUpdateUser(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := services.NewErrSelectUnownedItem(userId, channelId, itemId)
+		err := items.NewErrSelectUnownedItem(userId, channelId, itemId)
 		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
 		mock.When(mockDep.SetSelectedItem(userId, channelId, itemId)).ThenReturn(err)
 

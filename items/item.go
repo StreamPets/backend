@@ -1,4 +1,4 @@
-package services
+package items
 
 import (
 	"github.com/google/uuid"
@@ -7,29 +7,7 @@ import (
 	"gorm.io/gorm"
 )
 
-type ErrSelectUnownedItem struct {
-	UserId    twitch.Id
-	ChannelId twitch.Id
-	ItemId    uuid.UUID
-}
-
-func NewErrSelectUnownedItem(
-	UserId twitch.Id,
-	ChannelId twitch.Id,
-	ItemId uuid.UUID,
-) ErrSelectUnownedItem {
-	return ErrSelectUnownedItem{
-		UserId:    UserId,
-		ChannelId: ChannelId,
-		ItemId:    ItemId,
-	}
-}
-
-func (e ErrSelectUnownedItem) Error() string {
-	return "user tried to select an item they do not own"
-}
-
-type ItemRepository interface {
+type database interface {
 	GetItemByName(channelId twitch.Id, itemName string) (models.Item, error)
 	GetItemById(itemId uuid.UUID) (models.Item, error)
 
@@ -38,38 +16,33 @@ type ItemRepository interface {
 	DeleteSelectedItem(userId, channelId twitch.Id) error
 
 	GetChannelsItems(channelId twitch.Id) ([]models.Item, error)
+	GetDefaultItem(channelId twitch.Id) (models.Item, error)
 
 	GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error)
 	AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
 	CheckOwnedItem(userId twitch.Id, itemId uuid.UUID) (bool, error)
-
-	GetDefaultItem(channelId twitch.Id) (models.Item, error)
 }
 
 type ItemService struct {
-	itemRepo ItemRepository
+	db database
 }
 
-func NewItemService(
-	itemRepo ItemRepository,
-) *ItemService {
-	return &ItemService{
-		itemRepo: itemRepo,
-	}
+func New(db database) *ItemService {
+	return &ItemService{db: db}
 }
 
 func (s *ItemService) GetItemByName(channelId twitch.Id, itemName string) (models.Item, error) {
-	return s.itemRepo.GetItemByName(channelId, itemName)
+	return s.db.GetItemByName(channelId, itemName)
 }
 
 func (s *ItemService) GetItemById(itemId uuid.UUID) (models.Item, error) {
-	return s.itemRepo.GetItemById(itemId)
+	return s.db.GetItemById(itemId)
 }
 
 func (s *ItemService) GetSelectedItem(userId, channelId twitch.Id) (models.Item, error) {
-	item, err := s.itemRepo.GetSelectedItem(userId, channelId)
+	item, err := s.db.GetSelectedItem(userId, channelId)
 	if err == gorm.ErrRecordNotFound {
-		return s.itemRepo.GetDefaultItem(channelId)
+		return s.db.GetDefaultItem(channelId)
 	} else if err != nil {
 		return models.Item{}, err
 	}
@@ -78,27 +51,27 @@ func (s *ItemService) GetSelectedItem(userId, channelId twitch.Id) (models.Item,
 }
 
 func (s *ItemService) SetSelectedItem(userId, channelId twitch.Id, itemId uuid.UUID) error {
-	if owned, err := s.itemRepo.CheckOwnedItem(userId, itemId); err != nil {
+	if owned, err := s.db.CheckOwnedItem(userId, itemId); err != nil {
 		return err
 	} else if owned {
-		return s.itemRepo.SetSelectedItem(channelId, userId, itemId)
+		return s.db.SetSelectedItem(channelId, userId, itemId)
 	}
 
-	if defaultItem, err := s.itemRepo.GetDefaultItem(channelId); err != nil {
+	if defaultItem, err := s.db.GetDefaultItem(channelId); err != nil {
 		return err
 	} else if defaultItem.ItemId != itemId {
 		return NewErrSelectUnownedItem(userId, channelId, itemId)
 	}
 
-	return s.itemRepo.DeleteSelectedItem(userId, channelId)
+	return s.db.DeleteSelectedItem(userId, channelId)
 }
 
 func (s *ItemService) GetChannelsItems(channelId twitch.Id) ([]models.Item, error) {
-	return s.itemRepo.GetChannelsItems(channelId)
+	return s.db.GetChannelsItems(channelId)
 }
 
 func (s *ItemService) GetOwnedItems(channelId, userId twitch.Id) ([]models.Item, error) {
-	ownedItems, err := s.itemRepo.GetOwnedItems(channelId, userId)
+	ownedItems, err := s.db.GetOwnedItems(channelId, userId)
 	if err != nil {
 		return []models.Item{}, err
 	}
@@ -108,7 +81,7 @@ func (s *ItemService) GetOwnedItems(channelId, userId twitch.Id) ([]models.Item,
 		items[ownedItem] = true
 	}
 
-	defaultItem, err := s.itemRepo.GetDefaultItem(channelId)
+	defaultItem, err := s.db.GetDefaultItem(channelId)
 	if err != nil {
 		return []models.Item{}, err
 	}
@@ -123,5 +96,5 @@ func (s *ItemService) GetOwnedItems(channelId, userId twitch.Id) ([]models.Item,
 }
 
 func (s *ItemService) AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error {
-	return s.itemRepo.AddOwnedItem(userId, itemId, transactionId)
+	return s.db.AddOwnedItem(userId, itemId, transactionId)
 }

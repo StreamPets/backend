@@ -3,7 +3,7 @@ package announcers
 import (
 	"fmt"
 
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -22,7 +22,7 @@ func newClient(channelId twitch.Id) Client {
 	return Client{channelId: channelId, Stream: make(chan Announcement)}
 }
 
-type petMap = map[twitch.Id]services.Pet
+type petMap = map[twitch.Id]pets.Pet
 type cacheMap = map[twitch.Id]petMap
 
 func newAnnouncement(
@@ -37,7 +37,7 @@ func newAnnouncement(
 	}
 }
 
-func joinAnnouncement(channelId twitch.Id, pet services.Pet) Announcement {
+func joinAnnouncement(channelId twitch.Id, pet pets.Pet) Announcement {
 	return newAnnouncement(channelId, "JOIN", pet)
 }
 

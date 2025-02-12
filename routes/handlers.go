@@ -10,8 +10,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
+	"github.com/streampets/backend/auth"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -94,7 +95,7 @@ func handleListen(
 }
 
 func handleGetStoreData(
-	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
 	getChannelsItems func(channelId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
@@ -113,7 +114,7 @@ func handleGetStoreData(
 }
 
 func handleGetUserData(
-	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
 	getSelectedItem func(userId, channelId twitch.Id) (models.Item, error),
 	getOwnedItems func(channelId, userId twitch.Id) ([]models.Item, error),
 ) gin.HandlerFunc {
@@ -149,8 +150,8 @@ func handleGetUserData(
 }
 
 func handleBuyStoreItem(
-	verifyExtToken func(tokenString string) (*services.ExtToken, error),
-	verifyReceipt func(receiptString string) (*services.Receipt, error),
+	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
+	verifyReceipt func(receiptString string) (*auth.Receipt, error),
 	getItemById func(itemId uuid.UUID) (models.Item, error),
 	addOwnedItem func(userId twitch.Id, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
@@ -206,7 +207,7 @@ func handleBuyStoreItem(
 
 func handleSetSelectedItem(
 	announceUpdate func(channelId, userId twitch.Id, image string),
-	verifyExtToken func(tokenString string) (*services.ExtToken, error),
+	verifyExtToken func(tokenString string) (*auth.ExtToken, error),
 	getItemById func(itemId uuid.UUID) (models.Item, error),
 	setSelectedItem func(userId, channelId twitch.Id, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
@@ -249,8 +250,8 @@ func handleSetSelectedItem(
 }
 
 func handleAddPetToChannel(
-	announceJoin func(channelId twitch.Id, pet services.Pet),
-	getPet func(userId, channelId twitch.Id, username string) (services.Pet, error),
+	announceJoin func(channelId twitch.Id, pet pets.Pet),
+	getPet func(userId, channelId twitch.Id, username string) (pets.Pet, error),
 ) gin.HandlerFunc {
 
 	type request struct {

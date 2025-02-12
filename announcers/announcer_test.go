@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
@@ -16,7 +16,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 		mock.SetUp(t)
 
 		channelId := twitch.Id("channel id")
-		pet := services.Pet{}
+		pet := pets.Pet{}
 
 		announcer := NewAnnouncerService()
 
@@ -155,7 +155,7 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 	mock.SetUp(t)
 
 	channelId := twitch.Id("channel id")
-	pet := services.Pet{}
+	pet := pets.Pet{}
 
 	announcer := NewAnnouncerService()
 
@@ -188,7 +188,7 @@ func TestAnnouncerOnMultipleChannels(t *testing.T) {
 
 	channelOneId := twitch.Id("channel one id")
 	channelTwoId := twitch.Id("channel two id")
-	pet := services.Pet{}
+	pet := pets.Pet{}
 
 	announcer := NewAnnouncerService()
 

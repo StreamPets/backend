@@ -3,14 +3,14 @@ package announcers
 import (
 	"testing"
 
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestJoinAnnouncement(t *testing.T) {
 	channelId := twitch.Id("channel id")
-	pet := services.Pet{}
+	pet := pets.Pet{}
 
 	actual := joinAnnouncement(channelId, pet)
 	expected := Announcement{

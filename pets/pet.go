@@ -1,4 +1,4 @@
-package services
+package pets
 
 import (
 	"github.com/streampets/backend/models"
@@ -19,12 +19,8 @@ type PetService struct {
 	items SelectedItemGetter
 }
 
-func NewPetService(
-	items SelectedItemGetter,
-) *PetService {
-	return &PetService{
-		items: items,
-	}
+func New(items SelectedItemGetter) *PetService {
+	return &PetService{items: items}
 }
 
 func (s *PetService) GetPet(userId, channelId twitch.Id, username string) (Pet, error) {
