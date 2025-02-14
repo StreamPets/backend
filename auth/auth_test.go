@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"bytes"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -106,12 +108,20 @@ func TestExtensionMiddleware(t *testing.T) {
 	})
 }
 
-func TestVerifyReceipt(t *testing.T) {
+func TestReceiptMiddleware(t *testing.T) {
 
-	t.Run("valid token is verified correctly", func(t *testing.T) {
+	clientSecret := "secret"
+	authService := New(nil, clientSecret)
+
+	router := gin.Default()
+	router.Use(authService.ReceiptMiddleware())
+	router.GET("/protected", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, nil)
+	})
+
+	t.Run("valid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		clientSecret := "secret"
 		transactionId := uuid.New()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
@@ -123,33 +133,48 @@ func TestVerifyReceipt(t *testing.T) {
 			},
 		})
 
-		tokenString, err := token.SignedString([]byte(clientSecret))
+		receiptString, err := token.SignedString([]byte(clientSecret))
 		assert.NoError(t, err)
 
-		authService := New(nil, clientSecret)
+		jsonData := []byte(fmt.Sprintf(`{
+			"receipt": "%s"
+		}`, receiptString))
 
-		got, err := authService.VerifyReceipt(tokenString)
+		req := httptest.NewRequest("GET", "/protected", bytes.NewBuffer(jsonData))
 
-		assert.NoError(t, err)
-		assert.Equal(t, transactionId, got.Data.TransactionId)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
 
-	t.Run("invalid token is not verified", func(t *testing.T) {
+	t.Run("expired", func(t *testing.T) {
 		mock.SetUp(t)
 
-		clientSecret := "secret"
 		transactionId := uuid.New()
 
 		token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
-			"transaction_id": transactionId,
+			"data": map[string]interface{}{
+				"transactionId": transactionId,
+				"product": map[string]interface{}{
+					"sku": "common",
+				},
+			},
+			"exp": 0,
 		})
 
-		tokenString, err := token.SignedString([]byte("fake secret"))
+		receiptString, err := token.SignedString([]byte(clientSecret))
 		assert.NoError(t, err)
 
-		authService := New(nil, clientSecret)
+		jsonData := []byte(fmt.Sprintf(`{
+			"receipt": "%s"
+		}`, receiptString))
 
-		_, err = authService.VerifyReceipt(tokenString)
-		assert.Error(t, err)
+		req := httptest.NewRequest("GET", "/protected", bytes.NewBuffer(jsonData))
+
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 }

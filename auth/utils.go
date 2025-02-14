@@ -14,20 +14,9 @@ const Rarity = "rarity"
 const ChannelId = "channelId"
 const UserId = "userId"
 
+var ErrInvalidToken = errors.New("token is not valid")
 var ErrIdMismatch = errors.New("channel id and overlay id do not match")
 var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
-
-type ErrInvalidToken struct {
-	TokenString string
-}
-
-func NewErrInvalidToken(tokenString string) ErrInvalidToken {
-	return ErrInvalidToken{TokenString: tokenString}
-}
-
-func (e ErrInvalidToken) Error() string {
-	return "token is not valid"
-}
 
 type extToken struct {
 	ChannelId string `json:"channel_id"`

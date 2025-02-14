@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"errors"
 	"log/slog"
 	"net/http"
 
@@ -43,14 +42,10 @@ func (s *AuthService) ExtensionMiddleware() func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
-		token, err := s.verifyExtToken(tokenString)
-		if errors.As(err, &ErrInvalidToken{}) {
-			slog.Debug("invalid access token in header")
-			ctx.JSON(http.StatusUnauthorized, nil)
-			return
-		} else if err != nil {
+		token := new(extToken)
+		if err := s.verifyToken(tokenString, token); err != nil {
 			slog.Error("error when validating access token", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
+			ctx.JSON(http.StatusUnauthorized, nil)
 			return
 		}
 
@@ -68,22 +63,16 @@ func (s *AuthService) ReceiptMiddleware() func(ctx *gin.Context) {
 
 	return func(ctx *gin.Context) {
 		request := new(request)
-		err := ctx.ShouldBindJSON(request)
-		if err != nil {
-			slog.Warn("failed to bind json")
+		if err := ctx.ShouldBindJSON(request); err != nil {
+			slog.Error("failed to bind json: no 'receipt' field")
 			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
-		receipt, err := s.VerifyReceipt(request.Receipt)
-		e := new(ErrInvalidToken)
-		if errors.As(err, e) {
-			slog.Warn("invalid token", "token", e.TokenString)
+		receipt := new(Receipt)
+		if err := s.verifyToken(request.Receipt, receipt); err != nil {
+			slog.Error("error when validating receipt", "err", err.Error())
 			ctx.JSON(http.StatusUnauthorized, nil)
-			return
-		} else if err != nil {
-			slog.Error("failed to validate token", "err", err.Error())
-			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -93,35 +82,17 @@ func (s *AuthService) ReceiptMiddleware() func(ctx *gin.Context) {
 	}
 }
 
-// TODO: Handle other errors
-func (s *AuthService) verifyExtToken(tokenString string) (*extToken, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &extToken{}, s.keyFunc)
+func (s *AuthService) verifyToken(tokenString string, claims jwt.Claims) error {
+	token, err := jwt.ParseWithClaims(tokenString, claims, s.keyFunc)
 	if err != nil {
-		return nil, NewErrInvalidToken(tokenString)
+		return err
 	}
 
-	claims, ok := token.Claims.(*extToken)
-	if !ok || !token.Valid {
-		// TODO: When can this line be reached?
-		slog.Error("process reached area it should not have been able to", "token", token)
-		return nil, NewErrInvalidToken(tokenString)
+	if !token.Valid {
+		return ErrInvalidToken
 	}
 
-	return claims, nil
-}
-
-func (s *AuthService) VerifyReceipt(tokenString string) (*Receipt, error) {
-	token, err := jwt.ParseWithClaims(tokenString, &Receipt{}, s.keyFunc)
-	if err != nil {
-		return nil, err
-	}
-
-	claims, ok := token.Claims.(*Receipt)
-	if !ok || !token.Valid {
-		return nil, NewErrInvalidToken(tokenString)
-	}
-
-	return claims, nil
+	return nil
 }
 
 func (s *AuthService) keyFunc(token *jwt.Token) (interface{}, error) {
