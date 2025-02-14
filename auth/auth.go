@@ -7,6 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
+	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -39,6 +40,13 @@ func (s *AuthService) ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID
 }
 
 func (s *AuthService) ExtensionMiddleware() func(ctx *gin.Context) {
+
+	type extToken struct {
+		ChannelId string `json:"channel_id"`
+		UserId    string `json:"user_id"`
+		jwt.RegisteredClaims
+	}
+
 	return func(ctx *gin.Context) {
 		tokenString := ctx.GetHeader(XExtensionJwt)
 
@@ -61,6 +69,20 @@ func (s *AuthService) ReceiptMiddleware() func(ctx *gin.Context) {
 		Receipt string `json:"receipt"`
 	}
 
+	type product struct {
+		Rarity models.Rarity `json:"sku"`
+	}
+
+	type data struct {
+		TransactionId uuid.UUID `json:"transactionId"`
+		Product       product   `json:"product"`
+	}
+
+	type receipt struct {
+		Data data `json:"data"`
+		jwt.RegisteredClaims
+	}
+
 	return func(ctx *gin.Context) {
 		request := new(request)
 		if err := ctx.ShouldBindJSON(request); err != nil {
@@ -69,7 +91,7 @@ func (s *AuthService) ReceiptMiddleware() func(ctx *gin.Context) {
 			return
 		}
 
-		receipt := new(Receipt)
+		receipt := new(receipt)
 		if err := s.verifyToken(request.Receipt, receipt); err != nil {
 			slog.Error("error when validating receipt", "err", err.Error())
 			ctx.JSON(http.StatusUnauthorized, nil)
