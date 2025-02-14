@@ -49,19 +49,9 @@ func handleLogin(
 func handleListen(
 	addClient func(channelId twitch.Id) announcers.Client,
 	removeClient func(client announcers.Client),
-	validateOverlayId func(channelId twitch.Id, overlayId uuid.UUID) error,
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.Query(ChannelId))
-		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
-		if parseUuidErrorHandler(ctx, err) {
-			return
-		}
-
-		err = validateOverlayId(channelId, overlayId)
-		if validateOverlayIdErrorHandler(ctx, err) {
-			return
-		}
+		channelId := twitch.Id(ctx.GetString(ChannelId))
 
 		// TODO:
 		client := addClient(channelId)

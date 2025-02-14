@@ -13,5 +13,5 @@ func CreateAuthService(db *database.DB) *auth.AuthService {
 		panic(err)
 	}
 
-	return auth.New(db.GetOverlayId, string(extensionSecret))
+	return auth.New(string(extensionSecret))
 }

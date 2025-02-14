@@ -18,7 +18,7 @@ func RegisterRoutes(
 	db *database.DB,
 	twitch *twitch.TwitchApi,
 	announcer *announcers.CachedAnnouncerService,
-	auth *auth.AuthService,
+	authService *auth.AuthService,
 	store *items.ItemService,
 	pets *pets.PetService,
 ) {
@@ -34,12 +34,13 @@ func RegisterRoutes(
 	}))
 
 	r.GET("/overlay/listen",
-		handleListen(announcer.AddClient, announcer.RemoveClient, auth.ValidateOverlayId),
+		auth.ListenAuthentication(db.GetOverlayId),
+		handleListen(announcer.AddClient, announcer.RemoveClient),
 	)
 
 	extension := r.Group("/extension")
 	{
-		extension.Use(auth.ExtensionMiddleware())
+		extension.Use(authService.ExtensionMiddleware())
 
 		extension.GET("/items",
 			handleGetStoreData(store.GetChannelsItems),
@@ -48,7 +49,7 @@ func RegisterRoutes(
 			handleGetUserData(store.GetSelectedItem, store.GetOwnedItems),
 		)
 		extension.POST("/items",
-			auth.ReceiptMiddleware(),
+			authService.ReceiptMiddleware(),
 			handleBuyStoreItem(store.GetItemById, store.AddOwnedItem),
 		)
 		extension.PUT("/items",

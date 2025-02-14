@@ -82,16 +82,6 @@ func parseUuidErrorHandler(ctx *gin.Context, err error) bool {
 	return false
 }
 
-// Returns StatusUnauthorized [401] if OverlayId and ChannelId do not match.
-func validateOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
-	if err != nil {
-		slog.Warn("unrecognised overlay id", "overlay id", ctx.Query(OverlayId), "channel id", ctx.Query(ChannelId))
-		ctx.JSON(http.StatusUnauthorized, nil)
-		return true
-	}
-	return false
-}
-
 // Returns StatusInternalServerError [500] if err is not nil.
 func getOwnedItemsErrorHandler(ctx *gin.Context, err error) bool {
 	if err != nil {

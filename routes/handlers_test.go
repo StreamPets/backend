@@ -13,7 +13,6 @@ import (
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/auth"
 	"github.com/streampets/backend/database"
 	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/models"
@@ -104,35 +103,26 @@ func TestHandleLogin(t *testing.T) {
 
 func TestHandleListen(t *testing.T) {
 
-	setUpContext := func(channelId twitch.Id, overlayId uuid.UUID) (*gin.Context, *test.CloseNotifierResponseWriter) {
+	setUpContext := func(channelId twitch.Id) (*gin.Context, *test.CloseNotifierResponseWriter) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := &test.CloseNotifierResponseWriter{ResponseRecorder: httptest.NewRecorder()}
 		ctx, _ := gin.CreateTestContext(recorder)
-		req, _ := http.NewRequest("GET", "/listen", nil)
+		ctx.Set(ChannelId, string(channelId))
 
-		values := req.URL.Query()
-		values.Add("channelId", string(channelId))
-		values.Add("overlayId", overlayId.String())
-		req.URL.RawQuery = values.Encode()
-
-		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
 		AddClient(channelId twitch.Id) announcers.Client
 		RemoveClient(client announcers.Client)
-		ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID) error
 	}
-
-	channelId := twitch.Id("channel id")
-	overlayId := uuid.New()
 
 	t.Run("receive and send events from stream", func(t *testing.T) {
 		mock.SetUp(t)
 
-		ctx, recorder := setUpContext(channelId, overlayId)
+		channelId := twitch.Id("channel id")
+		ctx, recorder := setUpContext(channelId)
 
 		stream := make(chan announcers.Announcement)
 		client := announcers.Client{Stream: stream}
@@ -149,7 +139,6 @@ func TestHandleListen(t *testing.T) {
 			handleListen(
 				mockDep.AddClient,
 				mockDep.RemoveClient,
-				mockDep.ValidateOverlayId,
 			)(ctx)
 		}()
 
@@ -161,35 +150,12 @@ func TestHandleListen(t *testing.T) {
 		close(stream)
 		wg.Wait()
 
-		mock.Verify(mockDep, mock.Once()).ValidateOverlayId(channelId, overlayId)
 		mock.Verify(mockDep, mock.Once()).AddClient(channelId)
 		mock.Verify(mockDep, mock.Once()).RemoveClient(client)
 		mock.VerifyNoMoreInteractions(mockDep)
 
 		assert.Contains(t, recorder.Body.String(), "event:event")
 		assert.Contains(t, recorder.Body.String(), "data:message")
-	})
-
-	t.Run("client not added when overlay id and channel id do not match", func(t *testing.T) {
-		mock.SetUp(t)
-
-		ctx, recorder := setUpContext(channelId, overlayId)
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.ValidateOverlayId(channelId, overlayId)).ThenReturn(auth.ErrIdMismatch)
-
-		handleListen(
-			mockDep.AddClient,
-			mockDep.RemoveClient,
-			mockDep.ValidateOverlayId,
-		)(ctx)
-
-		mock.Verify(mockDep, mock.Once()).ValidateOverlayId(channelId, overlayId)
-		mock.Verify(mockDep, mock.Never()).AddClient(channelId)
-		mock.VerifyNoMoreInteractions(mockDep)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 }
 

@@ -17,44 +17,66 @@ import (
 
 func TestVerifyOverlayId(t *testing.T) {
 
-	type OverlayIdGetter interface {
+	type MockDep interface {
 		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
 	}
 
-	t.Run("verify overlay id returns nil when ids match", func(t *testing.T) {
+	t.Run("status ok when overlay and channel ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
 		channelId := twitch.Id("channel id")
 		overlayId := uuid.New()
 
-		repoMock := mock.Mock[OverlayIdGetter]()
-		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
+		mockDep := mock.Mock[MockDep]()
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
-		authService := New(repoMock.GetOverlayId, "")
+		router := gin.Default()
+		router.Use(ListenAuthentication(mockDep.GetOverlayId))
+		router.GET("/protected", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, nil)
+		})
 
-		err := authService.ValidateOverlayId(channelId, overlayId)
+		req := httptest.NewRequest("GET", "/protected", nil)
 
-		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
+		values := req.URL.Query()
+		values.Add(ChannelId, string(channelId))
+		values.Add(OverlayId, overlayId.String())
+		req.URL.RawQuery = values.Encode()
 
-		assert.NoError(t, err)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		mock.Verify(mockDep, mock.Once()).GetOverlayId(channelId)
+		assert.Equal(t, http.StatusOK, recorder.Code)
 	})
 
-	t.Run("verify overlay id returns an error when ids do not match", func(t *testing.T) {
+	t.Run("unauthorized when overlay and channel ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
 		channelId := twitch.Id("channel id")
+		overlayId := uuid.New()
 
-		repoMock := mock.Mock[OverlayIdGetter]()
-		mock.When(repoMock.GetOverlayId(channelId)).ThenReturn(uuid.New(), nil)
+		mockDep := mock.Mock[MockDep]()
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, ErrIdMismatch)
 
-		authService := New(repoMock.GetOverlayId, "")
-		err := authService.ValidateOverlayId(channelId, uuid.New())
+		router := gin.Default()
+		router.Use(ListenAuthentication(mockDep.GetOverlayId))
+		router.GET("/protected", func(ctx *gin.Context) {
+			ctx.JSON(http.StatusOK, nil)
+		})
 
-		mock.Verify(repoMock, mock.Once()).GetOverlayId(channelId)
+		req := httptest.NewRequest("GET", "/protected", nil)
 
-		if assert.Error(t, err) {
-			assert.Equal(t, ErrIdMismatch, err)
-		}
+		values := req.URL.Query()
+		values.Add(ChannelId, string(channelId))
+		values.Add(OverlayId, overlayId.String())
+		req.URL.RawQuery = values.Encode()
+
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		mock.Verify(mockDep, mock.Once()).GetOverlayId(channelId)
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 }
 
@@ -64,7 +86,7 @@ func TestExtensionMiddleware(t *testing.T) {
 	channelId := twitch.Id("channel id")
 	userId := twitch.Id("user id")
 
-	authService := New(nil, clientSecret)
+	authService := New(clientSecret)
 
 	router := gin.Default()
 	router.Use(authService.ExtensionMiddleware())
@@ -111,7 +133,7 @@ func TestExtensionMiddleware(t *testing.T) {
 func TestReceiptMiddleware(t *testing.T) {
 
 	clientSecret := "secret"
-	authService := New(nil, clientSecret)
+	authService := New(clientSecret)
 
 	router := gin.Default()
 	router.Use(authService.ReceiptMiddleware())

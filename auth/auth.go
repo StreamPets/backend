@@ -12,22 +12,47 @@ import (
 )
 
 type AuthService struct {
-	getOverlayId func(channelId twitch.Id) (uuid.UUID, error)
 	clientSecret string
 }
 
 func New(
-	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
 	clientSecret string,
 ) *AuthService {
 	return &AuthService{
-		getOverlayId: getOverlayId,
 		clientSecret: clientSecret,
 	}
 }
 
-func (s *AuthService) ValidateOverlayId(channelId twitch.Id, overlayId uuid.UUID) error {
-	expectedId, err := s.getOverlayId(channelId)
+func ListenAuthentication(
+	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
+) func(ctx *gin.Context) {
+	return func(ctx *gin.Context) {
+		channelId := twitch.Id(ctx.Query(ChannelId))
+
+		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
+		if err != nil {
+			slog.Debug("param is not uuid type")
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		if err = validateOverlayId(channelId, overlayId, getOverlayId); err != nil {
+			slog.Warn("unrecognised overlay id and channel id pair", "channel id", channelId, "overlay id", overlayId)
+			ctx.JSON(http.StatusUnauthorized, nil)
+			return
+		}
+
+		ctx.Set(ChannelId, channelId)
+		ctx.Next()
+	}
+}
+
+func validateOverlayId(
+	channelId twitch.Id,
+	overlayId uuid.UUID,
+	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
+) error {
+	expectedId, err := getOverlayId(channelId)
 	if err != nil {
 		return err
 	}
