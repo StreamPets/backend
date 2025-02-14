@@ -144,21 +144,38 @@ func handleGetUserData(
 	}
 }
 
+// TODO: Test uuid parsing
 func handleBuyStoreItem(
 	getItemById func(itemId uuid.UUID) (models.Item, error),
 	addOwnedItem func(userId twitch.Id, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
+
+	type request struct {
+		ItemId string `json:"item_id"`
+	}
+
 	return func(ctx *gin.Context) {
 		userId := twitch.Id(ctx.GetString(UserId))
 		rarity := models.Rarity(ctx.GetString(Rarity))
 
-		itemId, err := uuid.Parse(ctx.GetString(ItemId))
-		if parseUuidErrorHandler(ctx, err) {
+		request := new(request)
+		if err := ctx.ShouldBindJSON(request); err != nil {
+			slog.Warn("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		}
+
+		itemId, err := uuid.Parse(request.ItemId)
+		if err != nil {
+			slog.Warn("could not parse item id to uuid", "item id", request.ItemId)
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
 		transactionId, err := uuid.Parse(ctx.GetString(TransactionId))
-		if parseUuidErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Warn("could not parse transaction id to uuid", "transaction id", ctx.GetString(TransactionId))
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
@@ -168,7 +185,7 @@ func handleBuyStoreItem(
 		}
 
 		if item.Rarity != rarity {
-			slog.Error("receipt and item rarity do not match")
+			slog.Error("rarities do not match", "item rarity", item.Rarity, "receipt rarity", rarity)
 			ctx.JSON(http.StatusForbidden, nil)
 			return
 		}

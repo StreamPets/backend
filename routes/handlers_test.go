@@ -453,12 +453,15 @@ func TestBuyStoreItem(t *testing.T) {
 	setUpContext := func(userId twitch.Id, itemId, transactionId uuid.UUID, rarity models.Rarity) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
+		jsonData := []byte(fmt.Sprintf(`{
+			"item_id": "%s"
+		}`, itemId))
+
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
-		req, _ := http.NewRequest("POST", "/items", nil)
+		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
 
 		ctx.Set(UserId, string(userId))
-		ctx.Set(ItemId, itemId.String())
 		ctx.Set(TransactionId, transactionId.String())
 		ctx.Set(Rarity, string(rarity))
 
@@ -471,7 +474,7 @@ func TestBuyStoreItem(t *testing.T) {
 		AddOwnedItem(userId twitch.Id, itemId, transactionId uuid.UUID) error
 	}
 
-	t.Run("item not added when item with itemId does not exist", func(t *testing.T) {
+	t.Run("item not added when item with item id does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
 		userId := twitch.Id("user id")

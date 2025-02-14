@@ -64,7 +64,6 @@ func (s *AuthService) ReceiptMiddleware() func(ctx *gin.Context) {
 
 	type request struct {
 		Receipt string `json:"receipt"`
-		ItemId  string `json:"item_id"`
 	}
 
 	return func(ctx *gin.Context) {
