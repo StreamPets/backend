@@ -16,7 +16,7 @@ import (
 func RegisterRoutes(
 	r *gin.Engine,
 	db *database.DB,
-	twitchApi *twitch.TwitchApi,
+	twitch *twitch.TwitchApi,
 	announcer *announcers.CachedAnnouncerService,
 	auth *auth.AuthService,
 	store *items.ItemService,
@@ -39,9 +39,8 @@ func RegisterRoutes(
 
 	extension := r.Group("/extension")
 	{
-		extension.Use(
-			auth.ExtensionMiddleware(),
-		)
+		extension.Use(auth.ExtensionMiddleware())
+
 		extension.GET("/items",
 			handleGetStoreData(store.GetChannelsItems),
 		)
@@ -58,7 +57,8 @@ func RegisterRoutes(
 	}
 
 	r.GET("/dashboard/login",
-		handleLogin(twitchApi.ValidateToken, db.GetOverlayId),
+		twitch.AuthorizationMiddleware(),
+		handleLogin(db.GetOverlayId),
 	)
 
 	r.POST("/channels/:channelId/users",

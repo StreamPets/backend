@@ -8,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/streampets/backend/database"
 	"github.com/streampets/backend/items"
-	"github.com/streampets/backend/twitch"
 )
 
 const Action string = "action"
@@ -20,48 +19,6 @@ const UserId string = "userId"
 const ItemId string = "itemId"
 const TransactionId string = "transactionId"
 const Rarity string = "rarity"
-
-func validateTokenErrorHandler(ctx *gin.Context, err error) bool {
-	if err == twitch.ErrInvalidUserToken {
-		slog.Debug("invalid access token in header")
-		ctx.JSON(http.StatusUnauthorized, nil)
-		return true
-	} else if err != nil {
-		slog.Error("error when validating access token", "err", err.Error())
-		ctx.JSON(http.StatusInternalServerError, nil)
-		return true
-	}
-	return false
-}
-
-func getOverlayIdErrorHandler(ctx *gin.Context, err error) bool {
-	var e *database.ErrNoOverlayId
-	if errors.As(err, &e) {
-		slog.Error("no overlay id associated with channel id", "channel_id", e.ChannelId)
-		ctx.JSON(http.StatusBadRequest, nil)
-		return true
-	} else if err != nil {
-		slog.Error("error when getting overlay url", "err", err.Error())
-		ctx.JSON(http.StatusInternalServerError, nil)
-		return true
-	}
-	return false
-}
-
-func authCookieErrorHandler(ctx *gin.Context, err error) bool {
-	if err == http.ErrNoCookie {
-		slog.Debug("no 'Authorization' cookie present")
-		ctx.JSON(http.StatusUnauthorized, nil)
-		return true
-	} else if err != nil {
-		// This should never happen since ctx.Cookie() only returns nil or http.ErrNoCookie.
-		// If this does occur, it might indicate a bug.
-		slog.Error("error when retrieving 'Authorization' cookie", "err", err.Error())
-		ctx.JSON(http.StatusInternalServerError, nil)
-		return true
-	}
-	return false
-}
 
 // Returns StatusForbidden [403] if err is an ErrSelectUnownedItem.
 //

@@ -1,7 +1,7 @@
 package routes
 
 import (
-	"context"
+	"errors"
 	"io"
 	"log/slog"
 	"net/http"
@@ -10,14 +10,13 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
+	"github.com/streampets/backend/database"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
-// TODO: Mahybe move this to /auth
 func handleLogin(
-	validateToken func(ctx context.Context, accessToken string) (twitch.Id, error),
 	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
 ) gin.HandlerFunc {
 
@@ -27,24 +26,22 @@ func handleLogin(
 	}
 
 	return func(ctx *gin.Context) {
-		token, err := ctx.Cookie("Authorization")
-		if authCookieErrorHandler(ctx, err) {
-			return
-		}
+		channelId := twitch.Id(ctx.GetString(ChannelId))
 
-		userId, err := validateToken(ctx, token)
-		if validateTokenErrorHandler(ctx, err) {
+		overlayId, err := getOverlayId(channelId)
+		if errors.Is(err, database.ErrNoOverlayId) {
+			slog.Error("no overlay id associated with channel id", "channel id", channelId)
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
-		}
-
-		overlayId, err := getOverlayId(userId)
-		if getOverlayIdErrorHandler(ctx, err) {
+		} else if err != nil {
+			slog.Error("error when getting overlay url", "err", err.Error())
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
 		ctx.JSON(http.StatusOK, userData{
 			OverlayId: overlayId,
-			ChannelId: userId,
+			ChannelId: channelId,
 		})
 	}
 }

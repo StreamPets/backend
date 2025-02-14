@@ -22,7 +22,7 @@ func (db *DB) GetOverlayId(channelId twitch.Id) (uuid.UUID, error) {
 	var channel models.Channel
 
 	if result := db.db.Where("channel_id = ?", channelId).First(&channel); result.Error == gorm.ErrRecordNotFound {
-		return uuid.UUID{}, NewErrNoOverlayId(channelId)
+		return uuid.UUID{}, ErrNoOverlayId
 	} else if result.Error != nil {
 		return uuid.UUID{}, result.Error
 	}

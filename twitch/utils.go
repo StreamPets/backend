@@ -7,6 +7,9 @@ import (
 	"net/http"
 )
 
+const ChannelId = "channelId"
+const Authorization = "Authorization"
+
 // A Twitch user id
 type Id string
 

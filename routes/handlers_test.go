@@ -2,7 +2,6 @@ package routes
 
 import (
 	"bytes"
-	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -25,116 +24,46 @@ import (
 )
 
 func TestHandleLogin(t *testing.T) {
-	setUpContext := func(cookie string) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId twitch.Id) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("GET", "/items", nil)
-
-		if cookie != "" {
-			req.AddCookie(&http.Cookie{
-				Name:  "Authorization",
-				Value: cookie,
-			})
-		}
+		ctx.Set(ChannelId, string(channelId))
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		ValidateToken(ctx context.Context, accessToken string) (twitch.Id, error)
 		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
 	}
-
-	t.Run("unauthorized status when no 'Authorization' cookie present", func(t *testing.T) {
-		mock.SetUp(t)
-
-		mockDep := mock.Mock[mockDep]()
-
-		ctx, recorder := setUpContext("")
-		handleLogin(
-			mockDep.ValidateToken,
-			mockDep.GetOverlayId,
-		)(ctx)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("unauthorized status when access token invalid", func(t *testing.T) {
-		mock.SetUp(t)
-
-		invalidToken := "inavlid token"
-		ctx, recorder := setUpContext(invalidToken)
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.ValidateToken(ctx, invalidToken)).ThenReturn(nil, twitch.ErrInvalidUserToken)
-
-		handleLogin(
-			mockDep.ValidateToken,
-			mockDep.GetOverlayId,
-		)(ctx)
-
-		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
-	})
-
-	t.Run("internal server error when validate token fails", func(t *testing.T) {
-		mock.SetUp(t)
-
-		invalidToken := "inavlid token"
-		ctx, recorder := setUpContext(invalidToken)
-
-		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.ValidateToken(ctx, invalidToken)).ThenReturn(nil, assert.AnError)
-
-		handleLogin(
-			mockDep.ValidateToken,
-			mockDep.GetOverlayId,
-		)(ctx)
-
-		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
-	})
 
 	t.Run("status bad request when channel id has no overlay id", func(t *testing.T) {
 		mock.SetUp(t)
 
-		token := "token"
 		channelId := twitch.Id("channel id")
-		ctx, recorder := setUpContext(token)
+		ctx, recorder := setUpContext(channelId)
 
 		mockDep := mock.Mock[mockDep]()
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, database.ErrNoOverlayId)
 
-		err := database.NewErrNoOverlayId(channelId)
-		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
-		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, err)
-
-		handleLogin(
-			mockDep.ValidateToken,
-			mockDep.GetOverlayId,
-		)(ctx)
+		handleLogin(mockDep.GetOverlayId)(ctx)
 
 		assert.Equal(t, http.StatusBadRequest, recorder.Code)
 	})
 
-	t.Run("status bad request when channel id has no overlay id", func(t *testing.T) {
+	t.Run("internal server error when get overlay id fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		token := "token"
 		channelId := twitch.Id("channel id")
-		ctx, recorder := setUpContext(token)
+		ctx, recorder := setUpContext(channelId)
 
 		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, assert.AnError)
 
-		handleLogin(
-			mockDep.ValidateToken,
-			mockDep.GetOverlayId,
-		)(ctx)
+		handleLogin(mockDep.GetOverlayId)(ctx)
 
 		assert.Equal(t, http.StatusInternalServerError, recorder.Code)
 	})
@@ -147,20 +76,15 @@ func TestHandleLogin(t *testing.T) {
 			ChannelId twitch.Id `json:"channel_id"`
 		}
 
-		token := "token"
 		channelId := twitch.Id("channel id")
 		overlayId := uuid.New()
-		ctx, recorder := setUpContext(token)
+
+		ctx, recorder := setUpContext(channelId)
 
 		mockDep := mock.Mock[mockDep]()
-
-		mock.When(mockDep.ValidateToken(ctx, token)).ThenReturn(channelId, nil)
 		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(overlayId, nil)
 
-		handleLogin(
-			mockDep.ValidateToken,
-			mockDep.GetOverlayId,
-		)(ctx)
+		handleLogin(mockDep.GetOverlayId)(ctx)
 
 		assert.Equal(t, http.StatusOK, recorder.Code)
 

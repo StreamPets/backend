@@ -1,21 +1,13 @@
 package database
 
 import (
+	"errors"
+
 	"github.com/google/uuid"
 	"github.com/streampets/backend/twitch"
 )
 
-type ErrNoOverlayId struct {
-	ChannelId twitch.Id
-}
-
-func (e *ErrNoOverlayId) Error() string {
-	return "no overlay id associated with the given channel id"
-}
-
-func NewErrNoOverlayId(channelId twitch.Id) error {
-	return &ErrNoOverlayId{ChannelId: channelId}
-}
+var ErrNoOverlayId = errors.New("no overlay id associated with the given channel id")
 
 type ErrItemNotFoundByName struct {
 	ItemName string
