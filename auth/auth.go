@@ -54,8 +54,8 @@ func (s *AuthService) ExtensionMiddleware() func(ctx *gin.Context) {
 			return
 		}
 
-		ctx.Set("channelId", token.ChannelId)
-		ctx.Set("userId", token.UserId)
+		ctx.Set(ChannelId, token.ChannelId)
+		ctx.Set(UserId, token.UserId)
 		ctx.Next()
 	}
 }

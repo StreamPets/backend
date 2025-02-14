@@ -11,6 +11,8 @@ import (
 const XExtensionJwt = "x-extension-jwt"
 const TransactionId = "transactionId"
 const Rarity = "rarity"
+const ChannelId = "channelId"
+const UserId = "userId"
 
 var ErrIdMismatch = errors.New("channel id and overlay id do not match")
 var ErrUnexpectedSigningMethod = errors.New("unexpected signing method")
