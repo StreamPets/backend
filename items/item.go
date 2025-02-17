@@ -2,24 +2,24 @@ package items
 
 import (
 	"github.com/google/uuid"
-	"github.com/streampets/backend/models"
-	"gorm.io/gorm"
+	streampets "github.com/streampets/backend"
 )
 
 type database interface {
-	GetItemByName(channelId string, itemName string) (models.Item, error)
-	GetItemById(itemId uuid.UUID) (models.Item, error)
+	Item(itemId uuid.UUID) (streampets.Item, error)
+	ItemByName(channelId string, itemName string) (streampets.Item, error)
 
-	GetSelectedItem(userId, channelId string) (models.Item, error)
+	SelectedItem(userId, channelId string) (streampets.Item, error)
 	SetSelectedItem(userId, channelId string, itemId uuid.UUID) error
 	DeleteSelectedItem(userId, channelId string) error
 
-	GetChannelsItems(channelId string) ([]models.Item, error)
-	GetDefaultItem(channelId string) (models.Item, error)
+	ItemsByChannelId(channelId string) ([]streampets.Item, error)
+	ItemsByUserId(channelId, userId string) ([]streampets.Item, error)
 
-	GetOwnedItems(channelId, userId string) ([]models.Item, error)
-	AddOwnedItem(userId string, itemId, transactionId uuid.UUID) error
-	CheckOwnedItem(userId string, itemId uuid.UUID) (bool, error)
+	DefaultItem(channelId string) (streampets.Item, error)
+
+	CreateOwnedItem(userId string, itemId, transactionId uuid.UUID) error
+	ItemOwned(userId string, itemId uuid.UUID) (bool, error)
 }
 
 type ItemService struct {
@@ -30,33 +30,31 @@ func New(db database) *ItemService {
 	return &ItemService{db: db}
 }
 
-func (s *ItemService) GetItemByName(channelId string, itemName string) (models.Item, error) {
-	return s.db.GetItemByName(channelId, itemName)
+func (s *ItemService) GetItemByName(channelId string, itemName string) (streampets.Item, error) {
+	return s.db.ItemByName(channelId, itemName)
 }
 
-func (s *ItemService) GetItemById(itemId uuid.UUID) (models.Item, error) {
-	return s.db.GetItemById(itemId)
+func (s *ItemService) GetItemById(itemId uuid.UUID) (streampets.Item, error) {
+	return s.db.Item(itemId)
 }
 
-func (s *ItemService) GetSelectedItem(userId, channelId string) (models.Item, error) {
-	item, err := s.db.GetSelectedItem(userId, channelId)
-	if err == gorm.ErrRecordNotFound {
-		return s.db.GetDefaultItem(channelId)
-	} else if err != nil {
-		return models.Item{}, err
+func (s *ItemService) GetSelectedItem(userId, channelId string) (streampets.Item, error) {
+	item, err := s.db.SelectedItem(userId, channelId)
+	if err != nil {
+		return streampets.Item{}, err
 	}
 
 	return item, nil
 }
 
 func (s *ItemService) SetSelectedItem(userId, channelId string, itemId uuid.UUID) error {
-	if owned, err := s.db.CheckOwnedItem(userId, itemId); err != nil {
+	if owned, err := s.db.ItemOwned(userId, itemId); err != nil {
 		return err
 	} else if owned {
 		return s.db.SetSelectedItem(channelId, userId, itemId)
 	}
 
-	if defaultItem, err := s.db.GetDefaultItem(channelId); err != nil {
+	if defaultItem, err := s.db.DefaultItem(channelId); err != nil {
 		return err
 	} else if defaultItem.ItemId != itemId {
 		return ErrSelectUnownedItem
@@ -65,28 +63,28 @@ func (s *ItemService) SetSelectedItem(userId, channelId string, itemId uuid.UUID
 	return s.db.DeleteSelectedItem(userId, channelId)
 }
 
-func (s *ItemService) GetChannelsItems(channelId string) ([]models.Item, error) {
-	return s.db.GetChannelsItems(channelId)
+func (s *ItemService) GetChannelsItems(channelId string) ([]streampets.Item, error) {
+	return s.db.ItemsByChannelId(channelId)
 }
 
-func (s *ItemService) GetOwnedItems(channelId, userId string) ([]models.Item, error) {
-	ownedItems, err := s.db.GetOwnedItems(channelId, userId)
+func (s *ItemService) GetOwnedItems(channelId, userId string) ([]streampets.Item, error) {
+	ownedItems, err := s.db.ItemsByUserId(channelId, userId)
 	if err != nil {
-		return []models.Item{}, err
+		return []streampets.Item{}, err
 	}
 
-	items := map[models.Item]bool{}
+	items := map[streampets.Item]bool{}
 	for _, ownedItem := range ownedItems {
 		items[ownedItem] = true
 	}
 
-	defaultItem, err := s.db.GetDefaultItem(channelId)
+	defaultItem, err := s.db.DefaultItem(channelId)
 	if err != nil {
-		return []models.Item{}, err
+		return []streampets.Item{}, err
 	}
 	items[defaultItem] = true
 
-	result := []models.Item{}
+	result := []streampets.Item{}
 	for item := range items {
 		result = append(result, item)
 	}
@@ -95,5 +93,5 @@ func (s *ItemService) GetOwnedItems(channelId, userId string) ([]models.Item, er
 }
 
 func (s *ItemService) AddOwnedItem(userId string, itemId, transactionId uuid.UUID) error {
-	return s.db.AddOwnedItem(userId, itemId, transactionId)
+	return s.db.CreateOwnedItem(userId, itemId, transactionId)
 }

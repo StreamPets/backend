@@ -5,13 +5,18 @@ import (
 	"os"
 
 	_ "github.com/lib/pq"
+	streampets "github.com/streampets/backend"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
-
-	"github.com/streampets/backend/models"
 )
 
-func ConnectDB() *gorm.DB {
+type DB struct {
+	*gorm.DB
+	dsn string
+}
+
+// TODO: Not sure where to put this, maybe in config?
+func GET_DSN() string {
 	host := mustGetEnv("DB_HOST")
 	port := mustGetEnv("DB_PORT")
 	sslMode := mustGetEnv("DB_SSL_MODE")
@@ -19,26 +24,33 @@ func ConnectDB() *gorm.DB {
 	user := mustGetEnv("DB_USER")
 	password := mustGetEnv("DB_PASSWORD")
 
-	dsn := fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, dbName, port, sslMode)
+	return fmt.Sprintf("host=%s user=%s password=%s dbname=%s port=%s sslmode=%s", host, user, password, dbName, port, sslMode)
+}
 
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
+func NewDB(dsn string) *DB {
+	return &DB{
+		dsn: dsn,
+	}
+}
+
+func (db *DB) Open() (err error) {
+	db.DB, err = gorm.Open(postgres.Open(db.dsn), &gorm.Config{})
 	if err != nil {
-		panic(err)
+		return err
 	}
 
 	if err := db.AutoMigrate(
-		&models.ChannelItem{},
-		&models.Channel{},
-		&models.DefaultChannelItem{},
-		&models.Item{},
-		&models.OwnedItem{},
-		&models.SelectedItem{},
-		&models.User{},
+		&channelItem{},
+		&channel{},
+		&defaultChannelItem{},
+		&streampets.Item{},
+		&ownedItem{},
+		&selectedItem{},
 	); err != nil {
-		panic(err)
+		return err
 	}
 
-	return db
+	return nil
 }
 
 func mustGetEnv(name string) string {

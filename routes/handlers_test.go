@@ -12,10 +12,10 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
+	streampets "github.com/streampets/backend"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/gorm"
 	"github.com/streampets/backend/items"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/test"
 	"github.com/stretchr/testify/assert"
@@ -45,7 +45,7 @@ func TestHandleLogin(t *testing.T) {
 		ctx, recorder := setUpContext(channelId)
 
 		mockDep := mock.Mock[mockDep]()
-		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, database.ErrNoOverlayId)
+		mock.When(mockDep.GetOverlayId(channelId)).ThenReturn(nil, gorm.ErrNoOverlayId)
 
 		handleLogin(mockDep.GetOverlayId)(ctx)
 
@@ -175,7 +175,7 @@ func TestGetStoreData(t *testing.T) {
 	}
 
 	type mockDep interface {
-		GetChannelsItems(channelId string) ([]models.Item, error)
+		GetChannelsItems(channelId string) ([]streampets.Item, error)
 	}
 
 	t.Run("internal server error when error received from get channels items", func(t *testing.T) {
@@ -205,7 +205,7 @@ func TestGetStoreData(t *testing.T) {
 		channelId := "channel id"
 		userId := "user id"
 
-		storeItems := []models.Item{{}, {}}
+		storeItems := []streampets.Item{{}, {}}
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -221,7 +221,7 @@ func TestGetStoreData(t *testing.T) {
 
 		assert.Equal(t, recorder.Code, http.StatusOK)
 
-		var response []models.Item
+		var response []streampets.Item
 		if err := json.Unmarshal(recorder.Body.Bytes(), &response); err != nil {
 			t.Errorf("could not parse json response")
 		}
@@ -247,8 +247,8 @@ func TestGetUserData(t *testing.T) {
 	}
 
 	type mockDep interface {
-		GetSelectedItem(userId, channelId string) (models.Item, error)
-		GetOwnedItems(channelId, userId string) ([]models.Item, error)
+		GetSelectedItem(userId, channelId string) (streampets.Item, error)
+		GetOwnedItems(channelId, userId string) ([]streampets.Item, error)
 	}
 
 	t.Run("internal server error when get owned items fails", func(t *testing.T) {
@@ -300,15 +300,15 @@ func TestGetUserData(t *testing.T) {
 		mock.SetUp(t)
 
 		type Response struct {
-			OwnedItems   []models.Item `json:"owned"`
-			SelectedItem models.Item   `json:"selected"`
+			OwnedItems   []streampets.Item `json:"owned"`
+			SelectedItem streampets.Item   `json:"selected"`
 		}
 
 		channelId := "channel id"
 		userId := "user id"
 
-		selectedItem := models.Item{ItemId: uuid.New()}
-		ownedItems := []models.Item{selectedItem}
+		selectedItem := streampets.Item{ItemId: uuid.New()}
+		ownedItems := []streampets.Item{selectedItem}
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -339,7 +339,7 @@ func TestGetUserData(t *testing.T) {
 
 func TestBuyStoreItem(t *testing.T) {
 
-	setUpContext := func(userId string, itemId, transactionId uuid.UUID, rarity models.Rarity) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(userId string, itemId, transactionId uuid.UUID, rarity streampets.Rarity) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -359,7 +359,7 @@ func TestBuyStoreItem(t *testing.T) {
 	}
 
 	type mockDep interface {
-		GetItemById(itemId uuid.UUID) (models.Item, error)
+		GetItemById(itemId uuid.UUID) (streampets.Item, error)
 		AddOwnedItem(userId string, itemId, transactionId uuid.UUID) error
 	}
 
@@ -369,11 +369,11 @@ func TestBuyStoreItem(t *testing.T) {
 		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
-		rarity := models.Common
+		rarity := streampets.Common
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := database.ErrItemNotFoundById
+		err := gorm.ErrItemNotFound
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
 		ctx, recorder := setUpContext(userId, itemId, transactionId, rarity)
@@ -394,7 +394,7 @@ func TestBuyStoreItem(t *testing.T) {
 		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
-		rarity := models.Common
+		rarity := streampets.Common
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -418,11 +418,11 @@ func TestBuyStoreItem(t *testing.T) {
 		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
-		rarity := models.Common
+		rarity := streampets.Common
 
-		item := models.Item{
+		item := streampets.Item{
 			ItemId: itemId,
-			Rarity: models.Uncommon,
+			Rarity: streampets.Uncommon,
 		}
 
 		mockDep := mock.Mock[mockDep]()
@@ -446,11 +446,11 @@ func TestBuyStoreItem(t *testing.T) {
 		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
-		rarity := models.Common
+		rarity := streampets.Common
 
-		item := models.Item{
+		item := streampets.Item{
 			ItemId: itemId,
-			Rarity: models.Common,
+			Rarity: streampets.Common,
 		}
 
 		mockDep := mock.Mock[mockDep]()
@@ -477,11 +477,11 @@ func TestBuyStoreItem(t *testing.T) {
 		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
-		rarity := models.Common
+		rarity := streampets.Common
 
-		item := models.Item{
+		item := streampets.Item{
 			ItemId: itemId,
-			Rarity: models.Common,
+			Rarity: streampets.Common,
 		}
 
 		mockDep := mock.Mock[mockDep]()
@@ -526,7 +526,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 	type mockDep interface {
 		AnnounceUpdate(channelId, userId string, image string)
-		GetItemById(itemId uuid.UUID) (models.Item, error)
+		GetItemById(itemId uuid.UUID) (streampets.Item, error)
 		SetSelectedItem(userId, channelId string, itemId uuid.UUID) error
 	}
 
@@ -575,7 +575,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := database.ErrItemNotFoundById
+		err := gorm.ErrItemNotFound
 		mock.When(mockDep.GetItemById(itemId)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemId.String())
@@ -677,7 +677,7 @@ func TestSetSelectedItem(t *testing.T) {
 		userId := "user id"
 		itemId := uuid.New()
 
-		item := models.Item{ItemId: itemId, Image: image}
+		item := streampets.Item{ItemId: itemId, Image: image}
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -897,7 +897,7 @@ func TestUpdateUser(t *testing.T) {
 
 	type mockDep interface {
 		AnnounceUpdate(channelId, userId string, image string)
-		GetItemByName(channelId string, itemName string) (models.Item, error)
+		GetItemByName(channelId string, itemName string) (streampets.Item, error)
 		SetSelectedItem(userId, channelId string, itemId uuid.UUID) error
 	}
 
@@ -910,7 +910,7 @@ func TestUpdateUser(t *testing.T) {
 
 		mockDep := mock.Mock[mockDep]()
 
-		err := database.ErrItemNotFoundByName
+		err := gorm.ErrItemNotFoundByName
 		mock.When(mockDep.GetItemByName(channelId, itemName)).ThenReturn(nil, err)
 
 		jsonData := generateData(itemName)
@@ -937,7 +937,7 @@ func TestUpdateUser(t *testing.T) {
 		itemId := uuid.New()
 		image := "image"
 
-		item := models.Item{
+		item := streampets.Item{
 			ItemId: itemId,
 			Image:  image,
 		}
@@ -973,7 +973,7 @@ func TestUpdateUser(t *testing.T) {
 		itemId := uuid.New()
 		image := "image"
 
-		item := models.Item{
+		item := streampets.Item{
 			ItemId: itemId,
 			Image:  image,
 		}
@@ -1008,7 +1008,7 @@ func TestUpdateUser(t *testing.T) {
 		itemId := uuid.New()
 		image := "image"
 
-		item := models.Item{
+		item := streampets.Item{
 			ItemId: itemId,
 			Image:  image,
 		}

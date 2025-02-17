@@ -9,10 +9,10 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"
+	streampets "github.com/streampets/backend"
 	"github.com/streampets/backend/announcers"
-	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/gorm"
 	"github.com/streampets/backend/items"
-	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
 )
 
@@ -29,7 +29,7 @@ func handleLogin(
 		channelId := ctx.GetString(ChannelId)
 
 		overlayId, err := getOverlayId(channelId)
-		if errors.Is(err, database.ErrNoOverlayId) {
+		if errors.Is(err, gorm.ErrNoOverlayId) {
 			slog.Error("no overlay id associated with channel id", "channel id", channelId)
 			ctx.JSON(http.StatusBadRequest, nil)
 			return
@@ -82,7 +82,7 @@ func handleListen(
 }
 
 func handleGetStoreData(
-	getChannelsItems func(channelId string) ([]models.Item, error),
+	getChannelsItems func(channelId string) ([]streampets.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
 		channelId := ctx.GetString(ChannelId)
@@ -99,13 +99,13 @@ func handleGetStoreData(
 }
 
 func handleGetUserData(
-	getSelectedItem func(userId, channelId string) (models.Item, error),
-	getOwnedItems func(channelId, userId string) ([]models.Item, error),
+	getSelectedItem func(userId, channelId string) (streampets.Item, error),
+	getOwnedItems func(channelId, userId string) ([]streampets.Item, error),
 ) gin.HandlerFunc {
 
 	type response struct {
-		Selected models.Item   `json:"selected"`
-		Owned    []models.Item `json:"owned"`
+		Selected streampets.Item   `json:"selected"`
+		Owned    []streampets.Item `json:"owned"`
 	}
 
 	return func(ctx *gin.Context) {
@@ -134,7 +134,7 @@ func handleGetUserData(
 }
 
 func handleBuyStoreItem(
-	getItemById func(itemId uuid.UUID) (models.Item, error),
+	getItemById func(itemId uuid.UUID) (streampets.Item, error),
 	addOwnedItem func(userId string, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
 
@@ -144,7 +144,7 @@ func handleBuyStoreItem(
 
 	return func(ctx *gin.Context) {
 		userId := ctx.GetString(UserId)
-		rarity := models.Rarity(ctx.GetString(Rarity))
+		rarity := streampets.Rarity(ctx.GetString(Rarity))
 
 		request := new(request)
 		if err := ctx.ShouldBindJSON(request); err != nil {
@@ -168,7 +168,7 @@ func handleBuyStoreItem(
 		}
 
 		item, err := getItemById(itemId)
-		if errors.Is(err, database.ErrItemNotFoundById) {
+		if errors.Is(err, gorm.ErrItemNotFound) {
 			slog.Error("failed to retrieve item", "item id", itemId)
 			ctx.JSON(http.StatusBadRequest, nil)
 			return
@@ -185,7 +185,7 @@ func handleBuyStoreItem(
 		}
 
 		err = addOwnedItem(userId, itemId, transactionId)
-		if errors.Is(err, database.ErrAddItemNotExist) {
+		if errors.Is(err, gorm.ErrAddItemNotExist) {
 			slog.Error("failed to add owned item", "user id", userId, "item id", itemId, "transaction id", transactionId)
 			ctx.JSON(http.StatusInternalServerError, nil)
 			return
@@ -201,7 +201,7 @@ func handleBuyStoreItem(
 
 func handleSetSelectedItem(
 	announceUpdate func(channelId, userId string, image string),
-	getItemById func(itemId uuid.UUID) (models.Item, error),
+	getItemById func(itemId uuid.UUID) (streampets.Item, error),
 	setSelectedItem func(userId, channelId string, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
@@ -228,7 +228,7 @@ func handleSetSelectedItem(
 		}
 
 		item, err := getItemById(itemId)
-		if errors.Is(err, database.ErrItemNotFoundById) {
+		if errors.Is(err, gorm.ErrItemNotFound) {
 			slog.Error("failed to retrieve item", "item id", itemId)
 			ctx.JSON(http.StatusBadRequest, nil)
 			return
@@ -312,7 +312,7 @@ func handleAction(
 
 func handleUpdate(
 	announceUpdate func(channelId, userId string, image string),
-	getItemByName func(channelId string, itemName string) (models.Item, error),
+	getItemByName func(channelId string, itemName string) (streampets.Item, error),
 	setSelectedItem func(userId, channelId string, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
@@ -333,7 +333,7 @@ func handleUpdate(
 		userId := string(ctx.Param(UserId))
 
 		item, err := getItemByName(channelId, request.ItemName)
-		if errors.Is(err, database.ErrItemNotFoundByName) {
+		if errors.Is(err, gorm.ErrItemNotFoundByName) {
 			slog.Warn("item could not be found", "channel id", channelId, "item name", request.ItemName)
 			ctx.JSON(http.StatusBadRequest, nil)
 			return

@@ -1,4 +1,4 @@
-package models
+package streampets
 
 import "github.com/google/uuid"
 

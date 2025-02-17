@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
+	streampets "github.com/streampets/backend"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +15,7 @@ func TestGetUser(t *testing.T) {
 	channelId := "channel id"
 	username := "username"
 	image := "image"
-	item := models.Item{Image: image}
+	item := streampets.Item{Image: image}
 
 	itemMock := mock.Mock[SelectedItemGetter]()
 	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(item, nil)
