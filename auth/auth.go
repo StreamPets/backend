@@ -24,10 +24,10 @@ func New(
 }
 
 func ListenAuthentication(
-	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
+	getOverlayId func(channelId twitch.UserId) (uuid.UUID, error),
 ) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.Query(ChannelId))
+		channelId := twitch.UserId(ctx.Query(ChannelId))
 
 		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
 		if err != nil {
@@ -48,9 +48,9 @@ func ListenAuthentication(
 }
 
 func validateOverlayId(
-	channelId twitch.Id,
+	channelId twitch.UserId,
 	overlayId uuid.UUID,
-	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
+	getOverlayId func(channelId twitch.UserId) (uuid.UUID, error),
 ) error {
 	expectedId, err := getOverlayId(channelId)
 	if err != nil {

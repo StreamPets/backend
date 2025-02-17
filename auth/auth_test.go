@@ -18,13 +18,13 @@ import (
 func TestVerifyOverlayId(t *testing.T) {
 
 	type MockDep interface {
-		GetOverlayId(channelId twitch.Id) (uuid.UUID, error)
+		GetOverlayId(channelId twitch.UserId) (uuid.UUID, error)
 	}
 
 	t.Run("status ok when overlay and channel ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.Id("channel id")
+		channelId := twitch.UserId("channel id")
 		overlayId := uuid.New()
 
 		mockDep := mock.Mock[MockDep]()
@@ -53,7 +53,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("unauthorized when overlay and channel ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.Id("channel id")
+		channelId := twitch.UserId("channel id")
 		overlayId := uuid.New()
 
 		mockDep := mock.Mock[MockDep]()
@@ -83,8 +83,8 @@ func TestVerifyOverlayId(t *testing.T) {
 func TestExtensionMiddleware(t *testing.T) {
 
 	clientSecret := "secret"
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 
 	authService := New(clientSecret)
 

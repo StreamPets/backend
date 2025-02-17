@@ -13,7 +13,7 @@ import (
 func TestGetItemByName(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	itemName := "item name"
 
 	item := models.Item{Name: itemName}
@@ -53,8 +53,8 @@ func TestGetItemById(t *testing.T) {
 func TestGetSelectedItem(t *testing.T) {
 	mock.SetUp(t)
 
-	userId := twitch.Id("user id")
-	channelId := twitch.Id("channel id")
+	userId := twitch.UserId("user id")
+	channelId := twitch.UserId("channel id")
 	want := models.Item{ItemId: uuid.New()}
 
 	itemMock := mock.Mock[database]()
@@ -72,8 +72,8 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("item is set as selected when owned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.Id("user id")
-		channelId := twitch.Id("channel id")
+		userId := twitch.UserId("user id")
+		channelId := twitch.UserId("channel id")
 		itemId := uuid.New()
 
 		itemMock := mock.Mock[database]()
@@ -91,8 +91,8 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("item is not set as selected when unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.Id("user id")
-		channelId := twitch.Id("channel id")
+		userId := twitch.UserId("user id")
+		channelId := twitch.UserId("channel id")
 		itemId := uuid.New()
 
 		itemMock := mock.Mock[database]()
@@ -104,7 +104,7 @@ func TestSetSelectedItem(t *testing.T) {
 
 		err := itemService.SetSelectedItem(userId, channelId, itemId)
 		if assert.Error(t, err) {
-			assert.Equal(t, NewErrSelectUnownedItem(userId, channelId, itemId), err)
+			assert.Equal(t, ErrSelectUnownedItem, err)
 		}
 	})
 }
@@ -112,7 +112,7 @@ func TestSetSelectedItem(t *testing.T) {
 func TestGetChannelsItems(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	expected := []models.Item{{}}
 
 	itemMock := mock.Mock[database]()
@@ -131,8 +131,8 @@ func TestGetChannelsItems(t *testing.T) {
 func TestGetOwnedItems(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 	expected := []models.Item{{}}
 
 	itemMock := mock.Mock[database]()
@@ -150,7 +150,7 @@ func TestGetOwnedItems(t *testing.T) {
 func TestAddOwnedItem(t *testing.T) {
 	mock.SetUp(t)
 
-	userId := twitch.Id("user id")
+	userId := twitch.UserId("user id")
 	itemId := uuid.New()
 	transactionId := uuid.New()
 

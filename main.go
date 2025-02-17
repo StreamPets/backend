@@ -30,8 +30,8 @@ func run() error {
 
 	twitchApi := twitch.New(http.DefaultClient, "https://id.twitch.tv")
 
-	announcer := announcers.NewAnnouncerService()
-	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
+	announcer := announcers.NewAnnouncer()
+	cachedAnnouncer := announcers.NewCachedAnnouncer(announcer)
 
 	items := items.New(db)
 	pets := pets.New(items)

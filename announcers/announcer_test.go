@@ -15,10 +15,10 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce join", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.Id("channel id")
+		channelId := twitch.UserId("channel id")
 		pet := pets.Pet{}
 
-		announcer := NewAnnouncerService()
+		announcer := NewAnnouncer()
 
 		client := announcer.AddClient(channelId)
 		assert.Equal(t, channelId, client.channelId)
@@ -50,10 +50,10 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce part", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.Id("channel name")
-		userId := twitch.Id("user id")
+		channelId := twitch.UserId("channel name")
+		userId := twitch.UserId("user id")
 
-		announcer := NewAnnouncerService()
+		announcer := NewAnnouncer()
 
 		client := announcer.AddClient(channelId)
 		assert.Equal(t, channelId, client.channelId)
@@ -85,11 +85,11 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce action", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.Id("channel id")
-		userId := twitch.Id("user id")
+		channelId := twitch.UserId("channel id")
+		userId := twitch.UserId("user id")
 		action := "action"
 
-		announcer := NewAnnouncerService()
+		announcer := NewAnnouncer()
 
 		client := announcer.AddClient(channelId)
 		assert.Equal(t, channelId, client.channelId)
@@ -121,11 +121,11 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce update", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.Id("channel id")
-		userId := twitch.Id("user id")
+		channelId := twitch.UserId("channel id")
+		userId := twitch.UserId("user id")
 		image := "image"
 
-		announcer := NewAnnouncerService()
+		announcer := NewAnnouncer()
 
 		client := announcer.AddClient(channelId)
 		assert.Equal(t, channelId, client.channelId)
@@ -154,10 +154,10 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 func TestRemoveClientWithAnnouncements(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	pet := pets.Pet{}
 
-	announcer := NewAnnouncerService()
+	announcer := NewAnnouncer()
 
 	client := announcer.AddClient(channelId)
 	assert.Equal(t, channelId, client.channelId)
@@ -186,11 +186,11 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	mock.SetUp(t)
 
-	channelOneId := twitch.Id("channel one id")
-	channelTwoId := twitch.Id("channel two id")
+	channelOneId := twitch.UserId("channel one id")
+	channelTwoId := twitch.UserId("channel two id")
 	pet := pets.Pet{}
 
-	announcer := NewAnnouncerService()
+	announcer := NewAnnouncer()
 
 	clientOne := announcer.AddClient(channelOneId)
 	assert.Equal(t, channelOneId, clientOne.channelId)

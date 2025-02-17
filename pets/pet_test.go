@@ -12,8 +12,8 @@ import (
 func TestGetUser(t *testing.T) {
 	mock.SetUp(t)
 
-	userId := twitch.Id("user id")
-	channelId := twitch.Id("channel id")
+	userId := twitch.UserId("user id")
+	channelId := twitch.UserId("channel id")
 	username := "username"
 	image := "image"
 	item := models.Item{Image: image}

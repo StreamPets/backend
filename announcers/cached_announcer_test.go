@@ -14,13 +14,13 @@ import (
 func TestAddClient(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	expected := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
 	mock.When(announcerMock.AddClient(channelId)).ThenReturn(expected)
 
-	cachedAnnouncer := NewCachedAnnouncerService(announcerMock)
+	cachedAnnouncer := NewCachedAnnouncer(announcerMock)
 	actual := cachedAnnouncer.AddClient(channelId)
 
 	assert.Equal(t, expected, actual)
@@ -29,12 +29,12 @@ func TestAddClient(t *testing.T) {
 func TestRemoveClient(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	client := newClient(channelId)
 
 	announcerMock := mock.Mock[announcer]()
 
-	cachedAnnouncer := NewCachedAnnouncerService(announcerMock)
+	cachedAnnouncer := NewCachedAnnouncer(announcerMock)
 	cachedAnnouncer.RemoveClient(client)
 
 	mock.Verify(announcerMock, mock.Once()).RemoveClient(client)
@@ -43,7 +43,7 @@ func TestRemoveClient(t *testing.T) {
 func TestAnnounceJoin(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 
 	pet := pets.Pet{}
 	client := newClient(channelId)
@@ -51,7 +51,7 @@ func TestAnnounceJoin(t *testing.T) {
 	announcerMock := mock.Mock[announcer]()
 	mock.When(announcerMock.AddClient(channelId)).ThenReturn(client)
 
-	cachedAnnouncer := NewCachedAnnouncerService(announcerMock)
+	cachedAnnouncer := NewCachedAnnouncer(announcerMock)
 	cachedAnnouncer.AnnounceJoin(channelId, pet)
 	cachedAnnouncer.AddClient(channelId)
 
@@ -79,8 +79,8 @@ func TestAnnounceJoin(t *testing.T) {
 func TestAnnouncePart(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 
 	pet := pets.Pet{UserId: userId}
 	client := newClient(channelId)
@@ -88,7 +88,7 @@ func TestAnnouncePart(t *testing.T) {
 	announcerMock := mock.Mock[announcer]()
 	mock.When(announcerMock.AddClient(channelId)).ThenReturn(client)
 
-	cachedAnnouncer := NewCachedAnnouncerService(announcerMock)
+	cachedAnnouncer := NewCachedAnnouncer(announcerMock)
 	cachedAnnouncer.AnnounceJoin(channelId, pet)
 	cachedAnnouncer.AnnouncePart(channelId, userId)
 	cachedAnnouncer.AddClient(channelId)
@@ -105,13 +105,13 @@ func TestAnnouncePart(t *testing.T) {
 func TestAnnounceAction(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 	action := "action"
 
 	announcerMock := mock.Mock[announcer]()
 
-	cachedAnnouncer := NewCachedAnnouncerService(announcerMock)
+	cachedAnnouncer := NewCachedAnnouncer(announcerMock)
 	cachedAnnouncer.AnnounceAction(channelId, userId, action)
 
 	mock.Verify(announcerMock, mock.Once()).AnnounceAction(channelId, userId, action)
@@ -120,8 +120,8 @@ func TestAnnounceAction(t *testing.T) {
 func TestAnnounceUpdate(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 	image := "image"
 	newImage := "new image"
 
@@ -131,7 +131,7 @@ func TestAnnounceUpdate(t *testing.T) {
 	announcerMock := mock.Mock[announcer]()
 	mock.When(announcerMock.AddClient(channelId)).ThenReturn(client)
 
-	cachedAnnouncer := NewCachedAnnouncerService(announcerMock)
+	cachedAnnouncer := NewCachedAnnouncer(announcerMock)
 	cachedAnnouncer.AnnounceJoin(channelId, pet)
 	cachedAnnouncer.AnnounceUpdate(channelId, userId, newImage)
 	cachedAnnouncer.AddClient(channelId)

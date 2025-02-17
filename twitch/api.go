@@ -54,9 +54,9 @@ func (t *TwitchApi) AuthorizationMiddleware() func(ctx *gin.Context) {
 // Validates a Twitch user access token.
 // Returns ErrInvalidAccessToken if the access token is not valid.
 // Otherwise it returns the Twitch user id associated with the token.
-func (t *TwitchApi) validateToken(ctx context.Context, accessToken string) (Id, error) {
+func (t *TwitchApi) validateToken(ctx context.Context, accessToken string) (UserId, error) {
 	type validateResponse struct {
-		UserId Id `json:"user_id"`
+		UserId UserId `json:"user_id"`
 	}
 
 	url := t.baseUrl + "/oauth/validate"

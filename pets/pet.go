@@ -6,13 +6,13 @@ import (
 )
 
 type Pet struct {
-	UserId   twitch.Id `json:"userId"`
-	Username string    `json:"username"`
-	Image    string    `json:"color"`
+	UserId   twitch.UserId `json:"userId"`
+	Username string        `json:"username"`
+	Image    string        `json:"color"`
 }
 
 type SelectedItemGetter interface {
-	GetSelectedItem(userId, channelId twitch.Id) (models.Item, error)
+	GetSelectedItem(userId, channelId twitch.UserId) (models.Item, error)
 }
 
 type PetService struct {
@@ -23,7 +23,7 @@ func New(items SelectedItemGetter) *PetService {
 	return &PetService{items: items}
 }
 
-func (s *PetService) GetPet(userId, channelId twitch.Id, username string) (Pet, error) {
+func (s *PetService) GetPet(userId, channelId twitch.UserId, username string) (Pet, error) {
 	item, err := s.items.GetSelectedItem(userId, channelId)
 	if err != nil {
 		return Pet{}, err

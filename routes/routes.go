@@ -17,7 +17,7 @@ func RegisterRoutes(
 	r *gin.Engine,
 	db *database.DB,
 	twitch *twitch.TwitchApi,
-	announcer *announcers.CachedAnnouncerService,
+	announcer *announcers.CachedAnnouncer,
 	authService *auth.AuthService,
 	store *items.ItemService,
 	pets *pets.PetService,

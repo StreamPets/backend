@@ -5,19 +5,19 @@ import (
 	"github.com/streampets/backend/twitch"
 )
 
-type AnnouncerService struct {
+type Announcer struct {
 	announce      chan Announcement
 	newClients    chan Client
 	closedClients chan Client
-	totalClients  map[twitch.Id](map[chan Announcement]bool)
+	totalClients  map[twitch.UserId](map[chan Announcement]bool)
 }
 
-func NewAnnouncerService() *AnnouncerService {
-	service := &AnnouncerService{
+func NewAnnouncer() *Announcer {
+	service := &Announcer{
 		announce:      make(chan Announcement),
 		newClients:    make(chan Client),
 		closedClients: make(chan Client),
-		totalClients:  make(map[twitch.Id]map[chan Announcement]bool),
+		totalClients:  make(map[twitch.UserId]map[chan Announcement]bool),
 	}
 
 	go service.listen()
@@ -25,33 +25,33 @@ func NewAnnouncerService() *AnnouncerService {
 	return service
 }
 
-func (s *AnnouncerService) AddClient(channelId twitch.Id) Client {
+func (s *Announcer) AddClient(channelId twitch.UserId) Client {
 	client := newClient(channelId)
 	s.newClients <- client
 	return client
 }
 
-func (s *AnnouncerService) RemoveClient(client Client) {
+func (s *Announcer) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *AnnouncerService) AnnounceJoin(channelId twitch.Id, pet pets.Pet) {
+func (s *Announcer) AnnounceJoin(channelId twitch.UserId, pet pets.Pet) {
 	s.announce <- joinAnnouncement(channelId, pet)
 }
 
-func (s *AnnouncerService) AnnouncePart(channelId, userId twitch.Id) {
+func (s *Announcer) AnnouncePart(channelId, userId twitch.UserId) {
 	s.announce <- partAnnouncement(channelId, userId)
 }
 
-func (s *AnnouncerService) AnnounceAction(channelId, userId twitch.Id, action string) {
+func (s *Announcer) AnnounceAction(channelId, userId twitch.UserId, action string) {
 	s.announce <- actionAnnouncement(channelId, userId, action)
 }
 
-func (s *AnnouncerService) AnnounceUpdate(channelId, userId twitch.Id, image string) {
+func (s *Announcer) AnnounceUpdate(channelId, userId twitch.UserId, image string) {
 	s.announce <- updateAnnouncement(channelId, userId, image)
 }
 
-func (s *AnnouncerService) handleNewClient(c Client) {
+func (s *Announcer) handleNewClient(c Client) {
 	_, ok := s.totalClients[c.channelId]
 	if !ok {
 		s.totalClients[c.channelId] = make(map[chan Announcement]bool)
@@ -59,18 +59,18 @@ func (s *AnnouncerService) handleNewClient(c Client) {
 	s.totalClients[c.channelId][c.Stream] = true
 }
 
-func (s *AnnouncerService) handleClosedClient(c Client) {
+func (s *Announcer) handleClosedClient(c Client) {
 	delete(s.totalClients[c.channelId], c.Stream)
 	close(c.Stream)
 }
 
-func (s *AnnouncerService) handleAnnouncement(a Announcement) {
+func (s *Announcer) handleAnnouncement(a Announcement) {
 	for eventStream := range s.totalClients[a.channelId] {
 		eventStream <- a
 	}
 }
 
-func (s *AnnouncerService) listen() {
+func (s *Announcer) listen() {
 	for {
 		select {
 		case client := <-s.newClients:

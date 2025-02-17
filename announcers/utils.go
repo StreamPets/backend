@@ -10,23 +10,23 @@ import (
 type Announcement struct {
 	Event     string
 	Message   interface{}
-	channelId twitch.Id
+	channelId twitch.UserId
 }
 
 type Client struct {
 	Stream    chan Announcement
-	channelId twitch.Id
+	channelId twitch.UserId
 }
 
-func newClient(channelId twitch.Id) Client {
+func newClient(channelId twitch.UserId) Client {
 	return Client{channelId: channelId, Stream: make(chan Announcement)}
 }
 
-type petMap = map[twitch.Id]pets.Pet
-type cacheMap = map[twitch.Id]petMap
+type petMap = map[twitch.UserId]pets.Pet
+type cacheMap = map[twitch.UserId]petMap
 
 func newAnnouncement(
-	channelId twitch.Id,
+	channelId twitch.UserId,
 	event string,
 	message interface{},
 ) Announcement {
@@ -37,20 +37,20 @@ func newAnnouncement(
 	}
 }
 
-func joinAnnouncement(channelId twitch.Id, pet pets.Pet) Announcement {
+func joinAnnouncement(channelId twitch.UserId, pet pets.Pet) Announcement {
 	return newAnnouncement(channelId, "JOIN", pet)
 }
 
-func partAnnouncement(channelId, userId twitch.Id) Announcement {
+func partAnnouncement(channelId, userId twitch.UserId) Announcement {
 	return newAnnouncement(channelId, "PART", userId)
 }
 
-func actionAnnouncement(channelId, userId twitch.Id, action string) Announcement {
+func actionAnnouncement(channelId, userId twitch.UserId, action string) Announcement {
 	event := fmt.Sprintf("%s-%s", action, userId)
 	return newAnnouncement(channelId, event, userId)
 }
 
-func updateAnnouncement(channelId, userId twitch.Id, image string) Announcement {
+func updateAnnouncement(channelId, userId twitch.UserId, image string) Announcement {
 	event := fmt.Sprintf("COLOR-%s", userId)
 	return newAnnouncement(channelId, event, image)
 }

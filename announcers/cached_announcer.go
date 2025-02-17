@@ -6,29 +6,29 @@ import (
 )
 
 type announcer interface {
-	AddClient(channelId twitch.Id) Client
+	AddClient(channelId twitch.UserId) Client
 	RemoveClient(client Client)
-	AnnounceJoin(channelId twitch.Id, pet pets.Pet)
-	AnnouncePart(channelId, userId twitch.Id)
-	AnnounceAction(channelId, userId twitch.Id, action string)
-	AnnounceUpdate(channelId, userId twitch.Id, image string)
+	AnnounceJoin(channelId twitch.UserId, pet pets.Pet)
+	AnnouncePart(channelId, userId twitch.UserId)
+	AnnounceAction(channelId, userId twitch.UserId, action string)
+	AnnounceUpdate(channelId, userId twitch.UserId, image string)
 }
 
-type CachedAnnouncerService struct {
+type CachedAnnouncer struct {
 	announcer announcer
 	cache     cacheMap
 }
 
-func NewCachedAnnouncerService(
+func NewCachedAnnouncer(
 	announcer announcer,
-) *CachedAnnouncerService {
-	return &CachedAnnouncerService{
+) *CachedAnnouncer {
+	return &CachedAnnouncer{
 		cache:     make(cacheMap),
 		announcer: announcer,
 	}
 }
 
-func (s *CachedAnnouncerService) AddClient(channelId twitch.Id) Client {
+func (s *CachedAnnouncer) AddClient(channelId twitch.UserId) Client {
 	client := s.announcer.AddClient(channelId)
 
 	go func() {
@@ -43,11 +43,11 @@ func (s *CachedAnnouncerService) AddClient(channelId twitch.Id) Client {
 	return client
 }
 
-func (s *CachedAnnouncerService) RemoveClient(client Client) {
+func (s *CachedAnnouncer) RemoveClient(client Client) {
 	s.announcer.RemoveClient(client)
 }
 
-func (s *CachedAnnouncerService) AnnounceJoin(channelId twitch.Id, pet pets.Pet) {
+func (s *CachedAnnouncer) AnnounceJoin(channelId twitch.UserId, pet pets.Pet) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		pets = make(petMap)
@@ -58,7 +58,7 @@ func (s *CachedAnnouncerService) AnnounceJoin(channelId twitch.Id, pet pets.Pet)
 	s.announcer.AnnounceJoin(channelId, pet)
 }
 
-func (s *CachedAnnouncerService) AnnouncePart(channelId, userId twitch.Id) {
+func (s *CachedAnnouncer) AnnouncePart(channelId, userId twitch.UserId) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		return
@@ -68,11 +68,11 @@ func (s *CachedAnnouncerService) AnnouncePart(channelId, userId twitch.Id) {
 	s.announcer.AnnouncePart(channelId, userId)
 }
 
-func (s *CachedAnnouncerService) AnnounceAction(channelId, userId twitch.Id, action string) {
+func (s *CachedAnnouncer) AnnounceAction(channelId, userId twitch.UserId, action string) {
 	s.announcer.AnnounceAction(channelId, userId, action)
 }
 
-func (s *CachedAnnouncerService) AnnounceUpdate(channelId, userId twitch.Id, image string) {
+func (s *CachedAnnouncer) AnnounceUpdate(channelId, userId twitch.UserId, image string) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		return

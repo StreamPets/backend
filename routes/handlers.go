@@ -11,22 +11,23 @@ import (
 	"github.com/google/uuid"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 )
 
 func handleLogin(
-	getOverlayId func(channelId twitch.Id) (uuid.UUID, error),
+	getOverlayId func(channelId twitch.UserId) (overlayId uuid.UUID, err error),
 ) gin.HandlerFunc {
 
 	type userData struct {
-		OverlayId uuid.UUID `json:"overlay_id"`
-		ChannelId twitch.Id `json:"channel_id"`
+		OverlayId uuid.UUID     `json:"overlay_id"`
+		ChannelId twitch.UserId `json:"channel_id"`
 	}
 
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.GetString(ChannelId))
+		channelId := twitch.UserId(ctx.GetString(ChannelId))
 
 		overlayId, err := getOverlayId(channelId)
 		if errors.Is(err, database.ErrNoOverlayId) {
@@ -47,14 +48,13 @@ func handleLogin(
 }
 
 func handleListen(
-	addClient func(channelId twitch.Id) announcers.Client,
+	addClient func(channelId twitch.UserId) announcers.Client,
 	removeClient func(client announcers.Client),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.GetString(ChannelId))
-
-		// TODO:
+		channelId := twitch.UserId(ctx.GetString(ChannelId))
 		client := addClient(channelId)
+
 		defer func() {
 			go func() {
 				for range client.Stream {
@@ -79,15 +79,14 @@ func handleListen(
 				return true
 			}
 		})
-		/////
 	}
 }
 
 func handleGetStoreData(
-	getChannelsItems func(channelId twitch.Id) ([]models.Item, error),
+	getChannelsItems func(channelId twitch.UserId) ([]models.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.GetString(ChannelId))
+		channelId := twitch.UserId(ctx.GetString(ChannelId))
 
 		storeItems, err := getChannelsItems(channelId)
 		if err != nil {
@@ -101,8 +100,8 @@ func handleGetStoreData(
 }
 
 func handleGetUserData(
-	getSelectedItem func(userId, channelId twitch.Id) (models.Item, error),
-	getOwnedItems func(channelId, userId twitch.Id) ([]models.Item, error),
+	getSelectedItem func(userId, channelId twitch.UserId) (models.Item, error),
+	getOwnedItems func(channelId, userId twitch.UserId) ([]models.Item, error),
 ) gin.HandlerFunc {
 
 	type response struct {
@@ -111,16 +110,20 @@ func handleGetUserData(
 	}
 
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.GetString(ChannelId))
-		userId := twitch.Id(ctx.GetString(UserId))
+		channelId := twitch.UserId(ctx.GetString(ChannelId))
+		userId := twitch.UserId(ctx.GetString(UserId))
 
 		ownedItems, err := getOwnedItems(channelId, userId)
-		if getOwnedItemsErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Error("failed to retrieve owned items", "channel id", channelId, "user id", userId)
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
 		selectedItem, err := getSelectedItem(userId, channelId)
-		if getSelectedItemErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Error("failed to retrieve selected item", "channel id", channelId, "user id", userId)
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -131,10 +134,9 @@ func handleGetUserData(
 	}
 }
 
-// TODO: Test uuid parsing
 func handleBuyStoreItem(
 	getItemById func(itemId uuid.UUID) (models.Item, error),
-	addOwnedItem func(userId twitch.Id, itemId, transactionId uuid.UUID) error,
+	addOwnedItem func(userId twitch.UserId, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -142,7 +144,7 @@ func handleBuyStoreItem(
 	}
 
 	return func(ctx *gin.Context) {
-		userId := twitch.Id(ctx.GetString(UserId))
+		userId := twitch.UserId(ctx.GetString(UserId))
 		rarity := models.Rarity(ctx.GetString(Rarity))
 
 		request := new(request)
@@ -167,7 +169,13 @@ func handleBuyStoreItem(
 		}
 
 		item, err := getItemById(itemId)
-		if getItemByIdErrorHandler(ctx, err) {
+		if errors.Is(err, database.ErrItemNotFoundById) {
+			slog.Error("failed to retrieve item", "item id", itemId)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		} else if err != nil {
+			slog.Error("error when retrieving item")
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -178,7 +186,13 @@ func handleBuyStoreItem(
 		}
 
 		err = addOwnedItem(userId, itemId, transactionId)
-		if addOwnedItemErrorHandler(ctx, err) {
+		if errors.Is(err, database.ErrAddItemNotExist) {
+			slog.Error("failed to add owned item", "user id", userId, "item id", itemId, "transaction id", transactionId)
+			ctx.JSON(http.StatusInternalServerError, nil)
+			return
+		} else if err != nil {
+			slog.Error("failed to add owned item")
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -187,9 +201,9 @@ func handleBuyStoreItem(
 }
 
 func handleSetSelectedItem(
-	announceUpdate func(channelId, userId twitch.Id, image string),
+	announceUpdate func(channelId, userId twitch.UserId, image string),
 	getItemById func(itemId uuid.UUID) (models.Item, error),
-	setSelectedItem func(userId, channelId twitch.Id, itemId uuid.UUID) error,
+	setSelectedItem func(userId, channelId twitch.UserId, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -197,27 +211,42 @@ func handleSetSelectedItem(
 	}
 
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.GetString(ChannelId))
-		userId := twitch.Id(ctx.GetString(UserId))
+		channelId := twitch.UserId(ctx.GetString(ChannelId))
+		userId := twitch.UserId(ctx.GetString(UserId))
 
 		request := new(request)
-		err := ctx.ShouldBindJSON(request)
-		if shouldBindJsonErrorHandler(ctx, err) {
+		if err := ctx.ShouldBindJSON(request); err != nil {
+			slog.Warn("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
 		itemId, err := uuid.Parse(request.ItemId)
-		if parseUuidErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Debug("item id is not uuid type", "item id", request.ItemId)
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
 		item, err := getItemById(itemId)
-		if getItemByIdErrorHandler(ctx, err) {
+		if errors.Is(err, database.ErrItemNotFoundById) {
+			slog.Error("failed to retrieve item", "item id", itemId)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		} else if err != nil {
+			slog.Error("error when retrieving item", "err", err.Error())
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
 		err = setSelectedItem(userId, channelId, itemId)
-		if setSelectedItemErrorHandler(ctx, err) {
+		if errors.Is(err, items.ErrSelectUnownedItem) {
+			slog.Error("user tried to select an item they did not own", "user id", userId, "channel id", channelId, "item id", itemId)
+			ctx.JSON(http.StatusForbidden, nil)
+			return
+		} else if err != nil {
+			slog.Error("failed to select item", "user id", userId, "channel id", channelId, "item id", itemId, "err", err.Error())
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -226,25 +255,29 @@ func handleSetSelectedItem(
 }
 
 func handleAddPetToChannel(
-	announceJoin func(channelId twitch.Id, pet pets.Pet),
-	getPet func(userId, channelId twitch.Id, username string) (pets.Pet, error),
+	announceJoin func(channelId twitch.UserId, pet pets.Pet),
+	getPet func(userId, channelId twitch.UserId, username string) (pets.Pet, error),
 ) gin.HandlerFunc {
 
 	type request struct {
-		UserId   twitch.Id `json:"user_id"`
-		Username string    `json:"username"`
+		UserId   twitch.UserId `json:"user_id"`
+		Username string        `json:"username"`
 	}
 
 	return func(ctx *gin.Context) {
 		request := new(request)
 		err := ctx.ShouldBindJSON(request)
-		if shouldBindJsonErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Warn("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
-		channelId := twitch.Id(ctx.Param(ChannelId))
+		channelId := twitch.UserId(ctx.Param(ChannelId))
 		pet, err := getPet(request.UserId, channelId, request.Username)
-		if getPetErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Error("failed to retrieve pet")
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
@@ -254,11 +287,11 @@ func handleAddPetToChannel(
 }
 
 func handleRemoveUserFromChannel(
-	announcePart func(channelId, userId twitch.Id),
+	announcePart func(channelId, userId twitch.UserId),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.Param(ChannelId))
-		userId := twitch.Id(ctx.Param(UserId))
+		channelId := twitch.UserId(ctx.Param(ChannelId))
+		userId := twitch.UserId(ctx.Param(UserId))
 
 		announcePart(channelId, userId)
 		ctx.JSON(http.StatusNoContent, nil)
@@ -266,11 +299,11 @@ func handleRemoveUserFromChannel(
 }
 
 func handleAction(
-	announceAction func(channelId, userId twitch.Id, action string),
+	announceAction func(channelId, userId twitch.UserId, action string),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.Id(ctx.Param(ChannelId))
-		userId := twitch.Id(ctx.Param(UserId))
+		channelId := twitch.UserId(ctx.Param(ChannelId))
+		userId := twitch.UserId(ctx.Param(UserId))
 		action := ctx.Param(Action)
 
 		announceAction(channelId, userId, action)
@@ -279,9 +312,9 @@ func handleAction(
 }
 
 func handleUpdate(
-	announceUpdate func(channelId, userId twitch.Id, image string),
-	getItemByName func(channelId twitch.Id, itemName string) (models.Item, error),
-	setSelectedItem func(userId, channelId twitch.Id, itemId uuid.UUID) error,
+	announceUpdate func(channelId, userId twitch.UserId, image string),
+	getItemByName func(channelId twitch.UserId, itemName string) (models.Item, error),
+	setSelectedItem func(userId, channelId twitch.UserId, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -291,20 +324,34 @@ func handleUpdate(
 	return func(ctx *gin.Context) {
 		request := new(request)
 		err := ctx.ShouldBindJSON(request)
-		if shouldBindJsonErrorHandler(ctx, err) {
+		if err != nil {
+			slog.Warn("failed to bind json")
+			ctx.JSON(http.StatusBadRequest, nil)
 			return
 		}
 
-		channelId := twitch.Id(ctx.Param(ChannelId))
-		userId := twitch.Id(ctx.Param(UserId))
+		channelId := twitch.UserId(ctx.Param(ChannelId))
+		userId := twitch.UserId(ctx.Param(UserId))
 
 		item, err := getItemByName(channelId, request.ItemName)
-		if getItemByNameErrorHandler(ctx, err) {
+		if errors.Is(err, database.ErrItemNotFoundByName) {
+			slog.Warn("item could not be found", "channel id", channelId, "item name", request.ItemName)
+			ctx.JSON(http.StatusBadRequest, nil)
+			return
+		} else if err != nil {
+			slog.Error("error when retrieving item", "err", err.Error())
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
 		err = setSelectedItem(userId, channelId, item.ItemId)
-		if setSelectedItemErrorHandler(ctx, err) {
+		if errors.Is(err, items.ErrSelectUnownedItem) {
+			slog.Error("user tried to select an item they did not own")
+			ctx.JSON(http.StatusForbidden, nil)
+			return
+		} else if err != nil {
+			slog.Error("failed to select item")
+			ctx.JSON(http.StatusInternalServerError, nil)
 			return
 		}
 
