@@ -14,20 +14,19 @@ import (
 	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
-	"github.com/streampets/backend/twitch"
 )
 
 func handleLogin(
-	getOverlayId func(channelId twitch.UserId) (overlayId uuid.UUID, err error),
+	getOverlayId func(channelId string) (overlayId uuid.UUID, err error),
 ) gin.HandlerFunc {
 
 	type userData struct {
-		OverlayId uuid.UUID     `json:"overlay_id"`
-		ChannelId twitch.UserId `json:"channel_id"`
+		OverlayId uuid.UUID `json:"overlay_id"`
+		ChannelId string    `json:"channel_id"`
 	}
 
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.GetString(ChannelId))
+		channelId := ctx.GetString(ChannelId)
 
 		overlayId, err := getOverlayId(channelId)
 		if errors.Is(err, database.ErrNoOverlayId) {
@@ -48,11 +47,11 @@ func handleLogin(
 }
 
 func handleListen(
-	addClient func(channelId twitch.UserId) announcers.Client,
+	addClient func(channelId string) announcers.Client,
 	removeClient func(client announcers.Client),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.GetString(ChannelId))
+		channelId := ctx.GetString(ChannelId)
 		client := addClient(channelId)
 
 		defer func() {
@@ -83,10 +82,10 @@ func handleListen(
 }
 
 func handleGetStoreData(
-	getChannelsItems func(channelId twitch.UserId) ([]models.Item, error),
+	getChannelsItems func(channelId string) ([]models.Item, error),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.GetString(ChannelId))
+		channelId := ctx.GetString(ChannelId)
 
 		storeItems, err := getChannelsItems(channelId)
 		if err != nil {
@@ -100,8 +99,8 @@ func handleGetStoreData(
 }
 
 func handleGetUserData(
-	getSelectedItem func(userId, channelId twitch.UserId) (models.Item, error),
-	getOwnedItems func(channelId, userId twitch.UserId) ([]models.Item, error),
+	getSelectedItem func(userId, channelId string) (models.Item, error),
+	getOwnedItems func(channelId, userId string) ([]models.Item, error),
 ) gin.HandlerFunc {
 
 	type response struct {
@@ -110,8 +109,8 @@ func handleGetUserData(
 	}
 
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.GetString(ChannelId))
-		userId := twitch.UserId(ctx.GetString(UserId))
+		channelId := ctx.GetString(ChannelId)
+		userId := ctx.GetString(UserId)
 
 		ownedItems, err := getOwnedItems(channelId, userId)
 		if err != nil {
@@ -136,7 +135,7 @@ func handleGetUserData(
 
 func handleBuyStoreItem(
 	getItemById func(itemId uuid.UUID) (models.Item, error),
-	addOwnedItem func(userId twitch.UserId, itemId, transactionId uuid.UUID) error,
+	addOwnedItem func(userId string, itemId, transactionId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -144,7 +143,7 @@ func handleBuyStoreItem(
 	}
 
 	return func(ctx *gin.Context) {
-		userId := twitch.UserId(ctx.GetString(UserId))
+		userId := ctx.GetString(UserId)
 		rarity := models.Rarity(ctx.GetString(Rarity))
 
 		request := new(request)
@@ -201,9 +200,9 @@ func handleBuyStoreItem(
 }
 
 func handleSetSelectedItem(
-	announceUpdate func(channelId, userId twitch.UserId, image string),
+	announceUpdate func(channelId, userId string, image string),
 	getItemById func(itemId uuid.UUID) (models.Item, error),
-	setSelectedItem func(userId, channelId twitch.UserId, itemId uuid.UUID) error,
+	setSelectedItem func(userId, channelId string, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -211,8 +210,8 @@ func handleSetSelectedItem(
 	}
 
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.GetString(ChannelId))
-		userId := twitch.UserId(ctx.GetString(UserId))
+		channelId := ctx.GetString(ChannelId)
+		userId := ctx.GetString(UserId)
 
 		request := new(request)
 		if err := ctx.ShouldBindJSON(request); err != nil {
@@ -255,13 +254,13 @@ func handleSetSelectedItem(
 }
 
 func handleAddPetToChannel(
-	announceJoin func(channelId twitch.UserId, pet pets.Pet),
-	getPet func(userId, channelId twitch.UserId, username string) (pets.Pet, error),
+	announceJoin func(channelId string, pet pets.Pet),
+	getPet func(userId, channelId string, username string) (pets.Pet, error),
 ) gin.HandlerFunc {
 
 	type request struct {
-		UserId   twitch.UserId `json:"user_id"`
-		Username string        `json:"username"`
+		UserId   string `json:"user_id"`
+		Username string `json:"username"`
 	}
 
 	return func(ctx *gin.Context) {
@@ -273,7 +272,7 @@ func handleAddPetToChannel(
 			return
 		}
 
-		channelId := twitch.UserId(ctx.Param(ChannelId))
+		channelId := string(ctx.Param(ChannelId))
 		pet, err := getPet(request.UserId, channelId, request.Username)
 		if err != nil {
 			slog.Error("failed to retrieve pet")
@@ -287,11 +286,11 @@ func handleAddPetToChannel(
 }
 
 func handleRemoveUserFromChannel(
-	announcePart func(channelId, userId twitch.UserId),
+	announcePart func(channelId, userId string),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.Param(ChannelId))
-		userId := twitch.UserId(ctx.Param(UserId))
+		channelId := string(ctx.Param(ChannelId))
+		userId := string(ctx.Param(UserId))
 
 		announcePart(channelId, userId)
 		ctx.JSON(http.StatusNoContent, nil)
@@ -299,11 +298,11 @@ func handleRemoveUserFromChannel(
 }
 
 func handleAction(
-	announceAction func(channelId, userId twitch.UserId, action string),
+	announceAction func(channelId, userId string, action string),
 ) gin.HandlerFunc {
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.Param(ChannelId))
-		userId := twitch.UserId(ctx.Param(UserId))
+		channelId := string(ctx.Param(ChannelId))
+		userId := string(ctx.Param(UserId))
 		action := ctx.Param(Action)
 
 		announceAction(channelId, userId, action)
@@ -312,9 +311,9 @@ func handleAction(
 }
 
 func handleUpdate(
-	announceUpdate func(channelId, userId twitch.UserId, image string),
-	getItemByName func(channelId twitch.UserId, itemName string) (models.Item, error),
-	setSelectedItem func(userId, channelId twitch.UserId, itemId uuid.UUID) error,
+	announceUpdate func(channelId, userId string, image string),
+	getItemByName func(channelId string, itemName string) (models.Item, error),
+	setSelectedItem func(userId, channelId string, itemId uuid.UUID) error,
 ) gin.HandlerFunc {
 
 	type request struct {
@@ -330,8 +329,8 @@ func handleUpdate(
 			return
 		}
 
-		channelId := twitch.UserId(ctx.Param(ChannelId))
-		userId := twitch.UserId(ctx.Param(UserId))
+		channelId := string(ctx.Param(ChannelId))
+		userId := string(ctx.Param(UserId))
 
 		item, err := getItemByName(channelId, request.ItemName)
 		if errors.Is(err, database.ErrItemNotFoundByName) {

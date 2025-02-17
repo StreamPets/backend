@@ -18,31 +18,30 @@ import (
 	"github.com/streampets/backend/models"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/test"
-	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestHandleLogin(t *testing.T) {
-	setUpContext := func(channelId twitch.UserId) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("GET", "/items", nil)
-		ctx.Set(ChannelId, string(channelId))
+		ctx.Set(ChannelId, channelId)
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		GetOverlayId(channelId twitch.UserId) (uuid.UUID, error)
+		GetOverlayId(channelId string) (uuid.UUID, error)
 	}
 
 	t.Run("status bad request when channel id has no overlay id", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		ctx, recorder := setUpContext(channelId)
 
 		mockDep := mock.Mock[mockDep]()
@@ -56,7 +55,7 @@ func TestHandleLogin(t *testing.T) {
 	t.Run("internal server error when get overlay id fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		ctx, recorder := setUpContext(channelId)
 
 		mockDep := mock.Mock[mockDep]()
@@ -71,11 +70,11 @@ func TestHandleLogin(t *testing.T) {
 		mock.SetUp(t)
 
 		type userData struct {
-			OverlayId uuid.UUID     `json:"overlay_id"`
-			ChannelId twitch.UserId `json:"channel_id"`
+			OverlayId uuid.UUID `json:"overlay_id"`
+			ChannelId string    `json:"channel_id"`
 		}
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		overlayId := uuid.New()
 
 		ctx, recorder := setUpContext(channelId)
@@ -103,25 +102,25 @@ func TestHandleLogin(t *testing.T) {
 
 func TestHandleListen(t *testing.T) {
 
-	setUpContext := func(channelId twitch.UserId) (*gin.Context, *test.CloseNotifierResponseWriter) {
+	setUpContext := func(channelId string) (*gin.Context, *test.CloseNotifierResponseWriter) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := &test.CloseNotifierResponseWriter{ResponseRecorder: httptest.NewRecorder()}
 		ctx, _ := gin.CreateTestContext(recorder)
-		ctx.Set(ChannelId, string(channelId))
+		ctx.Set(ChannelId, channelId)
 
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		AddClient(channelId twitch.UserId) announcers.Client
+		AddClient(channelId string) announcers.Client
 		RemoveClient(client announcers.Client)
 	}
 
 	t.Run("receive and send events from stream", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		ctx, recorder := setUpContext(channelId)
 
 		stream := make(chan announcers.Announcement)
@@ -161,29 +160,29 @@ func TestHandleListen(t *testing.T) {
 
 func TestGetStoreData(t *testing.T) {
 
-	setUpContext := func(channelId, userId twitch.UserId) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("GET", "/items", nil)
 
-		ctx.Set(ChannelId, string(channelId))
-		ctx.Set(UserId, string(userId))
+		ctx.Set(ChannelId, channelId)
+		ctx.Set(UserId, userId)
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		GetChannelsItems(channelId twitch.UserId) ([]models.Item, error)
+		GetChannelsItems(channelId string) ([]models.Item, error)
 	}
 
 	t.Run("internal server error when error received from get channels items", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -203,8 +202,8 @@ func TestGetStoreData(t *testing.T) {
 	t.Run("items returned when extension token and channel id are valid", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 
 		storeItems := []models.Item{{}, {}}
 
@@ -233,30 +232,30 @@ func TestGetStoreData(t *testing.T) {
 
 func TestGetUserData(t *testing.T) {
 
-	setUpContext := func(channelId, userId twitch.UserId) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("GET", "/items", nil)
 
-		ctx.Set(ChannelId, string(channelId))
-		ctx.Set(UserId, string(userId))
+		ctx.Set(ChannelId, channelId)
+		ctx.Set(UserId, userId)
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		GetSelectedItem(userId, channelId twitch.UserId) (models.Item, error)
-		GetOwnedItems(channelId, userId twitch.UserId) ([]models.Item, error)
+		GetSelectedItem(userId, channelId string) (models.Item, error)
+		GetOwnedItems(channelId, userId string) ([]models.Item, error)
 	}
 
 	t.Run("internal server error when get owned items fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -277,8 +276,8 @@ func TestGetUserData(t *testing.T) {
 	t.Run("internal server error when get selected item fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -305,8 +304,8 @@ func TestGetUserData(t *testing.T) {
 			SelectedItem models.Item   `json:"selected"`
 		}
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 
 		selectedItem := models.Item{ItemId: uuid.New()}
 		ownedItems := []models.Item{selectedItem}
@@ -340,7 +339,7 @@ func TestGetUserData(t *testing.T) {
 
 func TestBuyStoreItem(t *testing.T) {
 
-	setUpContext := func(userId twitch.UserId, itemId, transactionId uuid.UUID, rarity models.Rarity) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(userId string, itemId, transactionId uuid.UUID, rarity models.Rarity) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		jsonData := []byte(fmt.Sprintf(`{
@@ -351,7 +350,7 @@ func TestBuyStoreItem(t *testing.T) {
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
 
-		ctx.Set(UserId, string(userId))
+		ctx.Set(UserId, userId)
 		ctx.Set(TransactionId, transactionId.String())
 		ctx.Set(Rarity, string(rarity))
 
@@ -361,13 +360,13 @@ func TestBuyStoreItem(t *testing.T) {
 
 	type mockDep interface {
 		GetItemById(itemId uuid.UUID) (models.Item, error)
-		AddOwnedItem(userId twitch.UserId, itemId, transactionId uuid.UUID) error
+		AddOwnedItem(userId string, itemId, transactionId uuid.UUID) error
 	}
 
 	t.Run("item not added when item with item id does not exist", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.UserId("user id")
+		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
 		rarity := models.Common
@@ -392,7 +391,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when get item by id fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.UserId("user id")
+		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
 		rarity := models.Common
@@ -416,7 +415,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item not added when receipt rarity and item rarity do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.UserId("user id")
+		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
 		rarity := models.Common
@@ -444,7 +443,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("internal server error when add owned item fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.UserId("user id")
+		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
 		rarity := models.Common
@@ -475,7 +474,7 @@ func TestBuyStoreItem(t *testing.T) {
 	t.Run("item added when all pre-requisites are met", func(t *testing.T) {
 		mock.SetUp(t)
 
-		userId := twitch.UserId("user id")
+		userId := "user id"
 		itemId := uuid.New()
 		transactionId := uuid.New()
 		rarity := models.Common
@@ -511,24 +510,24 @@ func TestSetSelectedItem(t *testing.T) {
 		}`, itemId))
 	}
 
-	setUpContext := func(channelId, userId twitch.UserId, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId string, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("POST", "/items", bytes.NewBuffer(jsonData))
 
-		ctx.Set(ChannelId, string(channelId))
-		ctx.Set(UserId, string(userId))
+		ctx.Set(ChannelId, channelId)
+		ctx.Set(UserId, userId)
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		AnnounceUpdate(channelId, userId twitch.UserId, image string)
+		AnnounceUpdate(channelId, userId string, image string)
 		GetItemById(itemId uuid.UUID) (models.Item, error)
-		SetSelectedItem(userId, channelId twitch.UserId, itemId uuid.UUID) error
+		SetSelectedItem(userId, channelId string, itemId uuid.UUID) error
 	}
 
 	t.Run("pet not updated when json has invalid format", func(t *testing.T) {
@@ -619,8 +618,8 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemId := uuid.New()
 
 		mockDep := mock.Mock[mockDep]()
@@ -646,8 +645,8 @@ func TestSetSelectedItem(t *testing.T) {
 	t.Run("pet not updated when item unowned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemId := uuid.New()
 
 		mockDep := mock.Mock[mockDep]()
@@ -674,8 +673,8 @@ func TestSetSelectedItem(t *testing.T) {
 
 		image := "image"
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemId := uuid.New()
 
 		item := models.Item{ItemId: itemId, Image: image}
@@ -703,34 +702,34 @@ func TestSetSelectedItem(t *testing.T) {
 
 func TestAddUserToChannel(t *testing.T) {
 
-	generateData := func(userId twitch.UserId, username string) []byte {
+	generateData := func(userId string, username string) []byte {
 		return []byte(fmt.Sprintf(`{
 			"user_id": "%s",
 			"username": "%s"
 			}`, userId, username))
 	}
 
-	setUpContext := func(channelId twitch.UserId, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId string, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("", "", bytes.NewBuffer(jsonData))
-		ctx.Params = gin.Params{{Key: ChannelId, Value: string(channelId)}}
+		ctx.Params = gin.Params{{Key: ChannelId, Value: channelId}}
 
 		ctx.Request = req
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		AnnounceJoin(channelId twitch.UserId, pet pets.Pet)
-		GetPet(userId, channelId twitch.UserId, username string) (pets.Pet, error)
+		AnnounceJoin(channelId string, pet pets.Pet)
+		GetPet(userId, channelId string, username string) (pets.Pet, error)
 	}
 
 	t.Run("bad request when json has invalid format", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 
 		mockDep := mock.Mock[mockDep]()
 
@@ -748,8 +747,8 @@ func TestAddUserToChannel(t *testing.T) {
 	t.Run("internal server error when get pet fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		username := "username"
 
 		mockDep := mock.Mock[mockDep]()
@@ -772,8 +771,8 @@ func TestAddUserToChannel(t *testing.T) {
 	t.Run("join announced and status no content", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		username := "username"
 
 		pet := pets.Pet{Username: username}
@@ -799,27 +798,27 @@ func TestAddUserToChannel(t *testing.T) {
 
 func TestRemoveUserFromChannel(t *testing.T) {
 
-	setUpContext := func(channelId, userId twitch.UserId) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		ctx.Params = gin.Params{
-			{Key: ChannelId, Value: string(channelId)},
-			{Key: UserId, Value: string(userId)},
+			{Key: ChannelId, Value: channelId},
+			{Key: UserId, Value: userId},
 		}
 
 		return ctx, recorder
 	}
 
 	type mockDep interface {
-		AnnouncePart(channelId, userId twitch.UserId)
+		AnnouncePart(channelId, userId string)
 	}
 
 	mock.SetUp(t)
 
-	channelId := twitch.UserId("channel id")
-	userId := twitch.UserId("user id")
+	channelId := "channel id"
+	userId := "user id"
 
 	dep := mock.Mock[mockDep]()
 
@@ -836,14 +835,14 @@ func TestRemoveUserFromChannel(t *testing.T) {
 
 func TestAction(t *testing.T) {
 
-	setUpContext := func(channelId, userId twitch.UserId, action string) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId string, action string) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		ctx.Params = gin.Params{
-			{Key: ChannelId, Value: string(channelId)},
-			{Key: UserId, Value: string(userId)},
+			{Key: ChannelId, Value: channelId},
+			{Key: UserId, Value: userId},
 			{Key: Action, Value: action},
 		}
 
@@ -851,13 +850,13 @@ func TestAction(t *testing.T) {
 	}
 
 	type mockDep interface {
-		AnnounceAction(channelId, userId twitch.UserId, action string)
+		AnnounceAction(channelId, userId string, action string)
 	}
 
 	mock.SetUp(t)
 
-	channelId := twitch.UserId("channel id")
-	userId := twitch.UserId("user id")
+	channelId := "channel id"
+	userId := "user id"
 	action := "action"
 
 	dep := mock.Mock[mockDep]()
@@ -881,15 +880,15 @@ func TestUpdateUser(t *testing.T) {
 		}`, itemName))
 	}
 
-	setUpContext := func(channelId, userId twitch.UserId, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
+	setUpContext := func(channelId, userId string, jsonData []byte) (*gin.Context, *httptest.ResponseRecorder) {
 		gin.SetMode(gin.TestMode)
 
 		recorder := httptest.NewRecorder()
 		ctx, _ := gin.CreateTestContext(recorder)
 		req, _ := http.NewRequest("PUT", "", bytes.NewBuffer(jsonData))
 		ctx.Params = gin.Params{
-			{Key: ChannelId, Value: string(channelId)},
-			{Key: UserId, Value: string(userId)},
+			{Key: ChannelId, Value: channelId},
+			{Key: UserId, Value: userId},
 		}
 		ctx.Request = req
 
@@ -897,16 +896,16 @@ func TestUpdateUser(t *testing.T) {
 	}
 
 	type mockDep interface {
-		AnnounceUpdate(channelId, userId twitch.UserId, image string)
-		GetItemByName(channelId twitch.UserId, itemName string) (models.Item, error)
-		SetSelectedItem(userId, channelId twitch.UserId, itemId uuid.UUID) error
+		AnnounceUpdate(channelId, userId string, image string)
+		GetItemByName(channelId string, itemName string) (models.Item, error)
+		SetSelectedItem(userId, channelId string, itemId uuid.UUID) error
 	}
 
 	t.Run("bad request when item not found", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemName := "item name"
 
 		mockDep := mock.Mock[mockDep]()
@@ -931,8 +930,8 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("status forbidden when item not owned", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemName := "item name"
 
 		itemId := uuid.New()
@@ -967,8 +966,8 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("internal server error when set selected item fails", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemName := "item name"
 
 		itemId := uuid.New()
@@ -1002,8 +1001,8 @@ func TestUpdateUser(t *testing.T) {
 	t.Run("status no content for regular case", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		itemName := "item name"
 
 		itemId := uuid.New()

@@ -7,7 +7,6 @@ import (
 
 	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/streampets/backend/pets"
-	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,7 +14,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce join", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		pet := pets.Pet{}
 
 		announcer := NewAnnouncer()
@@ -50,8 +49,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce part", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel name")
-		userId := twitch.UserId("user id")
+		channelId := "channel name"
+		userId := "user id"
 
 		announcer := NewAnnouncer()
 
@@ -85,8 +84,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce action", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		action := "action"
 
 		announcer := NewAnnouncer()
@@ -121,8 +120,8 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 	t.Run("add client and announce update", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
-		userId := twitch.UserId("user id")
+		channelId := "channel id"
+		userId := "user id"
 		image := "image"
 
 		announcer := NewAnnouncer()
@@ -154,7 +153,7 @@ func TestAddClientWithAnnouncements(t *testing.T) {
 func TestRemoveClientWithAnnouncements(t *testing.T) {
 	mock.SetUp(t)
 
-	channelId := twitch.UserId("channel id")
+	channelId := "channel id"
 	pet := pets.Pet{}
 
 	announcer := NewAnnouncer()
@@ -186,8 +185,8 @@ func TestRemoveClientWithAnnouncements(t *testing.T) {
 func TestAnnouncerOnMultipleChannels(t *testing.T) {
 	mock.SetUp(t)
 
-	channelOneId := twitch.UserId("channel one id")
-	channelTwoId := twitch.UserId("channel two id")
+	channelOneId := "channel one id"
+	channelTwoId := "channel two id"
 	pet := pets.Pet{}
 
 	announcer := NewAnnouncer()

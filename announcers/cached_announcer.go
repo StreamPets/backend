@@ -2,16 +2,15 @@ package announcers
 
 import (
 	"github.com/streampets/backend/pets"
-	"github.com/streampets/backend/twitch"
 )
 
 type announcer interface {
-	AddClient(channelId twitch.UserId) Client
+	AddClient(channelId string) Client
 	RemoveClient(client Client)
-	AnnounceJoin(channelId twitch.UserId, pet pets.Pet)
-	AnnouncePart(channelId, userId twitch.UserId)
-	AnnounceAction(channelId, userId twitch.UserId, action string)
-	AnnounceUpdate(channelId, userId twitch.UserId, image string)
+	AnnounceJoin(channelId string, pet pets.Pet)
+	AnnouncePart(channelId, userId string)
+	AnnounceAction(channelId, userId string, action string)
+	AnnounceUpdate(channelId, userId string, image string)
 }
 
 type CachedAnnouncer struct {
@@ -28,7 +27,7 @@ func NewCachedAnnouncer(
 	}
 }
 
-func (s *CachedAnnouncer) AddClient(channelId twitch.UserId) Client {
+func (s *CachedAnnouncer) AddClient(channelId string) Client {
 	client := s.announcer.AddClient(channelId)
 
 	go func() {
@@ -47,7 +46,7 @@ func (s *CachedAnnouncer) RemoveClient(client Client) {
 	s.announcer.RemoveClient(client)
 }
 
-func (s *CachedAnnouncer) AnnounceJoin(channelId twitch.UserId, pet pets.Pet) {
+func (s *CachedAnnouncer) AnnounceJoin(channelId string, pet pets.Pet) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		pets = make(petMap)
@@ -58,7 +57,7 @@ func (s *CachedAnnouncer) AnnounceJoin(channelId twitch.UserId, pet pets.Pet) {
 	s.announcer.AnnounceJoin(channelId, pet)
 }
 
-func (s *CachedAnnouncer) AnnouncePart(channelId, userId twitch.UserId) {
+func (s *CachedAnnouncer) AnnouncePart(channelId, userId string) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		return
@@ -68,11 +67,11 @@ func (s *CachedAnnouncer) AnnouncePart(channelId, userId twitch.UserId) {
 	s.announcer.AnnouncePart(channelId, userId)
 }
 
-func (s *CachedAnnouncer) AnnounceAction(channelId, userId twitch.UserId, action string) {
+func (s *CachedAnnouncer) AnnounceAction(channelId, userId string, action string) {
 	s.announcer.AnnounceAction(channelId, userId, action)
 }
 
-func (s *CachedAnnouncer) AnnounceUpdate(channelId, userId twitch.UserId, image string) {
+func (s *CachedAnnouncer) AnnounceUpdate(channelId, userId string, image string) {
 	pets, ok := s.cache[channelId]
 	if !ok {
 		return

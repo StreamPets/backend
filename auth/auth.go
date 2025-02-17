@@ -8,7 +8,6 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/streampets/backend/models"
-	"github.com/streampets/backend/twitch"
 )
 
 type AuthService struct {
@@ -24,11 +23,10 @@ func New(
 }
 
 func ListenAuthentication(
-	getOverlayId func(channelId twitch.UserId) (uuid.UUID, error),
+	getOverlayId func(channelId string) (uuid.UUID, error),
 ) func(ctx *gin.Context) {
 	return func(ctx *gin.Context) {
-		channelId := twitch.UserId(ctx.Query(ChannelId))
-
+		channelId := ctx.Query(ChannelId)
 		overlayId, err := uuid.Parse(ctx.Query(OverlayId))
 		if err != nil {
 			slog.Debug("param is not uuid type")
@@ -48,9 +46,9 @@ func ListenAuthentication(
 }
 
 func validateOverlayId(
-	channelId twitch.UserId,
+	channelId string,
 	overlayId uuid.UUID,
-	getOverlayId func(channelId twitch.UserId) (uuid.UUID, error),
+	getOverlayId func(channelId string) (uuid.UUID, error),
 ) error {
 	expectedId, err := getOverlayId(channelId)
 	if err != nil {

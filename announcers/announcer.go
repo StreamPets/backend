@@ -2,14 +2,13 @@ package announcers
 
 import (
 	"github.com/streampets/backend/pets"
-	"github.com/streampets/backend/twitch"
 )
 
 type Announcer struct {
 	announce      chan Announcement
 	newClients    chan Client
 	closedClients chan Client
-	totalClients  map[twitch.UserId](map[chan Announcement]bool)
+	totalClients  map[string](map[chan Announcement]bool)
 }
 
 func NewAnnouncer() *Announcer {
@@ -17,7 +16,7 @@ func NewAnnouncer() *Announcer {
 		announce:      make(chan Announcement),
 		newClients:    make(chan Client),
 		closedClients: make(chan Client),
-		totalClients:  make(map[twitch.UserId]map[chan Announcement]bool),
+		totalClients:  make(map[string]map[chan Announcement]bool),
 	}
 
 	go service.listen()
@@ -25,7 +24,7 @@ func NewAnnouncer() *Announcer {
 	return service
 }
 
-func (s *Announcer) AddClient(channelId twitch.UserId) Client {
+func (s *Announcer) AddClient(channelId string) Client {
 	client := newClient(channelId)
 	s.newClients <- client
 	return client
@@ -35,19 +34,19 @@ func (s *Announcer) RemoveClient(client Client) {
 	s.closedClients <- client
 }
 
-func (s *Announcer) AnnounceJoin(channelId twitch.UserId, pet pets.Pet) {
+func (s *Announcer) AnnounceJoin(channelId string, pet pets.Pet) {
 	s.announce <- joinAnnouncement(channelId, pet)
 }
 
-func (s *Announcer) AnnouncePart(channelId, userId twitch.UserId) {
+func (s *Announcer) AnnouncePart(channelId, userId string) {
 	s.announce <- partAnnouncement(channelId, userId)
 }
 
-func (s *Announcer) AnnounceAction(channelId, userId twitch.UserId, action string) {
+func (s *Announcer) AnnounceAction(channelId, userId string, action string) {
 	s.announce <- actionAnnouncement(channelId, userId, action)
 }
 
-func (s *Announcer) AnnounceUpdate(channelId, userId twitch.UserId, image string) {
+func (s *Announcer) AnnounceUpdate(channelId, userId string, image string) {
 	s.announce <- updateAnnouncement(channelId, userId, image)
 }
 

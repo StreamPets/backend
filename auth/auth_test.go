@@ -11,20 +11,19 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestVerifyOverlayId(t *testing.T) {
 
 	type MockDep interface {
-		GetOverlayId(channelId twitch.UserId) (uuid.UUID, error)
+		GetOverlayId(channelId string) (uuid.UUID, error)
 	}
 
 	t.Run("status ok when overlay and channel ids match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		overlayId := uuid.New()
 
 		mockDep := mock.Mock[MockDep]()
@@ -39,7 +38,7 @@ func TestVerifyOverlayId(t *testing.T) {
 		req := httptest.NewRequest("GET", "/protected", nil)
 
 		values := req.URL.Query()
-		values.Add(ChannelId, string(channelId))
+		values.Add(ChannelId, channelId)
 		values.Add(OverlayId, overlayId.String())
 		req.URL.RawQuery = values.Encode()
 
@@ -53,7 +52,7 @@ func TestVerifyOverlayId(t *testing.T) {
 	t.Run("unauthorized when overlay and channel ids do not match", func(t *testing.T) {
 		mock.SetUp(t)
 
-		channelId := twitch.UserId("channel id")
+		channelId := "channel id"
 		overlayId := uuid.New()
 
 		mockDep := mock.Mock[MockDep]()
@@ -68,7 +67,7 @@ func TestVerifyOverlayId(t *testing.T) {
 		req := httptest.NewRequest("GET", "/protected", nil)
 
 		values := req.URL.Query()
-		values.Add(ChannelId, string(channelId))
+		values.Add(ChannelId, channelId)
 		values.Add(OverlayId, overlayId.String())
 		req.URL.RawQuery = values.Encode()
 
@@ -83,8 +82,8 @@ func TestVerifyOverlayId(t *testing.T) {
 func TestExtensionMiddleware(t *testing.T) {
 
 	clientSecret := "secret"
-	channelId := twitch.UserId("channel id")
-	userId := twitch.UserId("user id")
+	channelId := "channel id"
+	userId := "user id"
 
 	authService := New(clientSecret)
 
