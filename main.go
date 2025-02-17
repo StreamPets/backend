@@ -10,6 +10,7 @@ import (
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/config"
 	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/gorm"
 	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/routes"
@@ -25,7 +26,7 @@ func run() error {
 		}
 	}
 
-	db := database.New(config.ConnectDB())
+	db := database.New(gorm.ConnectDB())
 	auth := config.CreateAuthService(db)
 
 	twitchApi := twitch.New(http.DefaultClient, "https://id.twitch.tv")

@@ -1,12 +1,14 @@
-package config
+package gorm
 
 import (
 	"fmt"
+	"os"
 
 	_ "github.com/lib/pq"
-	"github.com/streampets/backend/models"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	"github.com/streampets/backend/models"
 )
 
 func ConnectDB() *gorm.DB {
@@ -37,4 +39,12 @@ func ConnectDB() *gorm.DB {
 	}
 
 	return db
+}
+
+func mustGetEnv(name string) string {
+	value := os.Getenv(name)
+	if value == "" {
+		panic(fmt.Errorf("%s not set", name))
+	}
+	return value
 }
