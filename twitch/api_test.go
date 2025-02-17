@@ -1,53 +1,68 @@
 package twitch
 
 import (
-	"context"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/gin-gonic/gin"
+	"github.com/ovechkin-dm/mockio/mock"
 	"github.com/stretchr/testify/assert"
 )
 
-func TestValidateToken(t *testing.T) {
-	t.Run("user id retrieved when authorization token is valid", func(t *testing.T) {
-		mockResponse := `{"user_id":"12345"}`
-		expected := Id("12345")
+func TestAuthorizationMiddleware(t *testing.T) {
 
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			if r.Header.Get("Authorization") != "OAuth valid token" {
-				http.Error(w, "no authorization token", http.StatusUnauthorized)
-				return
-			}
-			fmt.Fprintln(w, mockResponse)
-		}))
-		defer server.Close()
+	userId := "12345"
+	validToken := "valid token"
+	invalidToken := "invalid token"
 
-		client := &http.Client{}
-		api := New(client, server.URL)
+	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get(Authorization) != fmt.Sprintf("OAuth %s", validToken) {
+			http.Error(w, "unauthorized", http.StatusUnauthorized)
+			return
+		}
+		fmt.Fprintf(w, `{"user_id":"%s"}`, userId)
+	}))
+	defer server.Close()
 
-		ctx := context.Background()
-		userId, err := api.ValidateToken(ctx, "valid token")
+	twitch := New(&http.Client{}, server.URL)
 
-		assert.NoError(t, err)
-		assert.Equal(t, expected, userId)
+	router := gin.Default()
+	router.Use(twitch.AuthorizationMiddleware())
+	router.GET("/protected", func(ctx *gin.Context) {
+		ctx.JSON(http.StatusOK, nil)
 	})
 
-	t.Run("invalid user token error when unauthorized", func(t *testing.T) {
-		server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			http.Error(w, "no authorization token", http.StatusUnauthorized)
-		}))
-		defer server.Close()
+	t.Run("status ok when using valid authorization cookie", func(t *testing.T) {
+		mock.SetUp(t)
 
-		client := &http.Client{}
-		api := New(client, server.URL)
+		req := httptest.NewRequest("GET", "/protected", nil)
+		req.AddCookie(&http.Cookie{Name: Authorization, Value: validToken})
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
 
-		ctx := context.Background()
-		_, err := api.ValidateToken(ctx, "valid token")
+		assert.Equal(t, http.StatusOK, recorder.Code)
+	})
 
-		if assert.Error(t, err) {
-			assert.Equal(t, ErrInvalidUserToken, err)
-		}
+	t.Run("unauthorized status when no 'Authorization' cookie present", func(t *testing.T) {
+		mock.SetUp(t)
+
+		req := httptest.NewRequest("GET", "/protected", nil)
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
+	})
+
+	t.Run("unauthorized status when access token invalid", func(t *testing.T) {
+		mock.SetUp(t)
+
+		req := httptest.NewRequest("GET", "/protected", nil)
+		req.AddCookie(&http.Cookie{Name: Authorization, Value: invalidToken})
+		recorder := httptest.NewRecorder()
+		router.ServeHTTP(recorder, req)
+
+		assert.Equal(t, http.StatusUnauthorized, recorder.Code)
 	})
 }

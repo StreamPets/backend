@@ -3,14 +3,14 @@ package announcers
 import (
 	"testing"
 
-	"github.com/streampets/backend/services"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestJoinAnnouncement(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	pet := services.Pet{}
+	channelId := twitch.UserId("channel id")
+	pet := pets.Pet{}
 
 	actual := joinAnnouncement(channelId, pet)
 	expected := Announcement{
@@ -23,8 +23,8 @@ func TestJoinAnnouncement(t *testing.T) {
 }
 
 func TestPartAnnouncement(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 
 	actual := partAnnouncement(channelId, userId)
 	expected := Announcement{
@@ -37,8 +37,8 @@ func TestPartAnnouncement(t *testing.T) {
 }
 
 func TestActionAnnouncement(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 	action := "action"
 
 	actual := actionAnnouncement(channelId, userId, action)
@@ -52,8 +52,8 @@ func TestActionAnnouncement(t *testing.T) {
 }
 
 func TestUpdateAnnouncement(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 	image := "image"
 
 	actual := updateAnnouncement(channelId, userId, image)

@@ -7,8 +7,11 @@ import (
 	"net/http"
 )
 
+const ChannelId = "channelId"
+const Authorization = "Authorization"
+
 // A Twitch user id
-type Id string
+type UserId string
 
 // Indicates an invalid Twitch user access token.
 var ErrInvalidUserToken error = errors.New("invalid access token")

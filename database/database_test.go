@@ -1,4 +1,4 @@
-package repositories
+package database
 
 import (
 	"testing"
@@ -10,9 +10,30 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestGetOverlayId(t *testing.T) {
+	channelId := twitch.UserId("channel id")
+	overlayId := uuid.New()
+
+	channel := models.Channel{
+		ChannelId: channelId,
+		OverlayId: overlayId,
+	}
+
+	db := test.CreateTestDB()
+	if result := db.Create(&channel); result.Error != nil {
+		panic(result.Error)
+	}
+
+	database := New(db)
+	got, err := database.GetOverlayId(channelId)
+
+	assert.NoError(t, err)
+	assert.Equal(t, overlayId, got)
+}
+
 func TestGetSelectedItem(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 
 	itemId := uuid.New()
 	item := models.Item{ItemId: itemId}
@@ -31,16 +52,16 @@ func TestGetSelectedItem(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
-	got, err := itemRepo.GetSelectedItem(userId, channelId)
+	database := New(db)
+	got, err := database.GetSelectedItem(userId, channelId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, item, got)
 }
 
 func TestSetSelectedItem(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 
 	itemId := uuid.New()
 	item := models.Item{ItemId: itemId}
@@ -65,18 +86,18 @@ func TestSetSelectedItem(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
+	database := New(db)
 
-	err := itemRepo.SetSelectedItem(userId, channelId, newItemId)
-	got, _ := itemRepo.GetSelectedItem(userId, channelId)
+	err := database.SetSelectedItem(userId, channelId, newItemId)
+	got, _ := database.GetSelectedItem(userId, channelId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, newItem, got)
 }
 
 func TestDeleteSelectedItem(t *testing.T) {
-	userId := twitch.Id("user id")
-	channelId := twitch.Id("twitch id")
+	userId := twitch.UserId("user id")
+	channelId := twitch.UserId("twitch id")
 
 	itemId := uuid.New()
 
@@ -89,17 +110,17 @@ func TestDeleteSelectedItem(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
+	database := New(db)
 
-	err := itemRepo.DeleteSelectedItem(userId, channelId)
+	err := database.DeleteSelectedItem(userId, channelId)
 	assert.NoError(t, err)
 
-	_, err = itemRepo.GetSelectedItem(userId, channelId)
+	_, err = database.GetSelectedItem(userId, channelId)
 	assert.Error(t, err)
 }
 
 func TestGetItemByName(t *testing.T) {
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	itemId := uuid.New()
 	itemName := "item name"
 
@@ -121,8 +142,8 @@ func TestGetItemByName(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
-	got, err := itemRepo.GetItemByName(channelId, itemName)
+	database := New(db)
+	got, err := database.GetItemByName(channelId, itemName)
 
 	assert.NoError(t, err)
 	assert.Equal(t, item, got)
@@ -137,15 +158,15 @@ func TestGetItemById(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
-	got, err := itemRepo.GetItemById(itemId)
+	database := New(db)
+	got, err := database.GetItemById(itemId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, item, got)
 }
 
 func TestGetChannelsItems(t *testing.T) {
-	channelId := twitch.Id("channel id")
+	channelId := twitch.UserId("channel id")
 	itemId := uuid.New()
 
 	item := models.Item{
@@ -169,9 +190,9 @@ func TestGetChannelsItems(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
+	database := New(db)
 
-	items, err := itemRepo.GetChannelsItems(channelId)
+	items, err := database.GetChannelsItems(channelId)
 	expected := []models.Item{item}
 
 	assert.NoError(t, err)
@@ -179,8 +200,8 @@ func TestGetChannelsItems(t *testing.T) {
 }
 
 func TestGetOwnedItems(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 
 	itemId := uuid.New()
 	item := models.Item{ItemId: itemId}
@@ -199,9 +220,9 @@ func TestGetOwnedItems(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
+	database := New(db)
 
-	items, err := itemRepo.GetOwnedItems(channelId, userId)
+	items, err := database.GetOwnedItems(channelId, userId)
 	expected := []models.Item{item}
 
 	assert.Equal(t, expected, items)
@@ -209,8 +230,8 @@ func TestGetOwnedItems(t *testing.T) {
 }
 
 func TestAddOwnedItem(t *testing.T) {
-	channelId := twitch.Id("channel id")
-	userId := twitch.Id("user id")
+	channelId := twitch.UserId("channel id")
+	userId := twitch.UserId("user id")
 	itemId := uuid.New()
 	transactionId := uuid.New()
 
@@ -224,16 +245,15 @@ func TestAddOwnedItem(t *testing.T) {
 		panic(result.Error)
 	}
 
-	itemRepo := NewItemRepository(db)
-
-	err := itemRepo.AddOwnedItem(userId, itemId, transactionId)
+	database := New(db)
+	err := database.AddOwnedItem(userId, itemId, transactionId)
 
 	assert.NoError(t, err)
 }
 
 func TestCheckOwnedItem(t *testing.T) {
 	t.Run("true when user owns item", func(t *testing.T) {
-		userId := twitch.Id("user id")
+		userId := twitch.UserId("user id")
 		itemId := uuid.New()
 
 		ownedItem := models.OwnedItem{UserId: userId, ItemId: itemId}
@@ -243,23 +263,22 @@ func TestCheckOwnedItem(t *testing.T) {
 			panic(result.Error)
 		}
 
-		itemRepo := NewItemRepository(db)
-
-		owned, err := itemRepo.CheckOwnedItem(userId, itemId)
+		database := New(db)
+		owned, err := database.CheckOwnedItem(userId, itemId)
 
 		assert.NoError(t, err)
 		assert.True(t, owned)
 	})
 
 	t.Run("false when item is unowned", func(t *testing.T) {
-		userId := twitch.Id("user id")
+		userId := twitch.UserId("user id")
 		itemId := uuid.New()
 
 		db := test.CreateTestDB()
 
-		itemRepo := NewItemRepository(db)
+		database := New(db)
+		owned, err := database.CheckOwnedItem(userId, itemId)
 
-		owned, err := itemRepo.CheckOwnedItem(userId, itemId)
 		assert.NoError(t, err)
 		assert.False(t, owned)
 	})

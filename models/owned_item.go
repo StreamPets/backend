@@ -6,8 +6,8 @@ import (
 )
 
 type OwnedItem struct {
-	UserId        twitch.Id `gorm:"primaryKey"`
-	ChannelId     twitch.Id `gorm:"primaryKey"`
-	ItemId        uuid.UUID `gorm:"primaryKey;type:uuid"`
-	TransactionId uuid.UUID `gorm:"unique"`
+	UserId        twitch.UserId `gorm:"primaryKey"`
+	ChannelId     twitch.UserId `gorm:"primaryKey"`
+	ItemId        uuid.UUID     `gorm:"primaryKey;type:uuid"`
+	TransactionId uuid.UUID     `gorm:"unique"`
 }

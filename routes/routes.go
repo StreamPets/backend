@@ -5,15 +5,22 @@ import (
 
 	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
-	"github.com/streampets/backend/controllers"
+	"github.com/streampets/backend/announcers"
+	"github.com/streampets/backend/auth"
+	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/items"
+	"github.com/streampets/backend/pets"
+	"github.com/streampets/backend/twitch"
 )
 
 func RegisterRoutes(
 	r *gin.Engine,
-	overlay *controllers.OverlayController,
-	extension *controllers.ExtensionController,
-	dashboard *controllers.DashboardController,
-	twitchBot *controllers.TwitchBotController,
+	db *database.DB,
+	twitch *twitch.TwitchApi,
+	announcer *announcers.CachedAnnouncer,
+	authService *auth.AuthService,
+	store *items.ItemService,
+	pets *pets.PetService,
 ) {
 	overlayUrl := os.Getenv("OVERLAY_URL")
 	extensionUrl := os.Getenv("EXTENSION_URL")
@@ -26,17 +33,45 @@ func RegisterRoutes(
 		AllowCredentials: true,
 	}))
 
-	r.GET("/overlay/listen", overlay.HandleListen)
+	r.GET("/overlay/listen",
+		auth.ListenAuthentication(db.GetOverlayId),
+		handleListen(announcer.AddClient, announcer.RemoveClient),
+	)
 
-	r.GET("/extension/user", extension.GetUserData)
-	r.GET("/extension/items", extension.GetStoreData)
-	r.POST("/extension/items", extension.BuyStoreItem)
-	r.PUT("/extension/items", extension.SetSelectedItem)
+	extension := r.Group("/extension")
+	{
+		extension.Use(authService.ExtensionMiddleware())
 
-	r.GET("/dashboard/login", dashboard.HandleLogin)
+		extension.GET("/items",
+			handleGetStoreData(store.GetChannelsItems),
+		)
+		extension.GET("/user",
+			handleGetUserData(store.GetSelectedItem, store.GetOwnedItems),
+		)
+		extension.POST("/items",
+			authService.ReceiptMiddleware(),
+			handleBuyStoreItem(store.GetItemById, store.AddOwnedItem),
+		)
+		extension.PUT("/items",
+			handleSetSelectedItem(announcer.AnnounceUpdate, store.GetItemById, store.SetSelectedItem),
+		)
+	}
 
-	r.POST("/channels/:channelId/users", twitchBot.AddPetToChannel)
-	r.DELETE("/channels/:channelId/users/:userId", twitchBot.RemoveUserFromChannel)
-	r.POST("/channels/:channelId/users/:userId/:action", twitchBot.Action)
-	r.PUT("/channels/:channelId/users/:userId", twitchBot.UpdateUser)
+	r.GET("/dashboard/login",
+		twitch.AuthorizationMiddleware(),
+		handleLogin(db.GetOverlayId),
+	)
+
+	r.POST("/channels/:channelId/users",
+		handleAddPetToChannel(announcer.AnnounceJoin, pets.GetPet),
+	)
+	r.DELETE("/channels/:channelId/users/:userId",
+		handleRemoveUserFromChannel(announcer.AnnouncePart),
+	)
+	r.POST("/channels/:channelId/users/:userId/:action",
+		handleAction(announcer.AnnounceAction),
+	)
+	r.PUT("/channels/:channelId/users/:userId",
+		handleUpdate(announcer.AnnounceUpdate, store.GetItemByName, store.SetSelectedItem),
+	)
 }

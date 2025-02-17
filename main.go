@@ -9,10 +9,10 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/config"
-	"github.com/streampets/backend/controllers"
-	"github.com/streampets/backend/repositories"
+	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/items"
+	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/routes"
-	"github.com/streampets/backend/services"
 	"github.com/streampets/backend/twitch"
 )
 
@@ -25,27 +25,27 @@ func run() error {
 		}
 	}
 
-	db := config.ConnectDB()
+	db := database.New(config.ConnectDB())
+	auth := config.CreateAuthService(db)
 
 	twitchApi := twitch.New(http.DefaultClient, "https://id.twitch.tv")
-	itemRepo := repositories.NewItemRepository(db)
-	channels := repositories.NewChannelRepo(db)
 
-	auth := config.CreateAuthService(channels)
+	announcer := announcers.NewAnnouncer()
+	cachedAnnouncer := announcers.NewCachedAnnouncer(announcer)
 
-	announcer := announcers.NewAnnouncerService()
-	cachedAnnouncer := announcers.NewCachedAnnouncerService(announcer)
-
-	items := services.NewItemService(itemRepo)
-	pets := services.NewPetService(items)
-
-	overlay := controllers.NewOverlayController(cachedAnnouncer, auth)
-	extension := controllers.NewExtensionController(cachedAnnouncer, auth, items)
-	dashboard := controllers.NewDashboardController(channels, twitchApi)
-	twitchBot := controllers.NewTwitchBotController(cachedAnnouncer, items, pets)
+	items := items.New(db)
+	pets := pets.New(items)
 
 	r := gin.Default()
-	routes.RegisterRoutes(r, overlay, extension, dashboard, twitchBot)
+	routes.RegisterRoutes(
+		r,
+		db,
+		twitchApi,
+		cachedAnnouncer,
+		auth,
+		items,
+		pets,
+	)
 
 	return r.Run()
 }

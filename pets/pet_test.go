@@ -1,4 +1,4 @@
-package services
+package pets
 
 import (
 	"testing"
@@ -12,8 +12,8 @@ import (
 func TestGetUser(t *testing.T) {
 	mock.SetUp(t)
 
-	userId := twitch.Id("user id")
-	channelId := twitch.Id("channel id")
+	userId := twitch.UserId("user id")
+	channelId := twitch.UserId("channel id")
 	username := "username"
 	image := "image"
 	item := models.Item{Image: image}
@@ -21,7 +21,7 @@ func TestGetUser(t *testing.T) {
 	itemMock := mock.Mock[SelectedItemGetter]()
 	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(item, nil)
 
-	petService := NewPetService(itemMock)
+	petService := New(itemMock)
 
 	pet, err := petService.GetPet(userId, channelId, username)
 
