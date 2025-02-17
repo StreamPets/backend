@@ -4,12 +4,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type channel struct {
-	ChannelId   string `gorm:"primaryKey"`
-	ChannelName string
-	OverlayId   uuid.UUID `gorm:"type:uuid"`
-}
-
 type ChannelRepository struct {
 	db *DB
 }

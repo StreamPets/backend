@@ -25,7 +25,7 @@ func run() error {
 		}
 	}
 
-	db := gorm.NewDB(gorm.GET_DSN())
+	db := gorm.NewDB(gorm.DSN())
 	db.Open()
 
 	itemRepo := gorm.NewItemRepository(db)

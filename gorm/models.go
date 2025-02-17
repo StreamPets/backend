@@ -2,6 +2,12 @@ package gorm
 
 import "github.com/google/uuid"
 
+type channel struct {
+	ChannelId   string `gorm:"primaryKey"`
+	ChannelName string
+	OverlayId   uuid.UUID `gorm:"type:uuid"`
+}
+
 type selectedItem struct {
 	UserId    string    `gorm:"primaryKey"`
 	ChannelId string    `gorm:"primaryKey"`
