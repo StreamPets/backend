@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/google/uuid"
-	"github.com/streampets/backend/models"
+	streampets "github.com/streampets/backend"
 )
 
 type AuthService struct {
@@ -93,7 +93,7 @@ func (s *AuthService) ReceiptMiddleware() func(ctx *gin.Context) {
 	}
 
 	type product struct {
-		Rarity models.Rarity `json:"sku"`
+		Rarity streampets.Rarity `json:"sku"`
 	}
 
 	type data struct {

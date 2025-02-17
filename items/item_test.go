@@ -5,7 +5,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/ovechkin-dm/mockio/mock"
-	"github.com/streampets/backend/models"
+	streampets "github.com/streampets/backend"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,16 +15,16 @@ func TestGetItemByName(t *testing.T) {
 	channelId := "channel id"
 	itemName := "item name"
 
-	item := models.Item{Name: itemName}
+	item := streampets.Item{Name: itemName}
 
 	itemMock := mock.Mock[database]()
-	mock.When(itemMock.GetItemByName(channelId, itemName)).ThenReturn(item, nil)
+	mock.When(itemMock.ItemByName(channelId, itemName)).ThenReturn(item, nil)
 
 	database := New(itemMock)
 
 	got, err := database.GetItemByName(channelId, itemName)
 
-	mock.Verify(itemMock, mock.Once()).GetItemByName(channelId, itemName)
+	mock.Verify(itemMock, mock.Once()).ItemByName(channelId, itemName)
 
 	assert.NoError(t, err)
 	assert.Equal(t, item, got)
@@ -34,16 +34,16 @@ func TestGetItemById(t *testing.T) {
 	mock.SetUp(t)
 
 	itemId := uuid.New()
-	item := models.Item{ItemId: itemId}
+	item := streampets.Item{ItemId: itemId}
 
 	itemMock := mock.Mock[database]()
-	mock.When(itemMock.GetItemById(itemId)).ThenReturn(item, nil)
+	mock.When(itemMock.Item(itemId)).ThenReturn(item, nil)
 
 	database := New(itemMock)
 
 	got, err := database.GetItemById(itemId)
 
-	mock.Verify(itemMock, mock.Once()).GetItemById(itemId)
+	mock.Verify(itemMock, mock.Once()).Item(itemId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, item, got)
@@ -54,10 +54,10 @@ func TestGetSelectedItem(t *testing.T) {
 
 	userId := "user id"
 	channelId := "channel id"
-	want := models.Item{ItemId: uuid.New()}
+	want := streampets.Item{ItemId: uuid.New()}
 
 	itemMock := mock.Mock[database]()
-	mock.When(itemMock.GetSelectedItem(userId, channelId)).ThenReturn(want, nil)
+	mock.When(itemMock.SelectedItem(userId, channelId)).ThenReturn(want, nil)
 
 	itemService := New(itemMock)
 
@@ -76,7 +76,7 @@ func TestSetSelectedItem(t *testing.T) {
 		itemId := uuid.New()
 
 		itemMock := mock.Mock[database]()
-		mock.When(itemMock.CheckOwnedItem(userId, itemId)).ThenReturn(true, nil)
+		mock.When(itemMock.ItemOwned(userId, itemId)).ThenReturn(true, nil)
 
 		itemService := New(itemMock)
 
@@ -95,7 +95,7 @@ func TestSetSelectedItem(t *testing.T) {
 		itemId := uuid.New()
 
 		itemMock := mock.Mock[database]()
-		mock.When(itemMock.CheckOwnedItem(userId, itemId)).ThenReturn(false, nil)
+		mock.When(itemMock.ItemOwned(userId, itemId)).ThenReturn(false, nil)
 
 		itemService := New(itemMock)
 
@@ -112,16 +112,16 @@ func TestGetChannelsItems(t *testing.T) {
 	mock.SetUp(t)
 
 	channelId := "channel id"
-	expected := []models.Item{{}}
+	expected := []streampets.Item{{}}
 
 	itemMock := mock.Mock[database]()
-	mock.When(itemMock.GetChannelsItems(channelId)).ThenReturn(expected, nil)
+	mock.When(itemMock.ItemsByChannelId(channelId)).ThenReturn(expected, nil)
 
 	itemService := New(itemMock)
 
 	items, err := itemService.GetChannelsItems(channelId)
 
-	mock.Verify(itemMock, mock.Once()).GetChannelsItems(channelId)
+	mock.Verify(itemMock, mock.Once()).ItemsByChannelId(channelId)
 
 	assert.NoError(t, err)
 	assert.Equal(t, expected, items)
@@ -132,11 +132,11 @@ func TestGetOwnedItems(t *testing.T) {
 
 	channelId := "channel id"
 	userId := "user id"
-	expected := []models.Item{{}}
+	expected := []streampets.Item{{}}
 
 	itemMock := mock.Mock[database]()
 
-	mock.When(itemMock.GetOwnedItems(channelId, userId)).ThenReturn(expected, nil)
+	mock.When(itemMock.ItemsByUserId(channelId, userId)).ThenReturn(expected, nil)
 
 	itemService := New(itemMock)
 
@@ -154,7 +154,7 @@ func TestAddOwnedItem(t *testing.T) {
 	transactionId := uuid.New()
 
 	itemMock := mock.Mock[database]()
-	mock.When(itemMock.AddOwnedItem(userId, itemId, transactionId)).ThenReturn(nil)
+	mock.When(itemMock.CreateOwnedItem(userId, itemId, transactionId)).ThenReturn(nil)
 
 	itemService := New(itemMock)
 

@@ -9,7 +9,7 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/config"
-	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/gorm"
 	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/routes"
@@ -25,21 +25,26 @@ func run() error {
 		}
 	}
 
-	db := database.New(config.ConnectDB())
-	auth := config.CreateAuthService(db)
+	db := gorm.NewDB(gorm.DSN())
+	db.Open()
+
+	itemRepo := gorm.NewItemRepository(db)
+	channelRepo := gorm.NewChannelRepository(db)
+
+	auth := config.CreateAuthService()
 
 	twitchApi := twitch.New(http.DefaultClient, "https://id.twitch.tv")
 
 	announcer := announcers.NewAnnouncer()
 	cachedAnnouncer := announcers.NewCachedAnnouncer(announcer)
 
-	items := items.New(db)
+	items := items.New(itemRepo)
 	pets := pets.New(items)
 
 	r := gin.Default()
 	routes.RegisterRoutes(
 		r,
-		db,
+		channelRepo,
 		twitchApi,
 		cachedAnnouncer,
 		auth,

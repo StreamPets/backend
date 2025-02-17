@@ -7,7 +7,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/streampets/backend/announcers"
 	"github.com/streampets/backend/auth"
-	"github.com/streampets/backend/database"
+	"github.com/streampets/backend/gorm"
 	"github.com/streampets/backend/items"
 	"github.com/streampets/backend/pets"
 	"github.com/streampets/backend/twitch"
@@ -15,7 +15,7 @@ import (
 
 func RegisterRoutes(
 	r *gin.Engine,
-	db *database.DB,
+	channelRepo *gorm.ChannelRepository,
 	twitch *twitch.TwitchApi,
 	announcer *announcers.CachedAnnouncer,
 	authService *auth.AuthService,
@@ -34,7 +34,7 @@ func RegisterRoutes(
 	}))
 
 	r.GET("/overlay/listen",
-		auth.ListenAuthentication(db.GetOverlayId),
+		auth.ListenAuthentication(channelRepo.GetOverlayId),
 		handleListen(announcer.AddClient, announcer.RemoveClient),
 	)
 
@@ -59,7 +59,7 @@ func RegisterRoutes(
 
 	r.GET("/dashboard/login",
 		twitch.AuthorizationMiddleware(),
-		handleLogin(db.GetOverlayId),
+		handleLogin(channelRepo.GetOverlayId),
 	)
 
 	r.POST("/channels/:channelId/users",

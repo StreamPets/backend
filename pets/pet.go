@@ -1,8 +1,6 @@
 package pets
 
-import (
-	"github.com/streampets/backend/models"
-)
+import streampets "github.com/streampets/backend"
 
 type Pet struct {
 	UserId   string `json:"userId"`
@@ -11,7 +9,7 @@ type Pet struct {
 }
 
 type SelectedItemGetter interface {
-	GetSelectedItem(userId, channelId string) (models.Item, error)
+	GetSelectedItem(userId, channelId string) (streampets.Item, error)
 }
 
 type PetService struct {
